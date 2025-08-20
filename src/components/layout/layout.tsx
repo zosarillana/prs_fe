@@ -14,7 +14,7 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen ">
       {/* Navbar */}
       <Navbar sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       

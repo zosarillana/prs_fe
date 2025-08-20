@@ -21,7 +21,7 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="p-6 -mt-4">
+    <div className="p-6 -mt-4 ">
       <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
 
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
@@ -33,7 +33,7 @@ export default function Dashboard() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Users</CardTitle>
               <svg
-                xmlns="http://www.w3.org/2000/svg"
+                xmlns="http://www.w3./2000/svg"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
