@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { NavLink } from "react-router-dom";
 import { useAuthStore } from "@/store/auth/authStore";
 import {
   LayoutDashboard,
@@ -21,6 +22,8 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
   const user = useAuthStore((state) => state.user);
+  const [activeItem, setActiveItem] = useState<string>("");
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   return (
     <>
@@ -34,13 +37,11 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
 
       {/* Sidebar */}
       <div
-        className={`
-          fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50
+        className={`fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50
           transform transition-transform duration-300 ease-in-out
           border-r border-gray-300
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          flex flex-col justify-between
-        `}
+          flex flex-col justify-between`}
       >
         <div>
           {/* Sidebar Header */}
@@ -59,10 +60,17 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
 
           {/* User Info Section */}
           {user && (
-            <Popover>
+            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <div className="p-4 border-b border-gray-300 bg-gray-100">
                 <PopoverTrigger asChild>
-                  <div className="w-full px-3 py-2 text-gray-600 hover:bg-gray-200 rounded-md transition-colors cursor-pointer">
+                  <div
+                    className={`w-full px-3 py-2 rounded-md transition-colors cursor-pointer
+                      ${
+                        popoverOpen
+                          ? "bg-gray-200 text-gray-900"
+                          : "text-gray-600 hover:bg-gray-200"
+                      }`}
+                  >
                     <div className="flex items-center justify-between w-full">
                       {/* Left side (Avatar + text) */}
                       <div className="flex items-center gap-2">
@@ -89,16 +97,38 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
 
               {/* Popover menu */}
               <PopoverContent side="right" align="end" className="mt-20 w-48">
-                <div className="flex flex-col">
-                  <button className="text-sm flex items-center gap-2 text-left px-3 py-2 hover:bg-gray-100 rounded">
-                    <User className="w-4 h-4 text-gray-600" />
+                <div className="flex flex-col gap-1">
+                  <button
+                    onClick={() => setActiveItem("profile")}
+                    className={`text-sm flex items-center gap-2 text-left px-2 py-2 rounded transition-colors ${
+                      activeItem === "profile"
+                        ? "bg-gray-200 text-gray-900 font-medium"
+                        : "hover:bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    <User className="w-4 h-4" />
                     Profile
                   </button>
-                  <button className="text-sm flex items-center gap-2 text-left px-3 py-2 hover:bg-gray-100 rounded">
-                    <Settings className="w-4 h-4 text-gray-600" />
+                  <button
+                    onClick={() => setActiveItem("settings")}
+                    className={`text-sm flex items-center gap-2 text-left px-2 py-2 rounded transition-colors ${
+                      activeItem === "settings"
+                        ? "bg-gray-200 text-gray-900 font-medium"
+                        : "hover:bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    <Settings className="w-4 h-4" />
                     Settings
                   </button>
-                  <button className="text-sm flex items-center gap-2 text-left px-3 py-2 hover:bg-gray-100 rounded text-red-500">
+                  <div className="border-t border-gray-300 -mx-2"></div>
+                  <button
+                    onClick={() => setActiveItem("logout")}
+                    className={`text-sm flex items-center gap-2 text-left px-2 py-2 rounded transition-colors ${
+                      activeItem === "logout"
+                        ? "bg-gray-100 text-gray-600 font-medium"
+                        : "hover:bg-gray-100 text-gray-500"
+                    }`}
+                  >
                     <LogOut className="w-4 h-4" />
                     Logout
                   </button>
@@ -112,14 +142,20 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
             <ul className="space-y-2">
               <span className="text-sm px-3 text-gray-900 -ml-1">Home</span>
               <li>
-                <Link
+                <NavLink
                   to="/dashboard"
-                  className="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
                   onClick={toggleSidebar}
+                  className={({ isActive }) =>
+                    `flex items-center px-3 py-2 rounded-md transition-colors ${
+                      isActive
+                        ? "bg-gray-0 text-gray-900 font-medium"
+                        : "text-gray-600 hover:bg-gray-200"
+                    }`
+                  }
                 >
                   <LayoutDashboard className="w-5 h-5 mr-3" />
                   <p>Dashboard</p>
-                </Link>
+                </NavLink>
               </li>
             </ul>
           </nav>
@@ -130,14 +166,6 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
           <p className="text-xs">
             Copyright ©2025-2026. agrieximfze. All rights reserved.
           </p>
-          {/* <Link
-            to="/settings"
-            className="flex items-center px-3 py-2 text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-            onClick={toggleSidebar}
-          >
-            <Settings className="w-5 h-5 mr-3" />
-            <p>Settings</p>
-          </Link> */}
         </div>
       </div>
     </>
