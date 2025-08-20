@@ -3,34 +3,64 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "./button";
 import { useAuthStore } from "@/store/auth/authStore";
 
-export default function Navbar() {
-const navigate = useNavigate();
-const user = useAuthStore((state) => state.user);
-const clearAuth = useAuthStore((state) => state.clearAuth);
+interface NavbarProps {
+  sidebarOpen: boolean;
+  toggleSidebar: () => void;
+}
 
-const handleLogout = async () => {
-  await authService.logout();
-  clearAuth();
-  navigate("/login");
-};
+export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
+  const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+
+  const handleLogout = async () => {
+    await authService.logout();
+    clearAuth();
+    navigate("/login");
+  };
 
   return (
-    <nav className="bg-white shadow-md px-6 py-4 flex justify-between items-center sticky top-0 z-50">
-      <div className="text-xl font-bold">
-        <Link to="/" className="flex flex-row gap-2">
+    <nav className={`
+      bg-white shadow-sm px-6 py-3 border-b border-gray-300 flex justify-between items-center sticky top-0 z-40
+      transition-all duration-300 ease-in-out
+      ${sidebarOpen ? 'ml-64' : 'ml-0'}
+    `}>
+      <div className="flex items-center">
+        {/* Hamburger Menu Button */}
+        <button 
+          onClick={toggleSidebar}
+          className="mr-4 focus:outline-none hover:bg-gray-100 p-1 rounded"
+          aria-label="Toggle sidebar"
+        >
+          <svg 
+            className="w-5 h-5" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24" 
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d={sidebarOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
+            />
+          </svg>
+        </button>
+        
+        {/* <Link to="/" className="flex flex-row gap-2 items-center">
           <img
             src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS8fssEwyy16ieSoPo_62lEqyx0meFbsagCsg&s"
             alt="MyApp Logo"
             className="h-8 w-auto"
           />
-          <p className="text-green-700">agrieximfze</p>
-        </Link>
+          <p className="text-green-700 font-medium">agrieximfze</p>
+        </Link> */}
       </div>
 
       <div className="space-x-4 flex items-center">
         {user ? (
-          <>
-            <span className="text-gray-700">Hello, {user.name}</span>
+          <>        
             <Button variant="outline" size="sm" onClick={handleLogout}>
               Logout
             </Button>
@@ -45,9 +75,7 @@ const handleLogout = async () => {
             </Link>
           </>
         )}
-        <Button variant="outline" size="sm">
-          Contact
-        </Button>
+     
       </div>
     </nav>
   );

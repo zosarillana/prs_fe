@@ -1,11 +1,12 @@
 // src/store/authStore.ts
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 type User = {
   id: number;
   name: string;
   email: string;
+  avatarUrl?: string;
 };
 
 type AuthState = {
@@ -31,36 +32,39 @@ export const useAuthStore = create<AuthState & AuthActions>()(
   persist(
     (set) => ({
       ...initialState,
-      
+
       // Set only the token
-      setToken: (token: string) => set((state) => ({ 
-        token,
-        isAuthenticated: !!(token && state.user)
-      })),
-      
+      setToken: (token: string) =>
+        set((state) => ({
+          token,
+          isAuthenticated: !!(token && state.user),
+        })),
+
       // Set only the user
-      setUser: (user: User) => set((state) => ({ 
-        user,
-        isAuthenticated: !!(state.token && user)
-      })),
-      
+      setUser: (user: User) =>
+        set((state) => ({
+          user,
+          isAuthenticated: !!(state.token && user),
+        })),
+
       // Set both token and user - THIS IS THE MISSING METHOD
-      setAuth: (token: string, user: User) => set({ 
-        token,
-        user,
-        isAuthenticated: true 
-      }),
-      
+      setAuth: (token: string, user: User) =>
+        set({
+          token,
+          user,
+          isAuthenticated: true,
+        }),
+
       // Clear all auth data
-      clearAuth: () => set(initialState)
+      clearAuth: () => set(initialState),
     }),
     {
-      name: 'auth-storage',
+      name: "auth-storage",
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ 
+      partialize: (state) => ({
         token: state.token,
         user: state.user,
-        isAuthenticated: state.isAuthenticated
+        isAuthenticated: state.isAuthenticated,
       }),
       // Rehydrate isAuthenticated state on load
       onRehydrateStorage: () => (state) => {

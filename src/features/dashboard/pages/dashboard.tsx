@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CardSkeleton } from "@/components/ui/cardskeleton";
+import { CardSkeleton } from "@/components/ui/cardSkeleton";
 import { DashboardData } from "../types";
 
 export default function Dashboard() {
@@ -21,9 +21,9 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="p-6">
+    <div className="p-6 -mt-4">
       <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-      
+
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         {/* Card 1 */}
         {loading ? (
@@ -49,7 +49,9 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{data?.users}</div>
-              <p className="text-xs text-muted-foreground">Total active users</p>
+              <p className="text-xs text-muted-foreground">
+                Total active users
+              </p>
             </CardContent>
           </Card>
         )}
@@ -127,8 +129,9 @@ export default function Dashboard() {
                 strokeWidth="2"
                 className="h-4 w-4 text-muted-foreground"
               >
-                <path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4c极-1.1.9-2 2-2h8a2 2 0 0 1 2 2v5Z" />
-                <path d="M18 9h2a2 2 0 0极1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1" />
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
             </CardHeader>
             <CardContent>
