@@ -1,7 +1,18 @@
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/store/auth/authStore";
-import { LayoutDashboard, MoreVertical } from "lucide-react";
+import {
+  LayoutDashboard,
+  LogOut,
+  MoreVertical,
+  Settings,
+  User,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -48,31 +59,52 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
 
           {/* User Info Section */}
           {user && (
-            <div className="p-4 border-b border-gray-300 bg-gray-50 ">
-              <div className="flex justify-between items-center px-3 py-2 text-gray-600 hover:bg-gray-200 rounded-md transition-colors cursor-pointer">
-                {/* Left side (Avatar + text) */}
-                <div className="flex items-center gap-3 ">
-                  <Avatar className="h-10 w-10">
-                    {/* <AvatarImage src={user?.avatarUrl} alt={user?.name} /> */}
-                    <AvatarImage src="https://github.com/shadcn.png" />
-                    <AvatarFallback>
-                      {user?.name?.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+            <Popover>
+              <div className="p-4 border-b border-gray-300 bg-gray-100">
+                <PopoverTrigger asChild>
+                  <div className="w-full px-3 py-2 text-gray-600 hover:bg-gray-200 rounded-md transition-colors cursor-pointer">
+                    <div className="flex items-center justify-between w-full">
+                      {/* Left side (Avatar + text) */}
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src="https://github.com/shadcn.png" />
+                          <AvatarFallback>
+                            {user?.name?.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="text-xs text-gray-600">Welcome back,</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {user?.name}
+                          </p>
+                        </div>
+                      </div>
 
-                  <div>
-                    <p className="text-xs text-gray-600">Welcome back,</p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {user?.name}
-                    </p>
+                      {/* Right side (⋮ button) */}
+                      <MoreVertical className="w-5 h-5 text-gray-500" />
+                    </div>
                   </div>
-                </div>
-
-                {/* Right side (⋮ button) */}
-
-                <MoreVertical className="w-5 h-5 text-gray-500" />
+                </PopoverTrigger>
               </div>
-            </div>
+
+              {/* Popover menu */}
+              <PopoverContent side="right" align="end" className="mt-20 w-48">
+                <div className="flex flex-col">
+                  <button className="text-sm flex items-center gap-2 text-left px-3 py-2 hover:bg-gray-100 rounded">
+                    <User className="w-4 h-4 text-gray-600" />
+                    Profile
+                  </button>
+                  <button className="text-sm flex items-center gap-2 text-left px-3 py-2 hover:bg-gray-100 rounded">
+                    <Settings className="w-4 h-4 text-gray-600" />
+                    Settings
+                  </button>
+                  <button className="text-sm flex items-center gap-2 text-left px-3 py-2 hover:bg-gray-100 rounded text-red-500">
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
           )}
 
           {/* Main Navigation */}
