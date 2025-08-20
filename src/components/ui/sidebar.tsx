@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth/authStore";
 import {
   LayoutDashboard,
@@ -14,6 +14,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { authService } from "@/features/auth/authService";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -24,6 +25,13 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
   const user = useAuthStore((state) => state.user);
   const [activeItem, setActiveItem] = useState<string>("");
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const navigate = useNavigate();
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+  const handleLogout = async () => {
+    await authService.logout();
+    clearAuth();
+    navigate("/login");
+  };
 
   return (
     <>
@@ -122,7 +130,10 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
                   </button>
                   <div className="border-t border-gray-300 -mx-2"></div>
                   <button
-                    onClick={() => setActiveItem("logout")}
+                    onClick={() => {
+                      handleLogout();
+                      setActiveItem("logout");
+                    }}
                     className={`text-sm flex items-center gap-2 text-left px-2 py-2 rounded transition-colors ${
                       activeItem === "logout"
                         ? "bg-gray-100 text-gray-600 font-medium"

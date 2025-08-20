@@ -1,6 +1,4 @@
-import { authService } from "@/features/auth/authService";
-import { Link, useNavigate } from "react-router-dom";
-import { Button } from "./button";
+import { Link } from "react-router-dom";
 import { useAuthStore } from "@/store/auth/authStore";
 
 interface NavbarProps {
@@ -9,19 +7,14 @@ interface NavbarProps {
 }
 
 export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
-  const navigate = useNavigate();
-  const user = useAuthStore((state) => state.user);
-  const clearAuth = useAuthStore((state) => state.clearAuth);
 
-  const handleLogout = async () => {
-    await authService.logout();
-    clearAuth();
-    navigate("/login");
-  };
+  const user = useAuthStore((state) => state.user);
+ 
+
 
   return (
     <nav className={`
-      bg-white shadow-sm px-6 py-3 border-b border-gray-300 flex justify-between items-center sticky top-0 z-40
+      bg-white shadow-sm px-6 py-3.5 border-b border-gray-300 flex justify-between items-center sticky top-0 z-40
       transition-all duration-300 ease-in-out
       ${sidebarOpen ? 'ml-64' : 'ml-0'}
     `}>
@@ -61,9 +54,9 @@ export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
       <div className="space-x-4 flex items-center">
         {user ? (
           <>        
-            <Button variant="outline" size="sm" onClick={handleLogout}>
+            {/* <Button variant="outline" size="sm" onClick={handleLogout}>
               Logout
-            </Button>
+            </Button> */}
           </>
         ) : (
           <>
