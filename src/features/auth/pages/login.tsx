@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { useLogin } from "../hooks/useLogin";
 import { useAuthStore } from "@/store/auth/authStore";
 import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const loginMutation = useLogin();
@@ -24,12 +26,16 @@ export default function LoginPage() {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-    mutate(
+     mutate(
       { email, password },
       {
         onSuccess: (data) => {
           setAuth(data.access_token, data.user); // update Zustand store
+          toast.success("Welcome back 👋"); // ✅ success toast
           navigate("/dashboard");
+        },
+        onError: (err: any) => {
+          toast.error(err?.message || "Invalid email or password"); // ✅ error toast
         },
       }
     );
@@ -76,7 +82,14 @@ export default function LoginPage() {
             </p>
 
             <Button type="submit" disabled={isPending} className="w-full">
-              {isPending ? "Logging in..." : "Sign In"}
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+             
+                </>
+              ) : (
+                "Sign In"
+              )}
             </Button>
 
             {isError && (

@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   LogOut,
   MoreVertical,
+  Receipt,
   Settings,
   User,
 } from "lucide-react";
@@ -27,7 +28,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const navigate = useNavigate();
   const clearAuth = useAuthStore((state) => state.clearAuth);
-  
+
   const handleLogout = async () => {
     await authService.logout();
     clearAuth();
@@ -92,9 +93,25 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">Welcome back,</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Welcome back,
+                          </p>
                           <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {user?.name}
+                          </p>
+                          <p className="text-xs font-light text-gray-900 dark:text-gray-100">
+                            {user?.department
+                              ?.map((dep) =>
+                                dep
+                                  .split("_")
+                                  .map(
+                                    (word) =>
+                                      word.charAt(0).toUpperCase() +
+                                      word.slice(1)
+                                  )
+                                  .join(" ")
+                              )
+                              .join(", ")}{" "}
                           </p>
                         </div>
                       </div>
@@ -107,7 +124,11 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
               </div>
 
               {/* Popover menu */}
-              <PopoverContent side="right" align="end" className="mt-20 w-48 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <PopoverContent
+                side="right"
+                align="end"
+                className="mt-20 w-48 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+              >
                 <div className="flex flex-col gap-1">
                   <button
                     onClick={() => setActiveItem("profile")}
@@ -154,11 +175,12 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
           {/* Main Navigation */}
           <nav className="p-4">
             <ul className="space-y-2">
-              <span className="text-sm px-3 text-gray-900 dark:text-gray-100 -ml-1">Home</span>
+              <span className="text-sm px-3 text-gray-900 dark:text-gray-100 -ml-1">
+                Home
+              </span>
               <li>
                 <NavLink
                   to="/dashboard"
-                  onClick={toggleSidebar}
                   className={({ isActive }) =>
                     `flex items-center px-3 py-2 rounded-md transition-colors ${
                       isActive
@@ -169,6 +191,22 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
                 >
                   <LayoutDashboard className="w-5 h-5 mr-3" />
                   <p>Dashboard</p>
+                </NavLink>
+              </li>
+
+              <li>
+                <NavLink
+                  to="/purchase-reports"
+                  className={({ isActive }) =>
+                    `flex items-center px-3 py-2 rounded-md transition-colors ${
+                      isActive
+                        ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium"
+                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    }`
+                  }
+                >
+                  <Receipt className="w-5 h-5 mr-3" />
+                  <p>Purchase Reports</p>
                 </NavLink>
               </li>
             </ul>

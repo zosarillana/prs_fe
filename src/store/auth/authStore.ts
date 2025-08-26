@@ -1,13 +1,7 @@
 // src/store/authStore.ts
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-
-type User = {
-  id: number;
-  name: string;
-  email: string;
-  avatarUrl?: string;
-};
+import { User } from "@/types/users";
 
 type AuthState = {
   token: string | null;

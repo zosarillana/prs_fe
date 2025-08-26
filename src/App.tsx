@@ -13,6 +13,9 @@ import LoginPage from "./features/auth/pages/login";
 import SignupPage from "./features/auth/pages/register";
 import { useThemeStore } from "@/store/theme/themeStore";
 import { useEffect } from "react";
+import PurchaseReport from "./features/purchasereports/pages/purchaseReport";
+import CreatePurchaseReport from "./features/purchasereports/pages/createPurchaseReport";
+import { Toaster } from "sonner";
 
 function AppWrapper() {
   const user = useAuthStore((state) => state.user);
@@ -49,7 +52,6 @@ function AppWrapper() {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<h1>404 Not Found</h1>} />
         </Routes>
       </div>
     );
@@ -69,6 +71,25 @@ function AppWrapper() {
           }
         />
         <Route path="*" element={<h1>404 Not Found</h1>} />
+        <Route
+          path="/purchase-reports"
+          element={
+            <ProtectedRoute>
+              <PurchaseReport />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<h1>404 Not Found</h1>} />
+        <Route path="*" element={<h1>404 Not Found</h1>} />
+        <Route
+          path="/purchase-reports/create"
+          element={
+            <ProtectedRoute>
+              <CreatePurchaseReport />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<h1>404 Not Found</h1>} />
       </Routes>
     </Layout>
   );
@@ -78,6 +99,8 @@ function App() {
   return (
     <Router>
       <AppWrapper />
+      {/* 👇 stays mounted globally */}
+      <Toaster position="top-right" />
     </Router>
   );
 }
