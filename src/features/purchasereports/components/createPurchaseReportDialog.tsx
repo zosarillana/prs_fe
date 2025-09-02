@@ -31,7 +31,7 @@ import {
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth/authStore";
 
-export function IssuePurchaseReportDialog({
+export function CreatePurchaseReportDialog({
   onSubmit,
 }: {
   onSubmit: (data: {

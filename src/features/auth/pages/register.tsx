@@ -27,7 +27,7 @@ export default function SignupPage() {
     const password_confirmation = formData.get("confirm-password") as string;
 
     mutate(
-      { name, email, password, password_confirmation },
+      { name, email, password, role: ["user"], department: ["it_department"], password_confirmation },
       {
         onSuccess: (data) => {
           setAuth(data.access_token, data.user); // update Zustand store

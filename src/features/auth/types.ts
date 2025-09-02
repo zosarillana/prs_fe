@@ -3,6 +3,8 @@ export interface RegisterInput {
   name: string;
   email: string;
   password: string;
+  department: string[];
+  role: string[];
   password_confirmation: string;
 }
 
@@ -26,7 +28,6 @@ export interface LoginInput {
 // LoginResponse and RegisterResponse can be the same as AuthResponse
 export type LoginResponse = AuthResponse;
 export type RegisterResponse = AuthResponse;
-
 
 // src/features/auth/types.ts
 export interface ApiError {

@@ -72,13 +72,13 @@ export default function LoginPage() {
               />
             </div>
             <p className="text-sm text-gray-600">
-              Don’t have an account?{" "}
-              <a
+              Don’t have an account?{" "}Contact Admin.
+              {/* <a
                 href="/register"
                 className="font-medium text-blue-600 hover:underline"
               >
                 Sign up
-              </a>
+              </a> */}
             </p>
 
             <Button type="submit" disabled={isPending} className="w-full">

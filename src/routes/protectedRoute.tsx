@@ -1,45 +1,30 @@
-// src/routes/ProtectedRoute.tsx
-import { ReactNode, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { authService } from "@/features/auth/authService";
+import { Navigate } from "react-router-dom";
+import { useAuthStore } from "@/store/auth/authStore";
 
-interface Props {
-  children: ReactNode;
+interface ProtectedRouteProps {
+  children: React.ReactNode;
 }
 
-export default function ProtectedRoute({ children }: Props) {
-  const [loading, setLoading] = useState(true);
-  const [authorized, setAuthorized] = useState(false);
-  const navigate = useNavigate();
+export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+  const { isAuthenticated, loading, initialized } = useAuthStore();
 
-  useEffect(() => {
-    authService
-      .me()
-      .then(() => setAuthorized(true))
-      .catch(() => {
-        setAuthorized(false);
-        navigate("/login");
-      })
-      .finally(() => setLoading(false));
-  }, [navigate]);
-
-  if (loading) return <FullScreenLoader />;
-  if (!authorized) return null;
-
-  return <>{children}</>;
-}
-
-// Full-screen loading component with dimmed overlay
-function FullScreenLoader() {
-  return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="flex flex-col items-center">
-        {/* Spinner */}
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-        
-        {/* Optional text */}
-        <p className="text-muted-foreground">Loading...</p>
+  // Show loading while auth is being initialized (only happens once)
+  if (!initialized && loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // If not authenticated, redirect to login
+  if (initialized && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // ✅ NO AUTH CALLS HERE - just return children if authenticated
+  return <>{children}</>;
 }

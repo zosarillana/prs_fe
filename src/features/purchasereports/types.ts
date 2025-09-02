@@ -10,8 +10,11 @@ export interface PurchaseReport {
   date_created?: string;
   quantity: number[];
   unit: string[];
+
   item_description: string[];
   tag: string[];
+  item_status: string[];
+  pr_status: string;
   remarks: string[];
   user: User;
 }
@@ -21,7 +24,7 @@ export interface PurchaseReportInput {
   pr_purpose: string;
   department: string;
   date_submitted?: string; // ✅ optional
-  date_needed?: string;    // ✅ optional
+  date_needed?: string; // ✅ optional
   quantity: number[];
   unit: string[];
   item_description: string[];

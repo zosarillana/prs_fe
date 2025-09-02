@@ -1,6 +1,6 @@
 // components/ui/card-skeleton.tsx
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Skeleton } from "@/components/skeleton";
+import { Skeleton } from "@/components/ui/skeletons/skeleton";
 
 export function CardSkeleton() {
   return (

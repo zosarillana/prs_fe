@@ -24,13 +24,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Eye,
-  Loader,
+  Plus,
+  Search,
   MoreVertical,
   PencilLine,
-  Plus,
   Trash,
-  Search,
+  Edit,
+  Loader,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -40,12 +40,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Link } from "react-router-dom";
 import { TableSkeleton } from "@/components/ui/skeletons/purchasereports/tableSkeleton";
-import { ViewPurchaseReportDialog } from "../components/viewPurchaseReportDialog";
-import { usePurchaseReports } from "../hooks/usePurchaseReports";
+import { RegisterDialog } from "../components/registerDialog";
+import { useUsers } from "../hooks/useUsers";
+import type { User } from "../types";
+import { EditUserDialog } from "../components/editUserDialog";
+import { toast } from "sonner";
 
-export default function PurchaseReport() {
+export default function Users() {
   const {
-    user,
     data,
     loading,
     fetching,
@@ -53,21 +55,21 @@ export default function PurchaseReport() {
     setPage,
     pageSize,
     setPageSize,
-    open,
-    setOpen,
-    viewId,
     searchTerm,
     setSearchTerm,
-    handleView,
-    handleEdit,
+    openModal,
+    setOpenModal,
+    openEditModal,
+    selectedUser,
+    setSelectedUser,
+    setOpenEditModal,
     handleDelete,
-  } = usePurchaseReports();
+  } = useUsers();
 
-  // First load skeleton
   if (loading) {
     return (
       <div className="p-6 -mt-4">
-        <h1 className="text-3xl font-bold mb-6">Purchase Reports</h1>
+        <h1 className="text-3xl font-bold mb-6">Users</h1>
         <TableSkeleton rows={5} />
       </div>
     );
@@ -77,20 +79,20 @@ export default function PurchaseReport() {
     <div className="p-6 -mt-4">
       {/* header */}
       <div className="flex flex-row justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Purchase Reports</h1>
+        <h1 className="text-3xl font-bold">Users</h1>
         <div className="flex flex-row gap-2">
-          <Button asChild>
-            <Link to="/purchase-reports/create">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Purchase Report
-            </Link>
+          <Button onClick={() => setOpenModal(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Register New User
           </Button>
+
+          <RegisterDialog open={openModal} onOpenChange={setOpenModal} />
 
           <div className="relative w-64">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search reports..."
+              placeholder="Search users..."
               className="pl-8"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -104,92 +106,80 @@ export default function PurchaseReport() {
         <Table className="border-separate border-spacing-0 w-full">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[140px] border-b">
-                Series Number
-              </TableHead>
-              <TableHead className="border-b">Purpose</TableHead>
+              <TableHead className="w-[60px] border-b">#</TableHead>
+              <TableHead className="w-[160px] border-b">Full Name</TableHead>
+              <TableHead className="border-b">Email</TableHead>
               <TableHead className="border-b">Department</TableHead>
-              <TableHead className="border-b">Submitted By</TableHead>
-              <TableHead className="border-b">Status</TableHead>
-              <TableHead className="border-b">Date Needed</TableHead>
+              <TableHead className="border-b">Role</TableHead>
+              <TableHead className="border-b">Created At</TableHead>
               <TableHead className="w-[100px] border-b">Action</TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody className="cursor-pointer">
-            {/* Inline loader while fetching */}
             {fetching && (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-6">
                   <div className="flex items-center justify-center gap-2">
                     <Loader className="h-5 w-5 animate-spin text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
-                      Updating reports...
+                      Loading users...
                     </span>
                   </div>
                 </TableCell>
               </TableRow>
             )}
 
-            {/* Data rows */}
             {!fetching &&
-              data?.items
-                .filter((item) =>
-                  item.tag.some((tag) => user?.department?.includes(tag))
-                )
-                .map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">
-                      {item.series_no}
-                    </TableCell>
-                    <TableCell>{item.pr_purpose}</TableCell>
-                    <TableCell>
-                      {item.department
-                        .split("_")
-                        .map((word) =>
-                          word.toLowerCase() === "it"
-                            ? "IT"
-                            : word.charAt(0).toUpperCase() +
-                              word.slice(1).toLowerCase()
-                        )
-                        .join(" ")}
-                    </TableCell>
-                    <TableCell className="capitalize">
-                      {item.user.name}
-                    </TableCell>
-                    <TableCell className="capitalize">
-                      {item.pr_status}
-                    </TableCell>
-                    <TableCell>{item.date_needed}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                            <span className="sr-only">Actions</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="start"
-                          className="w-34 animate-in fade-in-0 zoom-in-95"
+              data?.items.map((user: User, idx: number) => (
+                <TableRow key={user.id}>
+                  <TableCell>{(page - 1) * pageSize + idx + 1}</TableCell>
+                  <TableCell>{user.name}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.department?.join(", ")}</TableCell>
+                  <TableCell>{user.role?.join(", ")}</TableCell>
+                  <TableCell>
+                    {new Date(user.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setOpenEditModal(true);
+                          }}
                         >
-                          <DropdownMenuItem onClick={() => handleView(item.id)}>
-                            <Eye className="mr-2 h-4 w-4" /> View
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(item.id)}>
-                            <PencilLine className="mr-2 h-4 w-4" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(item)}
-                            className="text-red-600 focus:text-red-600 cursor-pointer"
-                          >
-                            <Trash className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          <PencilLine className="h-4 w-4 mr-2" /> Edit
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                          onClick={() => {
+                            toast.warning(`Delete ${user.name}?`, {
+                              description: "This action cannot be undone.",
+                              action: {
+                                label: "Confirm",
+                                onClick: () => handleDelete(user.id),
+                              },
+                              cancel: {
+                                label: "Cancel",
+                                onClick: () => {},
+                              },
+                            });
+                          }}
+                        >
+                          <Trash className="h-4 w-4 mr-2 text-red-500" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
 
@@ -254,11 +244,10 @@ export default function PurchaseReport() {
         </div>
       </div>
 
-      {/* view dialog */}
-      <ViewPurchaseReportDialog
-        open={open}
-        onOpenChange={setOpen}
-        prId={viewId}
+      <EditUserDialog
+        open={openEditModal}
+        onOpenChange={setOpenEditModal}
+        user={selectedUser}
       />
     </div>
   );

@@ -16,6 +16,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { authService } from "@/features/auth/authService";
+import SidebarNav from "./sidebarNav";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -174,43 +175,8 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
 
           {/* Main Navigation */}
           <nav className="p-4">
-            <ul className="space-y-2">
-              <span className="text-sm px-3 text-gray-900 dark:text-gray-100 -ml-1">
-                Home
-              </span>
-              <li>
-                <NavLink
-                  to="/dashboard"
-                  className={({ isActive }) =>
-                    `flex items-center px-3 py-2 rounded-md transition-colors ${
-                      isActive
-                        ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium"
-                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                    }`
-                  }
-                >
-                  <LayoutDashboard className="w-5 h-5 mr-3" />
-                  <p>Dashboard</p>
-                </NavLink>
-              </li>
-
-              <li>
-                <NavLink
-                  to="/purchase-reports"
-                  className={({ isActive }) =>
-                    `flex items-center px-3 py-2 rounded-md transition-colors ${
-                      isActive
-                        ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium"
-                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                    }`
-                  }
-                >
-                  <Receipt className="w-5 h-5 mr-3" />
-                  <p>Purchase Reports</p>
-                </NavLink>
-              </li>
-            </ul>
-          </nav>
+           <SidebarNav></SidebarNav>
+           </nav>
         </div>
 
         {/* Footer Navigation */}

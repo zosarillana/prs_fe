@@ -5,33 +5,29 @@ import { PaginatedResponse } from "@/types/paginator";
 // Service for purchase reports
 export const purchaseReportService = {
   // Get full paginated reports
-  getAll: async (
-    params?: {
-      searchTerm?: string;
-      fromDate?: string;
-      toDate?: string;
-      sortBy?: string;
-      sortOrder?: "asc" | "desc";
-      pageNumber?: number;
-      pageSize?: number;
-    }
-  ): Promise<PaginatedResponse<PurchaseReport>> => {
+  getAll: async (params?: {
+    searchTerm?: string;
+    fromDate?: string;
+    toDate?: string;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+    pageNumber?: number;
+    pageSize?: number;
+  }): Promise<PaginatedResponse<PurchaseReport>> => {
     const res = await api.get("api/purchase-reports", { params });
     return res.data;
   },
 
   // Get table view reports
-  getTable: async (
-    params?: {
-      searchTerm?: string;
-      fromDate?: string;
-      toDate?: string;
-      sortBy?: string;
-      sortOrder?: "asc" | "desc";
-      pageNumber?: number;
-      pageSize?: number;
-    }
-  ): Promise<PaginatedResponse<any>> => {
+  getTable: async (params?: {
+    searchTerm?: string;
+    fromDate?: string;
+    toDate?: string;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+    pageNumber?: number;
+    pageSize?: number;
+  }): Promise<PaginatedResponse<any>> => {
     const res = await api.get("api/purchase-reports-table", { params });
     return res.data;
   },
@@ -60,5 +56,20 @@ export const purchaseReportService = {
   // Delete report
   delete: async (id: number): Promise<void> => {
     await api.delete(`api/purchase-reports/${id}`);
+  },
+
+  // Approve or reject a specific item
+  updateItemStatus: async (
+    id: number,
+    index: number,
+    status: "approved" | "rejected" | "pending",
+    remark?: string
+  ): Promise<PurchaseReport> => {
+    const res = await api.patch(`api/purchase-reports/${id}/approve-item`, {
+      index,
+      status,
+      remark,
+    });
+    return res.data;
   },
 };

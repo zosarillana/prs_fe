@@ -10,7 +10,7 @@ const api = axios.create({
 // Add a request interceptor to include the auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth_token'); // or wherever you store the token
+    const token = localStorage.getItem('auth_token');
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -29,17 +29,7 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle auth errors
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Redirect to login or refresh token
-      localStorage.removeItem('auth_token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
+// 👈 REMOVE the response interceptor completely
+// Let your components handle 401 errors individually
 
 export default api;
