@@ -37,6 +37,7 @@ export function CreatePurchaseReportDialog({
   onSubmit: (data: {
     amount: number;
     purpose: string;
+    user_id: number;
     department: string;
     date_submitted?: Date;
     date_needed?: Date;
@@ -72,6 +73,7 @@ export function CreatePurchaseReportDialog({
       onSubmit({
         amount: Number(items),
         purpose,
+        user_id: user!.id, // force non-null, since user must exist
         department: user?.department
           ? user.department.join(", ") // no formatDepartment
           : "",

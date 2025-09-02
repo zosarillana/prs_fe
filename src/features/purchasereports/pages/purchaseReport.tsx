@@ -67,7 +67,13 @@ export default function PurchaseReport() {
   if (loading) {
     return (
       <div className="p-6 -mt-4">
-        <h1 className="text-3xl font-bold mb-6">Purchase Reports</h1>
+        <h1 className="text-3xl font-bold mb-6">
+          {user?.role?.includes("hod")
+            ? "Approve PRs"
+            : user?.role?.includes("technical_reviewer")
+            ? "Review Items"
+            : "Purchase Reports"}
+        </h1>
         <TableSkeleton rows={5} />
       </div>
     );
@@ -77,15 +83,25 @@ export default function PurchaseReport() {
     <div className="p-6 -mt-4">
       {/* header */}
       <div className="flex flex-row justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Purchase Reports</h1>
+        <h1 className="text-3xl font-bold mb-6">
+          {user?.role?.includes("hod")
+            ? "Approve Purchase Reports"
+            : user?.role?.includes("technical_reviewer")
+            ? "Review Items"
+            : "Purchase Reports"}
+        </h1>
         <div className="flex flex-row gap-2">
-          <Button asChild>
-            <Link to="/purchase-reports/create">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Purchase Report
-            </Link>
-          </Button>
-
+          {!(
+            user?.role?.includes("hod") ||
+            user?.role?.includes("technical_reviewer")
+          ) && (
+            <Button asChild>
+              <Link to="/purchase-reports/create">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Purchase Report
+              </Link>
+            </Button>
+          )}
           <div className="relative w-64">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -131,65 +147,92 @@ export default function PurchaseReport() {
               </TableRow>
             )}
 
-            {/* Data rows */}
-            {!fetching &&
-              data?.items
-                .filter((item) =>
-                  item.tag.some((tag) => user?.department?.includes(tag))
-                )
-                .map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">
-                      {item.series_no}
-                    </TableCell>
-                    <TableCell>{item.pr_purpose}</TableCell>
-                    <TableCell>
-                      {item.department
-                        .split("_")
-                        .map((word) =>
-                          word.toLowerCase() === "it"
-                            ? "IT"
-                            : word.charAt(0).toUpperCase() +
-                              word.slice(1).toLowerCase()
-                        )
-                        .join(" ")}
-                    </TableCell>
-                    <TableCell className="capitalize">
-                      {item.user.name}
-                    </TableCell>
-                    <TableCell className="capitalize">
-                      {item.pr_status}
-                    </TableCell>
-                    <TableCell>{item.date_needed}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                            <span className="sr-only">Actions</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="start"
-                          className="w-34 animate-in fade-in-0 zoom-in-95"
-                        >
-                          <DropdownMenuItem onClick={() => handleView(item.id)}>
-                            <Eye className="mr-2 h-4 w-4" /> View
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(item.id)}>
-                            <PencilLine className="mr-2 h-4 w-4" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(item)}
-                            className="text-red-600 focus:text-red-600 cursor-pointer"
-                          >
-                            <Trash className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+         {/* Data rows */}
+{!fetching &&
+  data?.items
+    .filter((item) => {
+      const matchesDept = (user?.department ?? []).includes(item.department);
+
+      // If user is a technical reviewer
+      if ((user?.role ?? []).includes("technical_reviewer")) {
+        // Only show "for_approval" items with tags ending with "_tr"
+        return (
+          matchesDept &&
+          item.pr_status === "for_approval" &&
+          (item.tag ?? []).some((tag) => tag.endsWith("_tr"))
+        );
+      }
+      
+      // Everyone else - show all items in their department (any status)
+      return matchesDept;
+    })
+    .map((item) => (
+      <TableRow key={item.id}>
+        <TableCell className="font-medium">
+          {item.series_no}
+        </TableCell>
+        <TableCell>{item.pr_purpose}</TableCell>
+        <TableCell>
+          {item.department
+            .split("_")
+            .map((word) =>
+              word.toLowerCase() === "it"
+                ? "IT"
+                : word.charAt(0).toUpperCase() +
+                  word.slice(1).toLowerCase()
+            )
+            .join(" ")}
+        </TableCell>
+        <TableCell className="capitalize">
+          {item.user.name}
+        </TableCell>
+        <TableCell className="capitalize">
+          {item.pr_status}
+        </TableCell>
+        <TableCell>{item.date_needed}</TableCell>
+        <TableCell>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreVertical className="h-4 w-4" />
+                <span className="sr-only">Actions</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              className="w-34 animate-in fade-in-0 zoom-in-95"
+            >
+              <DropdownMenuItem onClick={() => handleView(item.id)}>
+                <Eye className="mr-2 h-4 w-4" /> View
+              </DropdownMenuItem>
+
+              {/* Hide edit/delete for hod + technical_reviewer */}
+              {!(
+                user?.role?.includes("hod") ||
+                user?.role?.includes("technical_reviewer")
+              ) && (
+                <DropdownMenuItem
+                  onClick={() => handleEdit(item.id)}
+                >
+                  <PencilLine className="mr-2 h-4 w-4" /> Edit
+                </DropdownMenuItem>
+              )}
+              {!(
+                user?.role?.includes("hod") ||
+                user?.role?.includes("technical_reviewer")
+              ) && (
+                <DropdownMenuItem
+                  onClick={() => handleDelete(item)}
+                  className="text-red-600 focus:text-red-600 cursor-pointer"
+                >
+                  <Trash className="mr-2 h-4 w-4" /> Delete
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
+      </TableRow>
+    ))}
           </TableBody>
         </Table>
 

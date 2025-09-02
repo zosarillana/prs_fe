@@ -9,6 +9,7 @@ export function useCreatePurchaseReport() {
   const [reportData, setReportData] = useState<{
     series_no: string;
     purpose: string;
+    user_id: number;
     department: string;
     date_submitted?: Date;
     date_needed?: Date;
@@ -70,7 +71,7 @@ export function useCreatePurchaseReport() {
     if (!reportData) return;
 
     const payload = {
-      user_id: 1, // later: use real user id from auth store
+      user_id: reportData.user_id, // later: use real user id from auth store
       series_no: reportData.series_no,
       pr_purpose: reportData.purpose,
       department: reportData.department,

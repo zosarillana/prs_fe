@@ -121,7 +121,11 @@ export function ViewPurchaseReportDialog({
                     <TableHead className="border-b">Unit</TableHead>
                     <TableHead className="border-b">Tags</TableHead>
                     <TableHead className="border-b">Remarks</TableHead>
-                    <TableHead className="border-b">Action</TableHead>
+                    {user?.role?.includes("hod") ||
+                      user?.role?.includes("technical_reviewer") ||
+                      (user?.role?.includes("admin") && (
+                        <TableHead className="border-b">Action</TableHead>
+                      ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -137,45 +141,65 @@ export function ViewPurchaseReportDialog({
                           : ""}
                       </TableCell>
                       <TableCell>{report.remarks?.[idx] ?? "none"}</TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
+                      {user?.role?.includes("hod") ||
+                        user?.role?.includes("technical_reviewer") ||
+                        (user?.role?.includes("admin") && (
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
 
-                          <DropdownMenuContent
-                            align="start"
-                            className="w-34 animate-in fade-in-0 zoom-in-95"
-                            onCloseAutoFocus={(e) => e.preventDefault()}
-                          >
-                            <DropdownMenuItem
-                              disabled={
-                                !user?.department?.includes(
-                                  report.tag?.[idx] ?? ""
-                                )
-                              }
-                              onClick={() => handleItemAction(idx, "approve")}
-                            >
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                              Approve
-                            </DropdownMenuItem>
+                              <DropdownMenuContent
+                                align="start"
+                                className="w-34 animate-in fade-in-0 zoom-in-95"
+                                onCloseAutoFocus={(e) => e.preventDefault()}
+                              >
+                                <DropdownMenuItem
+                                  disabled={
+                                    // Case 1: technical_reviewer → disable if NOT tagged _tr
+                                    (user?.role?.includes(
+                                      "technical_reviewer"
+                                    ) &&
+                                      !report.tag?.[idx]?.endsWith("_tr")) ||
+                                    // Case 2: everyone else → disable if tagged _tr
+                                    (!user?.role?.includes(
+                                      "technical_reviewer"
+                                    ) &&
+                                      report.tag?.[idx]?.endsWith("_tr"))
+                                  }
+                                  onClick={() =>
+                                    handleItemAction(idx, "approve")
+                                  }
+                                >
+                                  <CheckCircle className="mr-2 h-4 w-4" />
+                                  Approve
+                                </DropdownMenuItem>
 
-                            <DropdownMenuItem
-                              disabled={
-                                !user?.department?.includes(
-                                  report.tag?.[idx] ?? ""
-                                )
-                              }
-                              onClick={() => handleItemAction(idx, "reject")}
-                            >
-                              <X className="mr-2 h-4 w-4" />
-                              Reject
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+                                <DropdownMenuItem
+                                  disabled={
+                                    (user?.role?.includes(
+                                      "technical_reviewer"
+                                    ) &&
+                                      !report.tag?.[idx]?.endsWith("_tr")) ||
+                                    (!user?.role?.includes(
+                                      "technical_reviewer"
+                                    ) &&
+                                      report.tag?.[idx]?.endsWith("_tr"))
+                                  }
+                                  onClick={() =>
+                                    handleItemAction(idx, "reject")
+                                  }
+                                >
+                                  <X className="mr-2 h-4 w-4" />
+                                  Reject
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        ))}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -192,12 +216,29 @@ export function ViewPurchaseReportDialog({
                   <p className="capitalize">{report.user?.name}</p>
                   <div className="w-120 border-t border-black border-t -mt-5" />
                 </div>
+                <div className="flex flex-col gap-6 w-1/4">
+                  <p className="flex justify-start w-full">
+                    <strong>Reviewed By:</strong>
+                  </p>
+                  <p className="capitalize">
+                    {(user?.role ?? []).includes("technical_reviewer") ||
+                    (user?.role ?? []).includes("admin")
+                      ? user?.name ?? ""
+                      : "n/a"}
+                  </p>
+                  <div className="w-120 border-t border-black border-t -mt-5" />
+                </div>
 
                 <div className="flex flex-col gap-6 w-1/4">
                   <p className="flex justify-start w-full">
                     <strong>Approved By:</strong>
                   </p>
-                  <p className="capitalize">{user?.name ?? ""}</p>
+                  <p className="capitalize">
+                    {(user?.role ?? []).includes("hod") ||
+                    (user?.role ?? []).includes("admin")
+                      ? user?.name ?? ""
+                      : "n/a"}
+                  </p>
                   <div className="w-120 border-t border-black border-t -mt-5" />
                 </div>
               </div>

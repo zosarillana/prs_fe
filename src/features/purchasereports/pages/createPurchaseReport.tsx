@@ -136,8 +136,10 @@ export default function CreatePurchaseReport() {
                               <SelectValue placeholder="Tag" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="it_department">IT Department</SelectItem>
-                              <SelectItem value="hr_department">HR Department</SelectItem>
+                              <SelectItem value="it_department_tr">Information Technology Items</SelectItem>
+                              <SelectItem value="eng_department_tr">Engineering Items</SelectItem>
+                              <SelectItem value="project_department_tr">Project Related Items</SelectItem>
+                              <SelectItem value="office_items">Office Items/Supplies</SelectItem>
                             </SelectContent>
                           </Select>
                         </TableCell>
