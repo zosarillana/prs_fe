@@ -4,7 +4,11 @@ import { purchaseReportService } from "../purchaseReportService";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth/authStore";
 
-export function useViewPurchaseReport(prId: number | null, open: boolean) {
+export function useViewPurchaseReport(
+  prId: number | null,
+  open: boolean,
+  onSuccess?: () => void
+) {
   const [report, setReport] = useState<PurchaseReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [openModal, setOpenModal] = useState(false);
@@ -28,6 +32,20 @@ export function useViewPurchaseReport(prId: number | null, open: boolean) {
     }
   }, [prId, open]);
 
+  const fetchReport = async () => {
+    if (!prId) return;
+    setLoading(true);
+    try {
+      const data = await purchaseReportService.getById(prId);
+      setReport(data);
+    } catch (err) {
+      console.error("Failed to refetch purchase report", err);
+      toast.error("Failed to fetch updated report");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleItemAction = (index: number, action: "approve" | "reject") => {
     setCurrentItemIndex(index);
     setActionType(action);
@@ -47,13 +65,19 @@ export function useViewPurchaseReport(prId: number | null, open: boolean) {
         actionType === "approve" ? "approved" : "rejected",
         remark,
         asRole,
-        user?.id // 👈 include logged user id
+        user?.id
       ),
       {
         loading: "Updating item...",
         success: (updated) => {
           setReport(updated);
           setOpenModal(false);
+          fetchReport(); // refetch full report including signatures
+          // ✅ Call the success callback to refresh parent data
+          if (onSuccess) {
+            onSuccess();
+          }
+
           return `Item ${currentItemIndex + 1} ${
             actionType === "approve" ? "approved" : "rejected"
           } successfully`;
@@ -66,7 +90,12 @@ export function useViewPurchaseReport(prId: number | null, open: boolean) {
   // Helper function to check if an item is already processed (approved/rejected)
   const isItemProcessed = (idx: number) => {
     const status = report?.item_status?.[idx];
-    return status === "approved" || status === "rejected" || status === "approved_tr" || status === "rejected_tr";
+    return (
+      status === "approved" ||
+      status === "rejected" ||
+      status === "approved_tr" ||
+      status === "rejected_tr"
+    );
   };
 
   // Helper function to check if dropdown should be disabled entirely
@@ -81,12 +110,19 @@ export function useViewPurchaseReport(prId: number | null, open: boolean) {
     }
 
     // If user doesn't have required roles, disable dropdown
-    if (!userRole.includes("hod") && !userRole.includes("technical_reviewer") && !userRole.includes("admin")) {
+    if (
+      !userRole.includes("hod") &&
+      !userRole.includes("technical_reviewer") &&
+      !userRole.includes("admin")
+    ) {
       return true;
     }
 
     // For technical reviewers (non-admin), only enable for items with _tr tags and pending_tr status
-    if (userRole.includes("technical_reviewer") && !userRole.includes("admin")) {
+    if (
+      userRole.includes("technical_reviewer") &&
+      !userRole.includes("admin")
+    ) {
       return !itemTag?.endsWith("_tr") || itemStatus !== "pending_tr";
     }
 
@@ -113,5 +149,6 @@ export function useViewPurchaseReport(prId: number | null, open: boolean) {
     confirmItemAction,
     isItemProcessed,
     isDropdownDisabled,
+    fetchReport,
   };
 }

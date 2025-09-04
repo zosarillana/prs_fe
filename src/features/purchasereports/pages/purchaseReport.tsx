@@ -61,6 +61,7 @@ export default function PurchaseReport() {
     handleView,
     handleEdit,
     handleDelete,
+    refetch,
   } = usePurchaseReports();
 
   // First load skeleton
@@ -278,6 +279,7 @@ export default function PurchaseReport() {
         open={open}
         onOpenChange={setOpen}
         prId={viewId}
+        onSuccess={refetch}
       />
     </div>
   );

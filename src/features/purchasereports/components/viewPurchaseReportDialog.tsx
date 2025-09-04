@@ -40,12 +40,14 @@ interface ViewPurchaseReportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   prId: number | null;
+  onSuccess?: () => void; // ✅ Add this
 }
 
 export function ViewPurchaseReportDialog({
   open,
   onOpenChange,
   prId,
+  onSuccess,
 }: ViewPurchaseReportDialogProps) {
   const user = useAuthStore((state) => state.user);
   const API_BASE_URL =
@@ -153,11 +155,13 @@ export function ViewPurchaseReportDialog({
                       </TableCell>
                       <TableCell>{report.remarks?.[idx] ?? "none"}</TableCell>
                       <TableCell>
-                        <span 
+                        <span
                           className={`px-2 py-1 rounded-full text-xs capitalize ${
-                            report.item_status?.[idx] === "approved" || report.item_status?.[idx] === "approved_tr"
+                            report.item_status?.[idx] === "approved" ||
+                            report.item_status?.[idx] === "approved_tr"
                               ? "bg-green-100 text-green-800"
-                              : report.item_status?.[idx] === "rejected" || report.item_status?.[idx] === "rejected_tr"
+                              : report.item_status?.[idx] === "rejected" ||
+                                report.item_status?.[idx] === "rejected_tr"
                               ? "bg-red-100 text-red-800"
                               : "bg-yellow-100 text-yellow-800"
                           }`}
@@ -171,11 +175,15 @@ export function ViewPurchaseReportDialog({
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="sm"
                                 disabled={isDropdownDisabled(idx)}
-                                className={isDropdownDisabled(idx) ? "opacity-50 cursor-not-allowed" : ""}
+                                className={
+                                  isDropdownDisabled(idx)
+                                    ? "opacity-50 cursor-not-allowed"
+                                    : ""
+                                }
                               >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
@@ -276,7 +284,7 @@ export function ViewPurchaseReportDialog({
               </Table>
             </div>
 
-             {/* Signature Section */}
+            {/* Signature Section */}
             <div className="grid grid-cols-1 gap-4">
               <div className="flex flex-row justify-between mt-6 w-full">
                 <div className="flex flex-col gap-6 w-1/4">
@@ -290,7 +298,7 @@ export function ViewPurchaseReportDialog({
                   <p className="flex justify-start w-full">
                     <strong>Reviewed By:</strong>
                   </p>
-                   <div className="flex flex-row">
+                  <div className="flex flex-row">
                     <div>
                       {/* Display the HOD name from hod_user_id */}
                       <p className="capitalize whitespace-nowrap">
@@ -356,8 +364,8 @@ export function ViewPurchaseReportDialog({
         open={openModal}
         onClose={() => setOpenModal(false)}
         action={actionType}
-        onConfirm={(remark) =>
-          confirmItemAction(
+        onConfirm={async (remark) => {
+          await confirmItemAction(
             remark,
             user?.role?.includes("hod")
               ? "hod"
@@ -366,8 +374,13 @@ export function ViewPurchaseReportDialog({
               : user?.role?.includes("admin")
               ? "both"
               : undefined
-          )
-        }
+          );
+
+          // ✅ Call onSuccess from parent after the item action is confirmed
+          if (onSuccess) {
+            onSuccess();
+          }
+        }}
       />
     </Dialog>
   );

@@ -26,7 +26,7 @@ export function usePurchaseReports() {
   const [open, setOpen] = useState(false);
   const [viewId, setViewId] = useState<number | null>(null);
 
-  const { data, isLoading, isFetching } = useQuery<
+ const { data, isLoading, isFetching, refetch } = useQuery<
     PaginatedResponse<PurchaseReport>
   >({
     queryKey: ["purchaseReports", page, pageSize, debouncedSearchTerm],
@@ -37,11 +37,11 @@ export function usePurchaseReports() {
         searchTerm: debouncedSearchTerm,
       }),
     placeholderData: keepPreviousData,
-    refetchOnWindowFocus: false, // ⬅️ don’t refetch when switching tabs
-    refetchOnReconnect: false, // ⬅️ don’t refetch when network reconnects
-    refetchOnMount: false, // ⬅️ don’t refetch when component remounts
-    staleTime: 1000 * 60 * 5, // ⬅️ data is "fresh" for 5 minutes
-    gcTime: 1000 * 60 * 30, // ⬅️ keep in cache for 30 minutes
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
   });
 
   // ✅ Delete mutation
@@ -76,6 +76,7 @@ export function usePurchaseReports() {
     });
   };
 
+  
   return {
     user,
     data,
@@ -94,5 +95,6 @@ export function usePurchaseReports() {
     handleView,
     handleEdit,
     handleDelete,
+    refetch,
   };
 }
