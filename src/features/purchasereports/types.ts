@@ -10,7 +10,8 @@ export interface PurchaseReport {
   date_created?: string;
   quantity: number[];
   unit: string[];
-
+  hod_user_id: User | null; // can be null
+  tr_user_id: User | null; // can be null
   item_description: string[];
   tag: string[];
   item_status: string[];

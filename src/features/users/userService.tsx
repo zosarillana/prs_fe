@@ -40,6 +40,15 @@ export const userService = {
     return res.data;
   },
 
+  // Update signature file
+  updateSignature: async (id: number, file: File): Promise<User> => {
+    const formData = new FormData();
+    formData.append("signature", file, file.name);
+    // Do NOT set headers manually, let axios/browser set multipart
+    const res = await api.post(`api/users/${id}/signature`, formData);
+    return res.data;
+  },
+
   // Delete user
   delete: async (id: number): Promise<void> => {
     await api.delete(`api/users/${id}`);

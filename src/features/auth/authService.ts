@@ -35,29 +35,37 @@ export const authService = {
     return res.data;
   },
 
- logout: async (): Promise<void> => {
-  await ensureCsrfCookie(); // ✅ ensure the CSRF token exists
-  const xsrfToken = Cookies.get("XSRF-TOKEN");
+  logout: async (): Promise<void> => {
+    try {
+      await ensureCsrfCookie(); // ✅ ensure the CSRF token exists
+      const xsrfToken = Cookies.get("XSRF-TOKEN");
 
-  await api.post("/logout", {}, { headers: { "X-XSRF-TOKEN": xsrfToken } });
+      await api.post("/logout", {}, { headers: { "X-XSRF-TOKEN": xsrfToken } });
+    } catch (err) {
+      console.error("Logout API failed:", err);
+      // Even if backend fails, still clear client state
+    }
 
-  localStorage.removeItem("auth_token");
-  localStorage.clear();
-},
+    // 1. Clear cookies & storage
+    Cookies.remove("XSRF-TOKEN");
+    localStorage.removeItem("auth_token");
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // 2. Force UI reset (fresh state, no stale data)
+    window.location.href = "/login";
+  },
 
   me: async (): Promise<{ user: AuthResponse["user"] }> => {
     meCallCounter++;
-    
+
     // 🚨 AGGRESSIVE DEBUGGING
     console.log(`🔥 /ME CALL #${meCallCounter} 🔥`);
     console.log("🕐 Time:", new Date().toISOString());
     console.log("📍 Current URL:", window.location.href);
     console.log("📞 Call Stack:");
     console.trace(); // This will show you EXACTLY what called this
-    
-    // Add a debugger to pause execution
-    // debugger; // Uncomment this to pause and inspect
-    
+
     const res = await api.get("/me");
     console.log(`✅ /ME CALL #${meCallCounter} COMPLETED`);
     return res.data;

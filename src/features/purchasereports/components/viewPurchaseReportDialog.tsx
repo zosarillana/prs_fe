@@ -29,6 +29,12 @@ import {
 import { CheckCircle, X, MoreVertical } from "lucide-react";
 import { RemarkPrDialog } from "./remarkPrDialog";
 import { useViewPurchaseReport } from "../hooks/useViewPurchaseReport";
+import { toast } from "sonner";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 interface ViewPurchaseReportDialogProps {
   open: boolean;
@@ -42,6 +48,8 @@ export function ViewPurchaseReportDialog({
   prId,
 }: ViewPurchaseReportDialogProps) {
   const user = useAuthStore((state) => state.user);
+  const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
   const {
     report,
     loading,
@@ -50,6 +58,8 @@ export function ViewPurchaseReportDialog({
     actionType,
     handleItemAction,
     confirmItemAction,
+    isItemProcessed,
+    isDropdownDisabled,
   } = useViewPurchaseReport(prId, open);
 
   return (
@@ -121,11 +131,12 @@ export function ViewPurchaseReportDialog({
                     <TableHead className="border-b">Unit</TableHead>
                     <TableHead className="border-b">Tags</TableHead>
                     <TableHead className="border-b">Remarks</TableHead>
-                    {user?.role?.includes("hod") ||
+                    <TableHead className="border-b">Status</TableHead>
+                    {(user?.role?.includes("hod") ||
                       user?.role?.includes("technical_reviewer") ||
-                      (user?.role?.includes("admin") && (
-                        <TableHead className="border-b">Action</TableHead>
-                      ))}
+                      user?.role?.includes("admin")) && (
+                      <TableHead className="border-b">Action</TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -141,72 +152,131 @@ export function ViewPurchaseReportDialog({
                           : ""}
                       </TableCell>
                       <TableCell>{report.remarks?.[idx] ?? "none"}</TableCell>
-                      {user?.role?.includes("hod") ||
+                      <TableCell>
+                        <span 
+                          className={`px-2 py-1 rounded-full text-xs capitalize ${
+                            report.item_status?.[idx] === "approved" || report.item_status?.[idx] === "approved_tr"
+                              ? "bg-green-100 text-green-800"
+                              : report.item_status?.[idx] === "rejected" || report.item_status?.[idx] === "rejected_tr"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
+                          {report.item_status?.[idx] || "pending"}
+                        </span>
+                      </TableCell>
+                      {(user?.role?.includes("hod") ||
                         user?.role?.includes("technical_reviewer") ||
-                        (user?.role?.includes("admin") && (
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-
-                              <DropdownMenuContent
-                                align="start"
-                                className="w-34 animate-in fade-in-0 zoom-in-95"
-                                onCloseAutoFocus={(e) => e.preventDefault()}
+                        user?.role?.includes("admin")) && (
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                disabled={isDropdownDisabled(idx)}
+                                className={isDropdownDisabled(idx) ? "opacity-50 cursor-not-allowed" : ""}
                               >
-                                <DropdownMenuItem
-                                  disabled={
-                                    // Case 1: technical_reviewer → disable if NOT tagged _tr
-                                    (user?.role?.includes(
-                                      "technical_reviewer"
-                                    ) &&
-                                      !report.tag?.[idx]?.endsWith("_tr")) ||
-                                    // Case 2: everyone else → disable if tagged _tr
-                                    (!user?.role?.includes(
-                                      "technical_reviewer"
-                                    ) &&
-                                      report.tag?.[idx]?.endsWith("_tr"))
-                                  }
-                                  onClick={() =>
-                                    handleItemAction(idx, "approve")
-                                  }
-                                >
-                                  <CheckCircle className="mr-2 h-4 w-4" />
-                                  Approve
-                                </DropdownMenuItem>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
 
-                                <DropdownMenuItem
-                                  disabled={
-                                    (user?.role?.includes(
-                                      "technical_reviewer"
-                                    ) &&
-                                      !report.tag?.[idx]?.endsWith("_tr")) ||
-                                    (!user?.role?.includes(
-                                      "technical_reviewer"
-                                    ) &&
-                                      report.tag?.[idx]?.endsWith("_tr"))
-                                  }
-                                  onClick={() =>
-                                    handleItemAction(idx, "reject")
-                                  }
-                                >
-                                  <X className="mr-2 h-4 w-4" />
-                                  Reject
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        ))}
+                            <DropdownMenuContent
+                              align="start"
+                              className="w-34 animate-in fade-in-0 zoom-in-95"
+                              onCloseAutoFocus={(e) => e.preventDefault()}
+                            >
+                              {/* Approve */}
+                              <HoverCard openDelay={200} closeDelay={100}>
+                                <HoverCardTrigger asChild>
+                                  <DropdownMenuItem
+                                    disabled={
+                                      isItemProcessed(idx) ||
+                                      (user?.role?.includes(
+                                        "technical_reviewer"
+                                      ) &&
+                                        !report.tag?.[idx]?.endsWith("_tr")) ||
+                                      (!user?.role?.includes(
+                                        "technical_reviewer"
+                                      ) &&
+                                        report.tag?.[idx]?.endsWith("_tr"))
+                                    }
+                                    onSelect={(e) => {
+                                      e.preventDefault(); // stop Radix from auto-closing
+                                      handleItemAction(idx, "approve");
+                                    }}
+                                  >
+                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                    Approve
+                                  </DropdownMenuItem>
+                                </HoverCardTrigger>
+
+                                {/* Show hover warning if HOD and last pending */}
+                                {user?.role?.includes("hod") &&
+                                  report.item_status?.filter(
+                                    (s: string) => s === "pending"
+                                  ).length === 1 && (
+                                    <HoverCardContent
+                                      side="right"
+                                      align="start"
+                                      className="w-64 text-sm"
+                                    >
+                                      Approving this final pending will{" "}
+                                      <span className="font-semibold">
+                                        sign the document with your signature.
+                                      </span>
+                                    </HoverCardContent>
+                                  )}
+
+                                {/* Show hover warning if Technical Reviewer and last pending_tr */}
+                                {user?.role?.includes("technical_reviewer") &&
+                                  report.item_status?.filter(
+                                    (s: string) => s === "pending_tr"
+                                  ).length === 1 && (
+                                    <HoverCardContent
+                                      side="right"
+                                      align="start"
+                                      className="w-64 text-sm"
+                                    >
+                                      Approving this final pending technical
+                                      review will{" "}
+                                      <span className="font-semibold">
+                                        sign the document with your review.
+                                      </span>
+                                    </HoverCardContent>
+                                  )}
+                              </HoverCard>
+
+                              {/* Reject */}
+                              <DropdownMenuItem
+                                disabled={
+                                  isItemProcessed(idx) ||
+                                  (user?.role?.includes("technical_reviewer") &&
+                                    !report.tag?.[idx]?.endsWith("_tr")) ||
+                                  (!user?.role?.includes(
+                                    "technical_reviewer"
+                                  ) &&
+                                    report.tag?.[idx]?.endsWith("_tr"))
+                                }
+                                onSelect={(e) => {
+                                  e.preventDefault(); // same fix here, avoids modal closing on toast
+                                  handleItemAction(idx, "reject");
+                                }}
+                              >
+                                <X className="mr-2 h-4 w-4" />
+                                Reject
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </div>
 
-            {/* Signature Section */}
+             {/* Signature Section */}
             <div className="grid grid-cols-1 gap-4">
               <div className="flex flex-row justify-between mt-6 w-full">
                 <div className="flex flex-col gap-6 w-1/4">
@@ -220,12 +290,24 @@ export function ViewPurchaseReportDialog({
                   <p className="flex justify-start w-full">
                     <strong>Reviewed By:</strong>
                   </p>
-                  <p className="capitalize">
-                    {(user?.role ?? []).includes("technical_reviewer") ||
-                    (user?.role ?? []).includes("admin")
-                      ? user?.name ?? ""
-                      : "n/a"}
-                  </p>
+                   <div className="flex flex-row">
+                    <div>
+                      {/* Display the HOD name from hod_user_id */}
+                      <p className="capitalize whitespace-nowrap">
+                        {report.tr_user_id?.name || "n/a"}
+                      </p>
+                    </div>
+                    <div>
+                      {/* Display the HOD signature from hod_user_id */}
+                      {report.tr_user_id?.signature && (
+                        <img
+                          src={`${API_BASE_URL}${report.tr_user_id.signature}`}
+                          alt="HOD signature"
+                          className="h-34 w-64 z-50 rounded -mt-24 -mb-12 items-start z-9999"
+                        />
+                      )}
+                    </div>
+                  </div>
                   <div className="w-120 border-t border-black border-t -mt-5" />
                 </div>
 
@@ -233,13 +315,27 @@ export function ViewPurchaseReportDialog({
                   <p className="flex justify-start w-full">
                     <strong>Approved By:</strong>
                   </p>
-                  <p className="capitalize">
-                    {(user?.role ?? []).includes("hod") ||
-                    (user?.role ?? []).includes("admin")
-                      ? user?.name ?? ""
-                      : "n/a"}
-                  </p>
-                  <div className="w-120 border-t border-black border-t -mt-5" />
+
+                  <div className="flex flex-row">
+                    <div>
+                      {/* Display the HOD name from hod_user_id */}
+                      <p className="capitalize whitespace-nowrap">
+                        {report.hod_user_id?.name || "n/a"}
+                      </p>
+                    </div>
+                    <div>
+                      {/* Display the HOD signature from hod_user_id */}
+                      {report.hod_user_id?.signature && (
+                        <img
+                          src={`${API_BASE_URL}${report.hod_user_id.signature}`}
+                          alt="HOD signature"
+                          className="h-34 w-64 z-50 rounded -mt-24 -mb-12 items-start z-9999"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="w-120 border-t border-black -mt-5" />
                 </div>
               </div>
             </div>
@@ -260,7 +356,18 @@ export function ViewPurchaseReportDialog({
         open={openModal}
         onClose={() => setOpenModal(false)}
         action={actionType}
-        onConfirm={confirmItemAction}
+        onConfirm={(remark) =>
+          confirmItemAction(
+            remark,
+            user?.role?.includes("hod")
+              ? "hod"
+              : user?.role?.includes("technical_reviewer")
+              ? "technical_reviewer"
+              : user?.role?.includes("admin")
+              ? "both"
+              : undefined
+          )
+        }
       />
     </Dialog>
   );

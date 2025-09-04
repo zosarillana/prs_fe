@@ -118,13 +118,12 @@ export function RegisterDialog({ open, onOpenChange }: RegisterDialogProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="user">User</SelectItem>
-                <SelectItem value="hod">Head of Admin</SelectItem>
+                <SelectItem value="hod">Head of Department</SelectItem>
                 <SelectItem value="technical_reviewer">
                   Techinical Reviewer
                 </SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="purchasing">Purchasing</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>           
+                <SelectItem value="purchasing">Purchasing</SelectItem>    
               </SelectContent>
             </Select>
           </div>

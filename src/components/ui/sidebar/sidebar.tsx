@@ -131,7 +131,8 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
                 className="mt-20 w-48 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
               >
                 <div className="flex flex-col gap-1">
-                  <button
+                  <NavLink
+                  to="/profile"
                     onClick={() => setActiveItem("profile")}
                     className={`text-sm flex items-center gap-2 text-left px-2 py-2 rounded transition-colors ${
                       activeItem === "profile"
@@ -141,7 +142,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
                   >
                     <User className="w-4 h-4" />
                     Profile
-                  </button>
+                  </NavLink>
                   <button
                     onClick={() => setActiveItem("settings")}
                     className={`text-sm flex items-center gap-2 text-left px-2 py-2 rounded transition-colors ${

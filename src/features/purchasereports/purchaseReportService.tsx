@@ -63,12 +63,16 @@ export const purchaseReportService = {
     id: number,
     index: number,
     status: "approved" | "rejected" | "pending",
-    remark?: string
+    remark?: string,
+    asRole?: "technical_reviewer" | "hod" | "both",
+     loggedUserId?: number // 👈 add this
   ): Promise<PurchaseReport> => {
     const res = await api.patch(`api/purchase-reports/${id}/approve-item`, {
       index,
       status,
       remark,
+      ...(asRole ? { as_role: asRole } : {}),
+        ...(loggedUserId ? { logged_user_id: loggedUserId } : {}), 
     });
     return res.data;
   },

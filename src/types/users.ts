@@ -4,4 +4,7 @@ export interface User {
   email: string;
   department: string[];
   role: string[];
+  signature?: string;
+  created_at?: string;
+  updated_at?: string;
 }

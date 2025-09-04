@@ -147,92 +147,68 @@ export default function PurchaseReport() {
               </TableRow>
             )}
 
-         {/* Data rows */}
-{!fetching &&
-  data?.items
-    .filter((item) => {
-      const matchesDept = (user?.department ?? []).includes(item.department);
+            {/* Data rows */}
+            {!fetching &&
+              data?.items?.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">
+                    {item.series_no}
+                  </TableCell>
+                  <TableCell>{item.pr_purpose}</TableCell>
+                  <TableCell>
+                    {item.department
+                      .split("_")
+                      .map((word) =>
+                        word.toLowerCase() === "it"
+                          ? "IT"
+                          : word.charAt(0).toUpperCase() +
+                            word.slice(1).toLowerCase()
+                      )
+                      .join(" ")}
+                  </TableCell>
+                  <TableCell className="capitalize">{item.user.name}</TableCell>
+                  <TableCell className="capitalize">{item.pr_status}</TableCell>
+                  <TableCell>{item.date_needed}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-4 w-4" />
+                          <span className="sr-only">Actions</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="start"
+                        className="w-34 animate-in fade-in-0 zoom-in-95"
+                      >
+                        <DropdownMenuItem onClick={() => handleView(item.id)}>
+                          <Eye className="mr-2 h-4 w-4" /> View
+                        </DropdownMenuItem>
 
-      // If user is a technical reviewer
-      if ((user?.role ?? []).includes("technical_reviewer")) {
-        // Only show "for_approval" items with tags ending with "_tr"
-        return (
-          matchesDept &&
-          item.pr_status === "for_approval" &&
-          (item.tag ?? []).some((tag) => tag.endsWith("_tr"))
-        );
-      }
-      
-      // Everyone else - show all items in their department (any status)
-      return matchesDept;
-    })
-    .map((item) => (
-      <TableRow key={item.id}>
-        <TableCell className="font-medium">
-          {item.series_no}
-        </TableCell>
-        <TableCell>{item.pr_purpose}</TableCell>
-        <TableCell>
-          {item.department
-            .split("_")
-            .map((word) =>
-              word.toLowerCase() === "it"
-                ? "IT"
-                : word.charAt(0).toUpperCase() +
-                  word.slice(1).toLowerCase()
-            )
-            .join(" ")}
-        </TableCell>
-        <TableCell className="capitalize">
-          {item.user.name}
-        </TableCell>
-        <TableCell className="capitalize">
-          {item.pr_status}
-        </TableCell>
-        <TableCell>{item.date_needed}</TableCell>
-        <TableCell>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="h-4 w-4" />
-                <span className="sr-only">Actions</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              className="w-34 animate-in fade-in-0 zoom-in-95"
-            >
-              <DropdownMenuItem onClick={() => handleView(item.id)}>
-                <Eye className="mr-2 h-4 w-4" /> View
-              </DropdownMenuItem>
-
-              {/* Hide edit/delete for hod + technical_reviewer */}
-              {!(
-                user?.role?.includes("hod") ||
-                user?.role?.includes("technical_reviewer")
-              ) && (
-                <DropdownMenuItem
-                  onClick={() => handleEdit(item.id)}
-                >
-                  <PencilLine className="mr-2 h-4 w-4" /> Edit
-                </DropdownMenuItem>
-              )}
-              {!(
-                user?.role?.includes("hod") ||
-                user?.role?.includes("technical_reviewer")
-              ) && (
-                <DropdownMenuItem
-                  onClick={() => handleDelete(item)}
-                  className="text-red-600 focus:text-red-600 cursor-pointer"
-                >
-                  <Trash className="mr-2 h-4 w-4" /> Delete
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </TableCell>
-      </TableRow>
-    ))}
+                        {/* Hide edit/delete for hod + technical_reviewer */}
+                        {!(
+                          user?.role?.includes("hod") ||
+                          user?.role?.includes("technical_reviewer")
+                        ) && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => handleEdit(item.id)}
+                            >
+                              <PencilLine className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(item)}
+                              className="text-red-600 focus:text-red-600 cursor-pointer"
+                            >
+                              <Trash className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
 

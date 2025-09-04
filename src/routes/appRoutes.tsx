@@ -5,6 +5,7 @@ import ProtectedRoute from "./protectedRoute";
 import { LayoutDashboard, Receipt } from "lucide-react";
 import Users from "@/features/users/pages/users";
 import AdminProtectedRoute from "./adminProtectedRoute";
+import Profile from "@/features/users/pages/profile";
 
 export const appRoutes = [
   {
@@ -38,6 +39,17 @@ export const appRoutes = [
     ),
     showInSidebar: false, // hide from sidebar
   },
+
+  // profile
+  {
+    path: "/profile",
+    element: (
+      <ProtectedRoute>
+        <Profile />
+      </ProtectedRoute>
+    ),
+    showInSidebar: false, // hide from sidebar
+  },
   {
     path: "/users",
     element: (
@@ -47,13 +59,4 @@ export const appRoutes = [
     ),
     showInSidebar: false, // hide from sidebar
   },
-  //   {
-  //     path: "/users/signup",
-  //     element: (
-  //       <ProtectedRoute>
-  //         <SignupPage />
-  //       </ProtectedRoute>
-  //     ),
-  //     showInSidebar: false, // hide from sidebar
-  //   },
 ];

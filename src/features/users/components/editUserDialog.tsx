@@ -100,7 +100,7 @@ export function EditUserDialog({ open, onOpenChange, user }: EditDialogProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="user">User</SelectItem>
-                <SelectItem value="hod">Head of Admin</SelectItem>
+                <SelectItem value="hod">Head of Department</SelectItem>
                 <SelectItem value="technical_reviewer">
                   Techinical Reviewer
                 </SelectItem>
