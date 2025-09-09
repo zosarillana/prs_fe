@@ -43,7 +43,7 @@ export default function SidebarNav() {
           }
         >
           <Receipt className="w-5 h-5 mr-3" />
-          <p>Purchase Reports</p>
+          <p>Purchase Requests</p>
         </NavLink>
       </li>
 

@@ -31,6 +31,8 @@ import {
   Plus,
   Trash,
   Search,
+  ClipboardX,
+  ClipboardCheckIcon,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -42,6 +44,7 @@ import { Link } from "react-router-dom";
 import { TableSkeleton } from "@/components/ui/skeletons/purchasereports/tableSkeleton";
 import { ViewPurchaseReportDialog } from "../components/viewPurchaseReportDialog";
 import { usePurchaseReports } from "../hooks/usePurchaseReports";
+import { SetPoDialog } from "../components/setPoDialog";
 
 export default function PurchaseReport() {
   const {
@@ -62,6 +65,10 @@ export default function PurchaseReport() {
     handleEdit,
     handleDelete,
     refetch,
+    handleSetPo,
+    poDialogOpen,
+    setPoDialogOpen,
+    poTargetId,
   } = usePurchaseReports();
 
   // First load skeleton
@@ -73,7 +80,7 @@ export default function PurchaseReport() {
             ? "Approve PRs"
             : user?.role?.includes("technical_reviewer")
             ? "Review Items"
-            : "Purchase Reports"}
+            : "Purchase Requests"}
         </h1>
         <TableSkeleton rows={5} />
       </div>
@@ -86,20 +93,21 @@ export default function PurchaseReport() {
       <div className="flex flex-row justify-between items-center mb-6">
         <h1 className="text-3xl font-bold mb-6">
           {user?.role?.includes("hod")
-            ? "Approve Purchase Reports"
+            ? "Approve Purchase Requests"
             : user?.role?.includes("technical_reviewer")
             ? "Review Items"
-            : "Purchase Reports"}
+            : "Purchase Requests"}
         </h1>
         <div className="flex flex-row gap-2">
           {!(
             user?.role?.includes("hod") ||
-            user?.role?.includes("technical_reviewer")
+            user?.role?.includes("technical_reviewer") ||
+            user?.role?.includes("purchasing")
           ) && (
             <Button asChild>
               <Link to="/purchase-reports/create">
                 <Plus className="h-4 w-4 mr-2" />
-                Create Purchase Report
+                Create Purchase Request
               </Link>
             </Button>
           )}
@@ -107,7 +115,7 @@ export default function PurchaseReport() {
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search reports..."
+              placeholder="Search requests..."
               className="pl-8"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -185,11 +193,23 @@ export default function PurchaseReport() {
                         <DropdownMenuItem onClick={() => handleView(item.id)}>
                           <Eye className="mr-2 h-4 w-4" /> View
                         </DropdownMenuItem>
-
+                        {!(
+                          user?.role?.includes("hod") ||
+                          user?.role?.includes("technical_reviewer") ||
+                          user?.role?.includes("user")
+                        ) && (
+                          <DropdownMenuItem
+                            onClick={() => handleSetPo(item.id)}
+                          >
+                            <ClipboardCheckIcon className="mr-2 h-4 w-4" /> Set
+                            PO
+                          </DropdownMenuItem>
+                        )}
                         {/* Hide edit/delete for hod + technical_reviewer */}
                         {!(
                           user?.role?.includes("hod") ||
-                          user?.role?.includes("technical_reviewer")
+                          user?.role?.includes("technical_reviewer") ||
+                          user?.role?.includes("purchasing")
                         ) && (
                           <>
                             <DropdownMenuItem
@@ -279,6 +299,13 @@ export default function PurchaseReport() {
         open={open}
         onOpenChange={setOpen}
         prId={viewId}
+        onSuccess={refetch}
+      />
+
+      <SetPoDialog
+        open={poDialogOpen}
+        onOpenChange={setPoDialogOpen}
+        reportId={poTargetId}
         onSuccess={refetch}
       />
     </div>

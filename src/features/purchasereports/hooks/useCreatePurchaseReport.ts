@@ -29,7 +29,7 @@ export function useCreatePurchaseReport() {
   );
   const [loading, setLoading] = useState(true);
 
-  // Fetch existing purchase reports
+  // Fetch existing Purchase Requests
   useEffect(() => {
     const fetchReports = async () => {
       try {
@@ -39,7 +39,7 @@ export function useCreatePurchaseReport() {
         });
         setData(res);
       } catch (error) {
-        console.error("Failed to fetch purchase reports", error);
+        console.error("Failed to fetch Purchase Requests", error);
       } finally {
         setLoading(false);
       }
@@ -87,15 +87,15 @@ export function useCreatePurchaseReport() {
     toast.promise(
       purchaseReportService.create(payload),
       {
-        loading: "Submitting purchase report...",
+        loading: "Submitting Purchase Request...",
         success: () => {
           // Reset form on success
           setItems([]);
           setRows(0);
           setReportData(null);
-          return "Purchase report submitted successfully!";
+          return "Purchase Request submitted successfully!";
         },
-        error: "Failed to submit purchase report. Please try again.",
+        error: "Failed to submit Purchase Request. Please try again.",
       }
     );
   };

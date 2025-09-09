@@ -28,6 +28,7 @@ export interface PurchaseReportInput {
   date_needed?: string; // ✅ optional
   quantity: number[];
   unit: string[];
+  item_status?: string[];
   item_description: string[];
   tag: string[];
   remarks: string[];

@@ -27,11 +27,11 @@ export default function CreatePurchaseReport() {
     <div className="p-6 -mt-4">
       <div className="flex flex-row justify-between items-center mb-6">
         <div className="flex flex-col items-start gap-2">
-          <h1 className="text-3xl font-bold">Create Purchase Report</h1>
+          <h1 className="text-3xl font-bold"> Create Purchase Request</h1>
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/purchase-reports">Purchase Reports</BreadcrumbLink>
+                <BreadcrumbLink href="/purchase-reports">Purchase Requests</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
@@ -150,7 +150,7 @@ export default function CreatePurchaseReport() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-gray-500">No purchase reports.</TableCell>
+                      <TableCell colSpan={6} className="text-center text-gray-500">No Purchase Requests.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>

@@ -16,6 +16,14 @@ export function usePurchaseReports() {
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
 
+  const [poDialogOpen, setPoDialogOpen] = useState(false);
+  const [poTargetId, setPoTargetId] = useState<number | null>(null);
+
+  const handleSetPo = (id: number) => {
+    setPoTargetId(id);
+    setPoDialogOpen(true);
+  };
+
   // pagination + search state
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -26,7 +34,7 @@ export function usePurchaseReports() {
   const [open, setOpen] = useState(false);
   const [viewId, setViewId] = useState<number | null>(null);
 
- const { data, isLoading, isFetching, refetch } = useQuery<
+  const { data, isLoading, isFetching, refetch } = useQuery<
     PaginatedResponse<PurchaseReport>
   >({
     queryKey: ["purchaseReports", page, pageSize, debouncedSearchTerm],
@@ -76,7 +84,19 @@ export function usePurchaseReports() {
     });
   };
 
-  
+  // ✅ Update PO mutation
+  const updatePoMutation = useMutation({
+    mutationFn: ({ id, po_no }: { id: number; po_no: number }) =>
+      purchaseReportService.updatePoNo(id, po_no),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["purchaseReports"] });
+      toast.success("PO number updated successfully");
+    },
+    onError: () => {
+      toast.error("Failed to update PO number");
+    },
+  });
+
   return {
     user,
     data,
@@ -95,6 +115,12 @@ export function usePurchaseReports() {
     handleView,
     handleEdit,
     handleDelete,
+    updatePo: updatePoMutation.mutate, // ✅ expose mutate
+    updatePoLoading: updatePoMutation.isPending, // optional loading state
     refetch,
+    poDialogOpen,
+    setPoDialogOpen,
+    poTargetId,
+    handleSetPo,
   };
 }

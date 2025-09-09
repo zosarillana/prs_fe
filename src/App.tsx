@@ -1,40 +1,61 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import { useEffect } from "react";
 import { useAuthStore } from "@/store/auth/authStore";
 import { useThemeStore } from "@/store/theme/themeStore";
 import Layout from "@/components/layout/layout";
 import LoginPage from "@/features/auth/pages/login";
-import SignupPage from "@/features/auth/pages/register";
 import { appRoutes } from "@/routes/appRoutes";
 import { Toaster } from "sonner";
 import { GlobalEchoListener } from "@/components/websocket/globalEchoListener";
+import { useNotificationStore } from "./store/notification/notificationStore";
 
 function AppWrapper() {
   const { user, loading, initialized, initializeAuth } = useAuthStore();
+
+  const fetchNotifications = useNotificationStore(
+    (state) => state.fetchNotifications
+  );
+  const fetchCounts = useNotificationStore((state) => state.fetchCounts);
+
   const location = useLocation();
   const setTheme = useThemeStore((state) => state.setTheme);
 
-  const hideNavbar = ["/login", "/register"].includes(location.pathname) || !user;
+  const hideNavbar =
+    ["/login", "/register"].includes(location.pathname) || !user;
 
-  // 👈 Initialize auth ONCE when app starts
+  // Initialize auth ONCE when app starts
   useEffect(() => {
     if (!initialized) {
       initializeAuth();
     }
   }, [initialized, initializeAuth]);
 
-  // Theme setup
+  // Fetch notifications + counts WHEN user is available
+  // 🔥 FIXED: Removed function dependencies to prevent re-runs
+  useEffect(() => {
+    if (user) {
+      // Call them sequentially to avoid race conditions
+      const loadData = async () => {
+        await fetchNotifications();
+        await fetchCounts();
+      };
+      loadData();
+    }
+  }, [user]); // ✅ Only depend on 'user', not the functions
+
+  // Theme setup - Default to light theme
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-    if (savedTheme) {
-      setTheme(savedTheme);
-    } else {
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      setTheme(prefersDark ? "dark" : "light");
-    }
+    setTheme(savedTheme ?? "light");
   }, [setTheme]);
 
-  // 👈 Show loading ONLY while checking auth for the first time
+  // Show loading ONLY while checking auth for the first time
   if (!initialized && loading) {
     return (
       <div className="min-h-screen flex items-center justify-center dark:bg-gray-900">

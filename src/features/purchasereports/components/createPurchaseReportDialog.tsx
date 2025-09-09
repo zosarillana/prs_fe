@@ -81,7 +81,7 @@ export function CreatePurchaseReportDialog({
         date_needed: dateNeeded,
         series_no,
       });
-      toast.success("Purchase report created!");
+      toast.success("Purchase Request created!");
       setOpen(false);
     } else {
       // optional: toast error if required fields missing
@@ -94,15 +94,15 @@ export function CreatePurchaseReportDialog({
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          Issue Purchase Report
+          Issue Purchase Requests
         </Button>
       </DialogTrigger>
 
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Issue Purchase Report</DialogTitle>
+          <DialogTitle>Issue Purchase Requests</DialogTitle>
           <DialogDescription>
-            Fill in the details to create a new purchase report.
+            Fill in the details to create a new purchase requests.
           </DialogDescription>
         </DialogHeader>
 

@@ -2,7 +2,7 @@ import api from "@/lib/api";
 import { PurchaseReport, PurchaseReportInput } from "./types";
 import { PaginatedResponse } from "@/types/paginator";
 
-// Service for purchase reports
+// Service for Purchase Requests
 export const purchaseReportService = {
   // Get full paginated reports
   getAll: async (params?: {
@@ -65,15 +65,41 @@ export const purchaseReportService = {
     status: "approved" | "rejected" | "pending",
     remark?: string,
     asRole?: "technical_reviewer" | "hod" | "both",
-     loggedUserId?: number // 👈 add this
+    loggedUserId?: number // 👈 add this
   ): Promise<PurchaseReport> => {
     const res = await api.patch(`api/purchase-reports/${id}/approve-item`, {
       index,
       status,
       remark,
       ...(asRole ? { as_role: asRole } : {}),
-        ...(loggedUserId ? { logged_user_id: loggedUserId } : {}), 
+      ...(loggedUserId ? { logged_user_id: loggedUserId } : {}),
     });
+    return res.data;
+  },
+
+  updateItemStatusOnly: async (
+    id: number,
+    index: number,
+    status: string
+  ): Promise<PurchaseReport> => {
+    const res = await api.patch(
+      `api/purchase-reports/${id}/update-item-status-only`,
+      {
+        index,
+        status,
+      }
+    );
+    return res.data;
+  },
+
+  async updatePoNo(id: number, po_no: number) {
+    const res = await api.patch(`api/purchase-reports/${id}/po-no`, { po_no });
+    return res.data;
+  },
+
+  // Get summary counts (role-based)
+  getSummary: async (): Promise<any> => {
+    const res = await api.get("api/purchase-reports/summary");
     return res.data;
   },
 };

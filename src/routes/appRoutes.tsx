@@ -26,7 +26,7 @@ export const appRoutes = [
         <PurchaseReport />
       </ProtectedRoute>
     ),
-    label: "Purchase Reports",
+    label: "Purchase Requests",
     icon: Receipt,
     showInSidebar: true,
   },
