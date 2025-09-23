@@ -1,26 +1,77 @@
-// components/websocket/globalEchoListener.tsx
 import { useEffect } from "react";
 import { echo } from "@/lib/echo";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@/store/auth/authStore";
+import { useNotificationStore } from "@/store/notification/notificationStore";
 
 export function GlobalEchoListener() {
-  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const { addNotification, fetchCounts } = useNotificationStore();
 
   useEffect(() => {
-    const channel = echo.channel("purchase-report");
+    if (!user) return;
 
-    channel.listen(".PurchaseReportCreated", (event: any) => {
+    console.log("Setting up notification channels for user:", user);
+
+    let channels: any[] = [];
+
+    // User-specific channel
+    const userChannel = echo.channel(`purchase-report-user-${user.id}`);
+    channels.push(userChannel);
+
+    // Admin channel
+    if (user.role.includes("admin")) {
+      const adminChannel = echo.channel("purchase-report-admin");
+      channels.push(adminChannel);
+    }
+
+    // HOD channels
+    if (user.role.includes("hod")) {
+      user.department.forEach((dept: string) => {
+        const deptChannel = echo.channel(`purchase-report-dept-${dept}`);
+        channels.push(deptChannel);
+      });
+    }
+
+    const handleEvent = (event: any) => {
+      console.log("Notification event received:", event);
+
+      // Show toast for new report
       toast.success(`New report: ${event.series_no}`);
 
-      // ✅ tell React Query to refetch the summary
-      queryClient.invalidateQueries({ queryKey: ["dashboardSummary"] });
+      // Backend event signals a new notification
+      if (event.type === "notification_created") {
+        addNotification({
+          id: event.id,
+          type: event.type,
+          notifiable_type: event.notifiable_type,
+          notifiable_id: event.notifiable_id,
+          data: event.data,
+          read_at: null,
+          created_at: event.created_at,
+          updated_at: event.updated_at,
+        });
+
+        // Update unread counts
+        fetchCounts();
+      }
+
+      // Optional: if backend pushes full updated list
+      if (event.type === "notifications_updated") {
+        fetchCounts();
+      }
+    };
+
+    channels.forEach(channel => {
+      channel.listen(".PurchaseReportCreated", handleEvent);
     });
 
     return () => {
-      channel.stopListening(".PurchaseReportCreated");
+      channels.forEach(channel => {
+        channel.stopListening(".PurchaseReportCreated");
+      });
     };
-  }, [queryClient]);
+  }, [user, addNotification, fetchCounts]);
 
   return null;
 }

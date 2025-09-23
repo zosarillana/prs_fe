@@ -1,3 +1,4 @@
+// Updated UserService
 import api from "@/lib/api";
 import { PaginatedResponse } from "@/types/paginator";
 import { User } from "./types";
@@ -34,9 +35,21 @@ export const userService = {
     return res.data;
   },
 
-  // Update user
-  update: async (id: number, data: Partial<User>): Promise<User> => {
+  // Update user (excluding password updates)
+  update: async (id: number, data: Partial<Omit<User, 'password'>>): Promise<User> => {
     const res = await api.put(`api/users/${id}`, data);
+    return res.data;
+  },
+
+  // 🆕 Update user password (admin function)
+  updatePassword: async (
+    id: number, 
+    data: {
+      password: string;
+      password_confirmation: string;
+    }
+  ): Promise<{ message: string }> => {
+    const res = await api.put(`api/users/${id}/password`, data);
     return res.data;
   },
 

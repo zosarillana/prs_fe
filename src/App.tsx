@@ -5,57 +5,77 @@ import {
   Navigate,
   useLocation,
 } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth/authStore";
 import { useThemeStore } from "@/store/theme/themeStore";
 import Layout from "@/components/layout/layout";
 import LoginPage from "@/features/auth/pages/login";
 import { appRoutes } from "@/routes/appRoutes";
+import { userPrivilegesService } from "@/services/userPriviligesService";
+import type { UserPrivilege } from "@/types/userPriviliges";
 import { Toaster } from "sonner";
 import { GlobalEchoListener } from "@/components/websocket/globalEchoListener";
 import { useNotificationStore } from "./store/notification/notificationStore";
+import { GlobalSystemListener } from "./components/websocket/globalSystemListener";
+import NotFound from "@/features/misc/pages/notFound";
 
 function AppWrapper() {
   const { user, loading, initialized, initializeAuth } = useAuthStore();
-
-  const fetchNotifications = useNotificationStore(
-    (state) => state.fetchNotifications
-  );
-  const fetchCounts = useNotificationStore((state) => state.fetchCounts);
-
+  const fetchNotifications = useNotificationStore((s) => s.fetchNotifications);
+  const fetchCounts = useNotificationStore((s) => s.fetchCounts);
+  const setTheme = useThemeStore((s) => s.setTheme);
   const location = useLocation();
-  const setTheme = useThemeStore((state) => state.setTheme);
+
+  const [allowedModuleIds, setAllowedModuleIds] = useState<Set<number>>(new Set());
+  const [privLoading, setPrivLoading] = useState(true);
 
   const hideNavbar =
     ["/login", "/register"].includes(location.pathname) || !user;
 
-  // Initialize auth ONCE when app starts
+  // initialize auth
   useEffect(() => {
-    if (!initialized) {
-      initializeAuth();
-    }
+    if (!initialized) initializeAuth();
   }, [initialized, initializeAuth]);
 
-  // Fetch notifications + counts WHEN user is available
-  // 🔥 FIXED: Removed function dependencies to prevent re-runs
+  // fetch notifications + counts
   useEffect(() => {
     if (user) {
-      // Call them sequentially to avoid race conditions
-      const loadData = async () => {
+      (async () => {
         await fetchNotifications();
         await fetchCounts();
-      };
-      loadData();
+      })();
     }
-  }, [user]); // ✅ Only depend on 'user', not the functions
+  }, [user]);
 
-  // Theme setup - Default to light theme
+  // theme setup
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-    setTheme(savedTheme ?? "light");
+    const saved = localStorage.getItem("theme") as "light" | "dark" | null;
+    setTheme(saved ?? "light");
   }, [setTheme]);
 
-  // Show loading ONLY while checking auth for the first time
+  // 🔑 fetch user privileges to build allowedModuleIds
+  useEffect(() => {
+    if (!user) {
+      setAllowedModuleIds(new Set());
+      setPrivLoading(false);
+      return;
+    }
+
+    (async () => {
+      try {
+        const data: UserPrivilege[] = await userPrivilegesService.getAll();
+        const userPrivs = data.filter((p) => p.user_id === user.id);
+        const ids = new Set<number>(userPrivs.flatMap((p) => p.module_ids ?? []));
+        setAllowedModuleIds(ids);
+      } catch (err) {
+        console.error("Failed to load privileges", err);
+      } finally {
+        setPrivLoading(false);
+      }
+    })();
+  }, [user]);
+
+  // loading state
   if (!initialized && loading) {
     return (
       <div className="min-h-screen flex items-center justify-center dark:bg-gray-900">
@@ -67,17 +87,33 @@ function AppWrapper() {
     );
   }
 
+  if (privLoading) return null; // or spinner while checking privileges
+
+  const can = (id?: number) => (id ? allowedModuleIds.has(id) : true);
+
+  const renderRoutes = () =>
+    appRoutes.map(({ path, element, moduleId }) => (
+      <Route
+        key={path}
+        path={path}
+        element={
+          moduleId && !can(moduleId) ? (
+            <NotFound /> // 🚫 404 if user lacks privilege
+          ) : (
+            element
+          )
+        }
+      />
+    ));
+
   if (hideNavbar) {
     return (
       <div className="min-h-screen dark:bg-gray-900 dark:text-gray-200">
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/login" element={<LoginPage />} />
-          {/* <Route path="/register" element={<SignupPage />} /> */}
-          {appRoutes.map(({ path, element }) => (
-            <Route key={path} path={path} element={element} />
-          ))}
-          <Route path="*" element={<h1>404 Not Found</h1>} />
+          {renderRoutes()}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
     );
@@ -87,10 +123,8 @@ function AppWrapper() {
     <Layout>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        {appRoutes.map(({ path, element }) => (
-          <Route key={path} path={path} element={element} />
-        ))}
-        <Route path="*" element={<h1>404 Not Found</h1>} />
+        {renderRoutes()}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
   );
@@ -101,6 +135,7 @@ export default function App() {
     <Router>
       <AppWrapper />
       <GlobalEchoListener />
+      <GlobalSystemListener />
       <Toaster position="top-right" />
     </Router>
   );

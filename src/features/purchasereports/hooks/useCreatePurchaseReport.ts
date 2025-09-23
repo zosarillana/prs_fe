@@ -3,9 +3,12 @@ import { PaginatedResponse } from "@/types/paginator";
 import { purchaseReportService } from "../purchaseReportService";
 import type { PurchaseReport } from "../types";
 import { toast } from "sonner";
+import { Uom } from "@/features/uom/types";
+import { uomService } from "@/features/uom/uomService";
 
 export function useCreatePurchaseReport() {
   const [rows, setRows] = useState<number>(0);
+  const [uoms, setUoms] = useState<Uom[]>([]); // ✅ add this
   const [reportData, setReportData] = useState<{
     series_no: string;
     purpose: string;
@@ -48,18 +51,17 @@ export function useCreatePurchaseReport() {
     fetchReports();
   }, []);
 
-  // Sync items array when rows change
   useEffect(() => {
-    setItems(
-      Array.from({ length: rows }, () => ({
-        quantity: "",
-        unit: "",
-        description: "",
-        tag: "",
-        remarks: "",
-      }))
-    );
-  }, [rows]);
+    const fetchUoms = async () => {
+      try {
+        const res = await uomService.getAll({ pageNumber: 1, pageSize: 9999 });
+        setUoms(res.items); // ✅ only set the array
+      } catch (error) {
+        console.error("Failed to fetch UOMs", error);
+      }
+    };
+    fetchUoms();
+  }, []);
 
   const handleChange = (index: number, field: string, value: string) => {
     setItems((prev) =>
@@ -71,7 +73,7 @@ export function useCreatePurchaseReport() {
     if (!reportData) return;
 
     const payload = {
-      user_id: reportData.user_id, // later: use real user id from auth store
+      user_id: reportData.user_id,
       series_no: reportData.series_no,
       pr_purpose: reportData.purpose,
       department: reportData.department,
@@ -84,20 +86,29 @@ export function useCreatePurchaseReport() {
       remarks: items.map((item) => item.remarks),
     };
 
-    toast.promise(
-      purchaseReportService.create(payload),
-      {
-        loading: "Submitting Purchase Request...",
-        success: () => {
-          // Reset form on success
-          setItems([]);
-          setRows(0);
-          setReportData(null);
-          return "Purchase Request submitted successfully!";
-        },
-        error: "Failed to submit Purchase Request. Please try again.",
+    try {
+      toast.loading("Submitting Purchase Request...");
+      await purchaseReportService.create(payload);
+
+      // ✅ Success
+      setItems([]);
+      setRows(0);
+      setReportData(null);
+      toast.dismiss(); // remove the loading toast
+      toast.success("Purchase Request submitted successfully!");
+    } catch (err: any) {
+      toast.dismiss(); // remove the loading toast
+
+      const apiError = err?.response?.data;
+      if (apiError?.errors) {
+        // Show a separate toast for each field error
+        Object.entries(apiError.errors).forEach(([field, messages]) => {
+          toast.error(`${field}: ${(messages as string[]).join(", ")}`);
+        });
+      } else {
+        toast.error(apiError?.message || "Failed to submit Purchase Request.");
       }
-    );
+    }
   };
 
   return {
@@ -108,6 +119,7 @@ export function useCreatePurchaseReport() {
     items,
     setItems,
     data,
+    uoms,
     loading,
     handleChange,
     handleSubmit,

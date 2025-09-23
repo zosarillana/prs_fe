@@ -1,14 +1,7 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth/authStore";
-import {
-  LayoutDashboard,
-  LogOut,
-  MoreVertical,
-  Receipt,
-  Settings,
-  User,
-} from "lucide-react";
+import { Cog, LogOut, MoreVertical, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Popover,
@@ -49,12 +42,12 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
       {/* Sidebar */}
       <div
         className={`fixed top-0 left-0 h-full w-64 
-          bg-white dark:bg-gray-800 
-          shadow-lg z-50
-          transform transition-all duration-300 ease-in-out
-          border-r border-gray-300 dark:border-gray-700
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          flex flex-col justify-between`}
+            bg-white dark:bg-gray-800 
+            shadow-lg z-50
+            transform transition-all duration-300 ease-in-out
+            border-r border-gray-300 dark:border-gray-700
+            ${isOpen ? "translate-x-0" : "-translate-x-full"}
+            flex flex-col justify-between`}
       >
         <div>
           {/* Sidebar Header */}
@@ -66,8 +59,8 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
                 className="h-16 -my-5 -ml-4 w-auto"
               />
               {/* <span className="text-green-700 dark:text-green-400 -ml-1 font-medium">
-                agrieximfze
-              </span> */}
+                  agrieximfze
+                </span> */}
             </div>
           </div>
 
@@ -78,11 +71,11 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
                 <PopoverTrigger asChild>
                   <div
                     className={`w-full px-3 py-2 rounded-md transition-colors cursor-pointer
-                      ${
-                        popoverOpen
-                          ? "bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-gray-100"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                      }`}
+                        ${
+                          popoverOpen
+                            ? "bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-gray-100"
+                            : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                        }`}
                   >
                     <div className="flex items-center justify-between w-full">
                       {/* Left side (Avatar + text) */}
@@ -132,7 +125,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
               >
                 <div className="flex flex-col gap-1">
                   <NavLink
-                  to="/profile"
+                    to="/profile"
                     onClick={() => setActiveItem("profile")}
                     className={`text-sm flex items-center gap-2 text-left px-2 py-2 rounded transition-colors ${
                       activeItem === "profile"
@@ -143,17 +136,21 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
                     <User className="w-4 h-4" />
                     Profile
                   </NavLink>
-                  <button
-                    onClick={() => setActiveItem("settings")}
-                    className={`text-sm flex items-center gap-2 text-left px-2 py-2 rounded transition-colors ${
-                      activeItem === "settings"
-                        ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium"
-                        : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
-                    }`}
-                  >
-                    <Settings className="w-4 h-4" />
-                    Settings
-                  </button>
+                  {user?.role?.includes("admin") && (
+                    <NavLink
+                      to="/settings"
+                      onClick={() => setActiveItem("settings")}
+                      className={`text-sm flex items-center gap-2 text-left px-2 py-2 rounded transition-colors ${
+                        activeItem === "settings"
+                          ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium"
+                          : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+                      }`}
+                    >
+                      <Cog className="w-4 h-4" />
+                      Settings
+                    </NavLink>
+                  )}
+
                   <div className="border-t border-gray-300 dark:border-gray-600 -mx-2"></div>
                   <button
                     onClick={() => {
@@ -174,10 +171,12 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
             </Popover>
           )}
 
-          {/* Main Navigation */}
+          {/* Main Navigation (Scrollable Only) */}
           <nav className="p-4">
-           <SidebarNav></SidebarNav>
-           </nav>
+            <div className="max-h-[calc(100vh-260px)] overflow-y-auto pr-1">
+              <SidebarNav />
+            </div>
+          </nav>
         </div>
 
         {/* Footer Navigation */}

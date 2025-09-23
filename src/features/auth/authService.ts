@@ -1,3 +1,4 @@
+// Updated AuthService
 import api from "@/lib/api";
 import Cookies from "js-cookie";
 import { LoginInput, RegisterInput, AuthResponse } from "./types";
@@ -47,13 +48,29 @@ export const authService = {
     }
 
     // 1. Clear cookies & storage
-    Cookies.remove("XSRF-TOKEN");
-    localStorage.removeItem("auth_token");
-    localStorage.clear();
-    sessionStorage.clear();
+    // Cookies.remove("XSRF-TOKEN");
+    // localStorage.removeItem("auth_token");
+    // localStorage.clear();
+    // sessionStorage.clear();
 
     // 2. Force UI reset (fresh state, no stale data)
-    window.location.href = "/login";
+    // window.location.href = "/login";
+  },
+
+  // 🆕 Change password for authenticated user
+  changePassword: async (data: {
+    current_password: string;
+    password: string;
+    password_confirmation: string;
+  }): Promise<{ message: string }> => {
+    await ensureCsrfCookie();
+    const xsrfToken = Cookies.get("XSRF-TOKEN");
+    
+    const res = await api.post("/change-password", data, {
+      headers: { "X-XSRF-TOKEN": xsrfToken },
+    });
+    
+    return res.data;
   },
 
   me: async (): Promise<{ user: AuthResponse["user"] }> => {

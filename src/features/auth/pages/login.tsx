@@ -1,3 +1,4 @@
+import bgImage from "@/assets/images/bg.png"; // ✅ import your background
 import {
   Card,
   CardContent,
@@ -15,8 +16,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function LoginPage() {
-  const loginMutation = useLogin();
-  const { mutate, isPending, isError, error } = loginMutation;
+  const { mutate, isPending, isError, error } = useLogin();
   const setAuth = useAuthStore((state) => state.setAuth);
   const navigate = useNavigate();
 
@@ -26,24 +26,27 @@ export default function LoginPage() {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-     mutate(
+    mutate(
       { email, password },
       {
         onSuccess: (data) => {
-          setAuth(data.access_token, data.user); // update Zustand store
-          toast.success("Welcome back 👋"); // ✅ success toast
+          setAuth(data.access_token, data.user);
+          toast.success("Welcome back 👋");
           navigate("/dashboard");
         },
-        onError: (err: any) => {
-          toast.error(err?.message || "Invalid email or password"); // ✅ error toast
-        },
+        onError: (err: any) =>
+          toast.error(err?.message || "Invalid email or password"),
       }
     );
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-100">
-      <Card className="w-[350px] shadow-lg">
+    <div
+      className="flex flex-col gap-8 h-screen items-center justify-center bg-cover bg-center"
+      style={{ backgroundImage: `url(${bgImage})` }}
+    >
+      <img src="src/assets/images/logo.png" className="h-24" />
+      <Card className="w-[350px] shadow-lg bg-white/90 backdrop-blur-sm">
         <CardHeader>
           <CardTitle>Login to your account</CardTitle>
           <CardDescription>
@@ -64,29 +67,16 @@ export default function LoginPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder=""
-              />
+              <Input id="password" name="password" type="password" />
             </div>
+
             <p className="text-sm text-gray-600">
-              Don’t have an account?{" "}Contact Admin.
-              {/* <a
-                href="/register"
-                className="font-medium text-blue-600 hover:underline"
-              >
-                Sign up
-              </a> */}
+              Don’t have an account? Contact Admin.
             </p>
 
             <Button type="submit" disabled={isPending} className="w-full">
               {isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-             
-                </>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 "Sign In"
               )}

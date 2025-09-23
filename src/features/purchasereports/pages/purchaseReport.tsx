@@ -45,6 +45,9 @@ import { TableSkeleton } from "@/components/ui/skeletons/purchasereports/tableSk
 import { ViewPurchaseReportDialog } from "../components/viewPurchaseReportDialog";
 import { usePurchaseReports } from "../hooks/usePurchaseReports";
 import { SetPoDialog } from "../components/setPoDialog";
+import { EditPurchaseReportDialog } from "../components/editPurchaseReportDialog";
+import { DrApproveDialog } from "../components/drApproveDialog";
+import { toast } from "sonner";
 
 export default function PurchaseReport() {
   const {
@@ -63,13 +66,27 @@ export default function PurchaseReport() {
     setSearchTerm,
     handleView,
     handleEdit,
+    editOpen,
+    setEditOpen,
+    editId,
     handleDelete,
     refetch,
     handleSetPo,
     poDialogOpen,
     setPoDialogOpen,
     poTargetId,
+    approvePo,
+    setApproveDialogOpen,
+    setApproveTargetId,
+    approveDialogOpen,
+    approveTargetId,
+    approvePoMutation,
   } = usePurchaseReports();
+
+  const statusMap: Record<string, string> = {
+    for_approval: "For Processing",
+    on_hold: "For Approval",
+  };
 
   // First load skeleton
   if (loading) {
@@ -129,13 +146,12 @@ export default function PurchaseReport() {
         <Table className="border-separate border-spacing-0 w-full">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[140px] border-b">
-                Series Number
-              </TableHead>
+              <TableHead className="w-[140px] border-b">PR Number</TableHead>
               <TableHead className="border-b">Purpose</TableHead>
               <TableHead className="border-b">Department</TableHead>
               <TableHead className="border-b">Submitted By</TableHead>
               <TableHead className="border-b">Status</TableHead>
+              <TableHead className="border-b">PO Status</TableHead>
               <TableHead className="border-b">Date Needed</TableHead>
               <TableHead className="w-[100px] border-b">Action</TableHead>
             </TableRow>
@@ -159,7 +175,7 @@ export default function PurchaseReport() {
             {/* Data rows */}
             {!fetching &&
               data?.items?.map((item) => (
-                <TableRow key={item.id}>
+                <TableRow key={item.id} onClick={() => handleView(item.id)}>
                   <TableCell className="font-medium">
                     {item.series_no}
                   </TableCell>
@@ -176,35 +192,87 @@ export default function PurchaseReport() {
                       .join(" ")}
                   </TableCell>
                   <TableCell className="capitalize">{item.user.name}</TableCell>
-                  <TableCell className="capitalize">{item.pr_status}</TableCell>
+                  <TableCell className="capitalize">
+                    {statusMap[item.pr_status] || item.pr_status}
+                  </TableCell>
+                  <TableCell className="capitalize">
+                    {item.po_status ?? "n/a"}
+                  </TableCell>
                   <TableCell>{item.date_needed}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          // 🔑 Prevent the row onClick when opening the menu
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <MoreVertical className="h-4 w-4" />
                           <span className="sr-only">Actions</span>
                         </Button>
                       </DropdownMenuTrigger>
+
                       <DropdownMenuContent
                         align="start"
                         className="w-34 animate-in fade-in-0 zoom-in-95"
+                        // 🔑 Extra guard for any clicks inside the menu
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <DropdownMenuItem onClick={() => handleView(item.id)}>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleView(item.id);
+                          }}
+                        >
                           <Eye className="mr-2 h-4 w-4" /> View
                         </DropdownMenuItem>
+
+                        {/* Show Set PO / DR Approved if user role allows */}
                         {!(
                           user?.role?.includes("hod") ||
                           user?.role?.includes("technical_reviewer") ||
                           user?.role?.includes("user")
                         ) && (
-                          <DropdownMenuItem
-                            onClick={() => handleSetPo(item.id)}
-                          >
-                            <ClipboardCheckIcon className="mr-2 h-4 w-4" /> Set
-                            PO
-                          </DropdownMenuItem>
+                          <>
+                            {/* ✅ Show "Set PO" if no PO exists */}
+                            {!item.po_no && !item.po_created_date ? (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSetPo(item.id);
+                                }}
+                              >
+                                <ClipboardCheckIcon className="mr-2 h-4 w-4" />{" "}
+                                Set PO
+                              </DropdownMenuItem>
+                            ) : (
+                              // ✅ Show "DR Approved" only if po_approved_date is null
+                              !item.po_approved_date && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setApproveTargetId(item.id); // set which PO to approve
+                                    setApproveDialogOpen(true); // open the dialog
+                                  }}
+                                >
+                                  <ClipboardCheckIcon className="mr-2 h-4 w-4 text-black-600" />{" "}
+                                  DR Approved
+                                </DropdownMenuItem>
+                                // <DropdownMenuItem
+                                //   onClick={(e) => {
+                                //     e.stopPropagation();
+                                //     approvePo(item.id);
+                                //   }}
+                                // >
+                                //   <ClipboardCheckIcon className="mr-2 h-4 w-4 text-black-600" />{" "}
+                                //   DR Approved
+                                // </DropdownMenuItem>
+                              )
+                            )}
+                          </>
                         )}
+
                         {/* Hide edit/delete for hod + technical_reviewer */}
                         {!(
                           user?.role?.includes("hod") ||
@@ -213,12 +281,18 @@ export default function PurchaseReport() {
                         ) && (
                           <>
                             <DropdownMenuItem
-                              onClick={() => handleEdit(item.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(item.id);
+                              }}
                             >
                               <PencilLine className="mr-2 h-4 w-4" /> Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleDelete(item)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(item);
+                              }}
                               className="text-red-600 focus:text-red-600 cursor-pointer"
                             >
                               <Trash className="mr-2 h-4 w-4" /> Delete
@@ -302,11 +376,27 @@ export default function PurchaseReport() {
         onSuccess={refetch}
       />
 
+      <EditPurchaseReportDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        prId={editId}
+      />
+
       <SetPoDialog
         open={poDialogOpen}
         onOpenChange={setPoDialogOpen}
         reportId={poTargetId}
         onSuccess={refetch}
+      />
+
+      <DrApproveDialog
+        open={approveDialogOpen}
+        onClose={() => setApproveDialogOpen(false)}
+        onConfirm={({ date, status }) => {
+          if (approveTargetId !== null) {
+            approvePoMutation.mutate({ id: approveTargetId, date, status });
+          }
+        }}
       />
     </div>
   );

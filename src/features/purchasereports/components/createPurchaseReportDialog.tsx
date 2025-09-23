@@ -21,13 +21,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth/authStore";
 
@@ -46,45 +39,49 @@ export function CreatePurchaseReportDialog({
 }) {
   const user = useAuthStore((state) => state.user);
 
-  const [open, setOpen] = React.useState(false);
-  const [items, setItems] = React.useState<string>("");
-  const [purpose, setPurpose] = React.useState<string>("");
-  const [date, setDate] = React.useState<Date>();
-  const [dateNeeded, setDateNeeded] = React.useState<Date>();
+  const isAdmin = user?.role?.includes("admin");
+  const isUser = user?.role?.includes("user");
 
-  function formatDepartment(dep: string) {
-    return dep
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  }
+  const [open, setOpen] = React.useState(false);
+  const [items, setItems] = React.useState<string>("1"); // ✅ default to "1"
+  const [purpose, setPurpose] = React.useState<string>("");
+
+  // ✅ Date can be Date OR undefined
+  const [date, setDate] = React.useState<Date | undefined>(
+    isUser ? new Date() : undefined
+  );
+  const [dateNeeded, setDateNeeded] = React.useState<Date | undefined>();
 
   // ✅ Generate a unique series number
   function generateSeriesNo() {
-    const timestamp = Date.now().toString().slice(-5); // last 5 digits of timestamp
-    const random = Math.floor(100 + Math.random() * 900); // random 3-digit number
+    const timestamp = Date.now().toString().slice(-5);
+    const random = Math.floor(100 + Math.random() * 900);
     return `${timestamp}${random}`;
   }
 
   const handleCreate = () => {
     if (items && purpose) {
-      const series_no = generateSeriesNo(); // generate on submit
+      const series_no = generateSeriesNo();
 
       onSubmit({
         amount: Number(items),
         purpose,
-        user_id: user!.id, // force non-null, since user must exist
-        department: user?.department
-          ? user.department.join(", ") // no formatDepartment
-          : "",
+        user_id: user!.id,
+        department: user?.department ? user.department.join(", ") : "",
         date_submitted: date,
         date_needed: dateNeeded,
         series_no,
       });
+
       toast.success("Purchase Request created!");
+
+      // reset fields
+      setPurpose("");
+      setItems("1");
+      setDate(isUser ? new Date() : undefined);
+      setDateNeeded(undefined);
       setOpen(false);
     } else {
-      // optional: toast error if required fields missing
       toast.error("Please fill in purpose and amount of items.");
     }
   };
@@ -94,15 +91,15 @@ export function CreatePurchaseReportDialog({
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          Issue Purchase Requests
+          Create Purchase Requests
         </Button>
       </DialogTrigger>
 
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Issue Purchase Requests</DialogTitle>
+          <DialogTitle>Create Purchase Requests</DialogTitle>
           <DialogDescription>
-            Fill in the details to create a new purchase requests.
+            Fill in the details to create a new purchase request.
           </DialogDescription>
         </DialogHeader>
 
@@ -119,18 +116,37 @@ export function CreatePurchaseReportDialog({
 
           {/* Date Pickers */}
           <div className="flex flex-row gap-4">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, "PPP") : <span>Date Submitted</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar mode="single" selected={date} onSelect={setDate} />
-              </PopoverContent>
-            </Popover>
+            {/* Date Submitted */}
+            {isAdmin ? (
+              // ✅ Admin can freely select date_submitted
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PPP") : <span>Date Submitted</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={(value) => setDate(value)}
+                  />
+                </PopoverContent>
+              </Popover>
+            ) : (
+              // ✅ Regular user – date is today and fixed
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                disabled
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {format(date ?? new Date(), "PPP")}
+              </Button>
+            )}
 
+            {/* Date Needed */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full justify-start">
@@ -146,25 +162,11 @@ export function CreatePurchaseReportDialog({
                 <Calendar
                   mode="single"
                   selected={dateNeeded}
-                  onSelect={setDateNeeded}
+                  onSelect={(value) => setDateNeeded(value)}
                 />
               </PopoverContent>
             </Popover>
           </div>
-
-          {/* Item Count */}
-          <Select onValueChange={(value) => setItems(value)}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Amount of items" />
-            </SelectTrigger>
-            <SelectContent>
-              {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
-                <SelectItem key={num} value={String(num)}>
-                  {num}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
 
         <DialogFooter className="mt-4">

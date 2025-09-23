@@ -62,7 +62,7 @@ export const purchaseReportService = {
   updateItemStatus: async (
     id: number,
     index: number,
-    status: "approved" | "rejected" | "pending",
+    status: "approved" | "rejected" | "pending" | "pending_tr",
     remark?: string,
     asRole?: "technical_reviewer" | "hod" | "both",
     loggedUserId?: number // 👈 add this
@@ -97,6 +97,15 @@ export const purchaseReportService = {
     return res.data;
   },
 
+  // ✅ NEW: Approve PO (set Approved + date)
+  async poApproveDate(id: number, payload: { date: string; status: string }) {
+    const res = await api.post(
+      `api/purchase-reports/${id}/po-approve-date`,
+      payload
+    );
+    return res.data;
+  },
+  
   // Get summary counts (role-based)
   getSummary: async (): Promise<any> => {
     const res = await api.get("api/purchase-reports/summary");

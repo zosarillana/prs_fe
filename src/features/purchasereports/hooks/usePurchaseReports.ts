@@ -34,6 +34,14 @@ export function usePurchaseReports() {
   const [open, setOpen] = useState(false);
   const [viewId, setViewId] = useState<number | null>(null);
 
+  // 👉 Add these for Edit
+  const [editOpen, setEditOpen] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+
+  // drApproveDialog
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [approveTargetId, setApproveTargetId] = useState<number | null>(null);
+
   const { data, isLoading, isFetching, refetch } = useQuery<
     PaginatedResponse<PurchaseReport>
   >({
@@ -71,7 +79,8 @@ export function usePurchaseReports() {
   };
 
   const handleEdit = (id: number) => {
-    console.log("Edit report with ID:", id);
+    setEditId(id); // set the target report id
+    setEditOpen(true); // open the edit dialog
   };
 
   const handleDelete = (item: PurchaseReport) => {
@@ -97,6 +106,26 @@ export function usePurchaseReports() {
     },
   });
 
+  // ✅ Approve PO mutation (DR Approved)
+  const approvePoMutation = useMutation({
+    mutationFn: ({
+      id,
+      date,
+      status,
+    }: {
+      id: number;
+      date: string;
+      status: string;
+    }) => purchaseReportService.poApproveDate(id, { date, status }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["purchaseReports"] });
+      toast.success("PO approved successfully");
+    },
+    onError: () => {
+      toast.error("Failed to approve PO");
+    },
+  });
+
   return {
     user,
     data,
@@ -113,14 +142,25 @@ export function usePurchaseReports() {
     viewId,
     setViewId,
     handleView,
+    editOpen, // ✅ expose
+    setEditOpen, // ✅ expose
+    editId, // ✅ expose
+    setEditId, // ✅ expose
     handleEdit,
     handleDelete,
     updatePo: updatePoMutation.mutate, // ✅ expose mutate
-    updatePoLoading: updatePoMutation.isPending, // optional loading state
+    updatePoLoading: updatePoMutation.isPending,
+    approvePo: approvePoMutation.mutate, // ✅ expose mutate
+    approvePoLoading: approvePoMutation.isPending,
     refetch,
     poDialogOpen,
     setPoDialogOpen,
     poTargetId,
     handleSetPo,
+    setApproveTargetId,
+    setApproveDialogOpen,
+    approveDialogOpen,
+    approveTargetId,
+    approvePoMutation,
   };
 }

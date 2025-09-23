@@ -16,6 +16,13 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { useRegisterForm } from "../hooks/useRegisterForm";
+import { useEffect, useState } from "react";
+import { departmentService } from "@/features/department/departmentService";
+import type { Department } from "@/features/department/types";
+import { toast } from "sonner";
+
+// ✅ Cache departments globally to avoid refetching
+let cachedDepartments: Department[] | null = null;
 
 interface RegisterDialogProps {
   open: boolean;
@@ -33,6 +40,43 @@ export function RegisterDialog({ open, onOpenChange }: RegisterDialogProps) {
     isError,
     error,
   } = useRegisterForm(onOpenChange);
+
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loadingDepts, setLoadingDepts] = useState(false);
+
+  // ✅ Fetch all departments (paginated) when dialog opens
+  const fetchAllDepartments = async () => {
+    if (cachedDepartments) {
+      setDepartments(cachedDepartments);
+      return;
+    }
+
+    setLoadingDepts(true);
+    // const toastId = toast.loading("Loading departments...");
+    let allDepartments: Department[] = [];
+    let page = 1;
+    const pageSize = 50; // adjust page size as needed
+
+    try {
+      while (true) {
+        const res = await departmentService.getAll({ pageNumber: page, pageSize });
+        allDepartments = [...allDepartments, ...res.items];
+        if (res.items.length < pageSize) break; // last page
+        page++;
+      }
+      setDepartments(allDepartments);
+      cachedDepartments = allDepartments; // cache globally
+      // toast.success("Departments loaded", { id: toastId });
+    } catch (err) {
+      // toast.error("Failed to load departments", { id: toastId });
+    } finally {
+      setLoadingDepts(false);
+    }
+  };
+
+  useEffect(() => {
+    if (open) fetchAllDepartments();
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -88,23 +132,31 @@ export function RegisterDialog({ open, onOpenChange }: RegisterDialogProps) {
             />
           </div>
 
-          {/* Department Select */}
+          {/* ✅ Department Select (dynamic & scrollable) */}
           <div className="space-y-2">
             <Label>Department</Label>
-            <Select value={department} onValueChange={setDepartment}>
+            <Select
+              value={department}
+              onValueChange={setDepartment}
+              disabled={loadingDepts || departments.length === 0}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="Select department" />
+                <SelectValue
+                  placeholder={
+                    loadingDepts
+                      ? "Loading..."
+                      : departments.length
+                      ? "Select department"
+                      : "No departments found"
+                  }
+                />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="it_department">
-                  Information Technology Department
-                </SelectItem>
-                <SelectItem value="hr_department">
-                  Human Resources Department
-                </SelectItem>
-                <SelectItem value="planning_department">
-                  Planning Department
-                </SelectItem>
+              <SelectContent className="max-h-60 overflow-y-auto">
+                {departments.map((dept) => (
+                  <SelectItem key={dept.id} value={dept.name ?? ""}>
+                    {dept.description ?? dept.name ?? "Unnamed Department"}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -117,13 +169,13 @@ export function RegisterDialog({ open, onOpenChange }: RegisterDialogProps) {
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="user">User</SelectItem>
+                <SelectItem value="user">Maker</SelectItem>
                 <SelectItem value="hod">Head of Department</SelectItem>
                 <SelectItem value="technical_reviewer">
-                  Techinical Reviewer
+                  Technical Reviewer
                 </SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="purchasing">Purchasing</SelectItem>    
+                <SelectItem value="purchasing">Purchasing</SelectItem>
               </SelectContent>
             </Select>
           </div>
