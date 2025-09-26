@@ -35,7 +35,11 @@ export default function LoginPage() {
           navigate("/dashboard");
         },
         onError: (err: any) =>
-          toast.error(err?.message || "Invalid email or password"),
+          toast.error(
+            err?.response?.data?.message ||
+              err?.message ||
+              "Invalid email or password"
+          ),
       }
     );
   };
@@ -81,10 +85,15 @@ export default function LoginPage() {
                 "Sign In"
               )}
             </Button>
-
             {isError && (
               <p className="text-red-500">
-                {(error as any)?.message || "Login failed"}
+                {/*
+      Try to read the API error message first, fallback to generic message
+      Works for Axios or similar fetch wrappers
+    */}
+                {(error as any)?.response?.data?.message ||
+                  (error as any)?.message ||
+                  "Login failed"}
               </p>
             )}
           </form>

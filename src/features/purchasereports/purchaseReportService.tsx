@@ -21,6 +21,8 @@ export const purchaseReportService = {
   // Get table view reports
   getTable: async (params?: {
     searchTerm?: string;
+    statusTerm?: string; // ✅ NEW
+    
     fromDate?: string;
     toDate?: string;
     sortBy?: string;
@@ -97,6 +99,11 @@ export const purchaseReportService = {
     return res.data;
   },
 
+  async cancelPoNo(id: number) {
+    const res = await api.patch(`api/purchase-reports/${id}/cancel-po-no`);
+    return res.data;
+  },
+
   // ✅ NEW: Approve PO (set Approved + date)
   async poApproveDate(id: number, payload: { date: string; status: string }) {
     const res = await api.post(
@@ -105,7 +112,7 @@ export const purchaseReportService = {
     );
     return res.data;
   },
-  
+
   // Get summary counts (role-based)
   getSummary: async (): Promise<any> => {
     const res = await api.get("api/purchase-reports/summary");

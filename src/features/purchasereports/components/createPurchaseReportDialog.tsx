@@ -23,7 +23,8 @@ import {
 } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth/authStore";
-
+import { useCreatePurchaseReport } from "../hooks/useCreatePurchaseReport";
+import { purchaseReportService } from "../purchaseReportService";
 export function CreatePurchaseReportDialog({
   onSubmit,
 }: {
@@ -43,47 +44,76 @@ export function CreatePurchaseReportDialog({
   const isUser = user?.role?.includes("user");
 
   const [open, setOpen] = React.useState(false);
-  const [items, setItems] = React.useState<string>("1"); // ✅ default to "1"
+  const [items, setItems] = React.useState<string>("1");
   const [purpose, setPurpose] = React.useState<string>("");
 
-  // ✅ Date can be Date OR undefined
+  // Date can be Date OR undefined
   const [date, setDate] = React.useState<Date | undefined>(
     isUser ? new Date() : undefined
   );
   const [dateNeeded, setDateNeeded] = React.useState<Date | undefined>();
 
-  // ✅ Generate a unique series number
-  function generateSeriesNo() {
-    const timestamp = Date.now().toString().slice(-5);
-    const random = Math.floor(100 + Math.random() * 900);
-    return `${timestamp}${random}`;
-  }
+  const generateUniqueSeriesNo = async (): Promise<string> => {
+    // Fetch all existing series numbers
+    const res = await purchaseReportService.getAll({
+      pageNumber: 1,
+      pageSize: 9999,
+    });
+    const existingSeries = res.items.map((r) => Number(r.series_no));
 
-  const handleCreate = () => {
-    if (items && purpose) {
-      const series_no = generateSeriesNo();
+    // Start from 11000
+    let candidate = 11000;
 
-      onSubmit({
-        amount: Number(items),
-        purpose,
-        user_id: user!.id,
-        department: user?.department ? user.department.join(", ") : "",
-        date_submitted: date,
-        date_needed: dateNeeded,
-        series_no,
-      });
-
-      toast.success("Purchase Request created!");
-
-      // reset fields
-      setPurpose("");
-      setItems("1");
-      setDate(isUser ? new Date() : undefined);
-      setDateNeeded(undefined);
-      setOpen(false);
-    } else {
-      toast.error("Please fill in purpose and amount of items.");
+    // Increment until unique
+    while (existingSeries.includes(candidate)) {
+      candidate += 1;
     }
+
+    return candidate.toString();
+  };
+
+  const handleCreate = async () => {
+    const trimmedPurpose = purpose.trim();
+    const itemCount = Number(items);
+
+    if (!trimmedPurpose) {
+      toast.error("Purpose is required.");
+      return;
+    }
+    if (!itemCount || itemCount < 1) {
+      toast.error("Please enter a valid amount of items (minimum 1).");
+      return;
+    }
+    if (isAdmin && !date) {
+      toast.error("Please select a Date Submitted.");
+      return;
+    }
+    if (!dateNeeded) {
+      toast.error("Please select a Date Needed.");
+      return;
+    }
+
+    // ✅ Generate unique series number
+    const series_no = await generateUniqueSeriesNo();
+
+    onSubmit({
+      amount: itemCount,
+      purpose: trimmedPurpose,
+      user_id: user!.id,
+      department: user?.department ? user.department.join(", ") : "",
+      date_submitted: date,
+      date_needed: dateNeeded,
+      series_no,
+    });
+
+    toast.success("Purchase Request created!");
+
+    // Reset fields
+    setPurpose("");
+    setItems("1");
+    setDate(isUser ? new Date() : undefined);
+    setDateNeeded(undefined);
+    setOpen(false);
   };
 
   return (
@@ -118,7 +148,6 @@ export function CreatePurchaseReportDialog({
           <div className="flex flex-row gap-4">
             {/* Date Submitted */}
             {isAdmin ? (
-              // ✅ Admin can freely select date_submitted
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start">
@@ -135,7 +164,6 @@ export function CreatePurchaseReportDialog({
                 </PopoverContent>
               </Popover>
             ) : (
-              // ✅ Regular user – date is today and fixed
               <Button
                 variant="outline"
                 className="w-full justify-start"

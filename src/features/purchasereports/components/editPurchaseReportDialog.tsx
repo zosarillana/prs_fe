@@ -42,6 +42,8 @@ import { TableSkeletonPrInput } from "@/components/ui/skeletons/purchasereports/
 import { useEditPurchaseReport } from "../hooks/useEditPurcasheReport";
 import type { PurchaseReport, PurchaseReportInput } from "../types";
 import { purchaseReportService } from "../purchaseReportService";
+import { useUoms } from "@/features/users/hooks/useUom";
+import { useTags } from "@/features/users/hooks/useTags";
 
 interface EditPurchaseReportDialogProps {
   open: boolean;
@@ -54,7 +56,9 @@ export function EditPurchaseReportDialog({
   onOpenChange,
   prId,
 }: EditPurchaseReportDialogProps) {
-  const { report, loading, uoms } = useEditPurchaseReport(prId, open);
+  const { report, loading } = useEditPurchaseReport(prId, open);
+  const { uoms, loading: uomsLoading } = useUoms(); // ✅ Global UOMs
+  const { tags, loading: tagsLoading } = useTags();
   const [items, setItems] = React.useState<PurchaseReport | null>(null);
 
   React.useEffect(() => {
@@ -196,12 +200,15 @@ export function EditPurchaseReportDialog({
                                 handleChange(idx, "unit", val)
                               }
                             >
-                              <SelectTrigger className="w-[120px]">
-                                <SelectValue placeholder="Unit" />
+                          <SelectTrigger className="w-[120px]">
+                                <SelectValue placeholder="Select Unit" />
                               </SelectTrigger>
                               <SelectContent>
                                 {uoms.map((uom) => (
-                                  <SelectItem key={uom.id} value={uom.description}>
+                                  <SelectItem
+                                    key={uom.id}
+                                    value={uom.description}
+                                  >
                                     {uom.description}
                                   </SelectItem>
                                 ))}
@@ -218,7 +225,11 @@ export function EditPurchaseReportDialog({
                               placeholder="Enter description"
                               value={items.item_description?.[idx] ?? ""}
                               onChange={(e) =>
-                                handleChange(idx, "item_description", e.target.value)
+                                handleChange(
+                                  idx,
+                                  "item_description",
+                                  e.target.value
+                                )
                               }
                             />
                           ) : (
@@ -229,31 +240,23 @@ export function EditPurchaseReportDialog({
                         <TableCell>
                           {isRejected ? (
                             <Select
-                              value={items.tag?.[idx] ?? ""}
-                              onValueChange={(val) => handleChange(idx, "tag", val)}
+                              value={items.tag?.[idx]?.toString() ?? ""} // ✅ ensure it's a string
+                              onValueChange={(val) =>
+                                handleChange(idx, "tag", val)
+                              }
                             >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Tag" />
+                              <SelectTrigger className="w-[160px]">
+                                <SelectValue placeholder="Select tag" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="it_department_tr">
-                                  Information Technology Items
-                                </SelectItem>
-                                <SelectItem value="eng_department_tr">
-                                  Engineering Items
-                                </SelectItem>
-                                <SelectItem value="project_department_tr">
-                                  Project Related Items
-                                </SelectItem>
-                                <SelectItem value="planning_department_tr">
-                                  Packaging
-                                </SelectItem>
-                                <SelectItem value="mmd_department_tr">
-                                  Raw Materials
-                                </SelectItem>
-                                <SelectItem value="office_items">
-                                  Office Items/Supplies
-                                </SelectItem>
+                                {tags.map((tag) => (
+                                  <SelectItem
+                                    key={tag.id}
+                                    value={String(tag.id)}
+                                  >
+                                    {tag.description}
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           ) : (

@@ -4,9 +4,10 @@ import Sidebar from "../ui/sidebar/sidebar";
 
 interface LayoutProps {
   children: ReactNode;
+  can: (moduleId: number) => boolean;
 }
 
-export default function Layout({ children }: LayoutProps) {
+export default function Layout({ children, can }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const toggleSidebar = () => {
@@ -14,22 +15,18 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="min-h-screen ">
-      {/* Navbar */}
+    <div className="min-h-screen">
       <Navbar sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
-      
-      {/* Sidebar */}
-      <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
-      
-      {/* Main Content */}
-      <main className={`
-        transition-all duration-300 ease-in-out
-        ${sidebarOpen ? 'ml-64' : 'ml-0'}
-        pt-4
-      `}>
-        <div className="px-6 py-4">
-          {children}
-        </div>
+
+      {/* Sidebar receives `can` */}
+      <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} can={can} />
+
+      <main
+        className={`transition-all duration-300 ease-in-out ${
+          sidebarOpen ? "ml-64" : "ml-0"
+        } pt-4`}
+      >
+        <div className="px-6 py-4">{children}</div>
       </main>
     </div>
   );

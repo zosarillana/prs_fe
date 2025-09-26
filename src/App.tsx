@@ -120,7 +120,7 @@ function AppWrapper() {
   }
 
   return (
-    <Layout>
+    <Layout can={can}>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         {renderRoutes()}

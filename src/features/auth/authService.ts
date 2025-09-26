@@ -3,16 +3,12 @@ import api from "@/lib/api";
 import Cookies from "js-cookie";
 import { LoginInput, RegisterInput, AuthResponse } from "./types";
 
-async function ensureCsrfCookie() {
-  await api.get("/sanctum/csrf-cookie");
-}
 
 // 🚨 Counter to track calls
 let meCallCounter = 0;
 
 export const authService = {
   login: async (data: LoginInput): Promise<AuthResponse> => {
-    await ensureCsrfCookie();
     const xsrfToken = Cookies.get("XSRF-TOKEN");
     const res = await api.post<AuthResponse>("/login", data, {
       headers: { "X-XSRF-TOKEN": xsrfToken },
@@ -26,7 +22,6 @@ export const authService = {
   },
 
   register: async (data: RegisterInput): Promise<AuthResponse> => {
-    await ensureCsrfCookie();
     const xsrfToken = Cookies.get("XSRF-TOKEN");
 
     const res = await api.post<AuthResponse>("/register", data, {
@@ -38,7 +33,6 @@ export const authService = {
 
   logout: async (): Promise<void> => {
     try {
-      await ensureCsrfCookie(); // ✅ ensure the CSRF token exists
       const xsrfToken = Cookies.get("XSRF-TOKEN");
 
       await api.post("/logout", {}, { headers: { "X-XSRF-TOKEN": xsrfToken } });
@@ -63,7 +57,6 @@ export const authService = {
     password: string;
     password_confirmation: string;
   }): Promise<{ message: string }> => {
-    await ensureCsrfCookie();
     const xsrfToken = Cookies.get("XSRF-TOKEN");
     
     const res = await api.post("/change-password", data, {

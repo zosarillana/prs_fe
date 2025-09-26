@@ -95,13 +95,13 @@ export default function PUrchaseOrder() {
         <Table className="border-separate border-spacing-0 w-full">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[140px] border-b">
-                PR Number
-              </TableHead>
+              <TableHead className="w-[140px] border-b">PR Number</TableHead>
+              <TableHead className="border-b">PR Created</TableHead>
               <TableHead className="border-b">PO Number</TableHead>
               <TableHead className="border-b">PO Status</TableHead>
               <TableHead className="border-b">PO Created</TableHead>
               <TableHead className="border-b">PO Approved Date</TableHead>
+              <TableHead className="border-b">ToT (Days)</TableHead>
               <TableHead className="border-b">Purchasing Associate</TableHead>
             </TableRow>
           </TableHeader>
@@ -126,7 +126,8 @@ export default function PUrchaseOrder() {
               data?.items
                 ?.filter(
                   (item) =>
-                    item.po_status === "Approved" ||
+                    item.po_status === "approved" ||
+                    item.po_status === "Cancelled" ||
                     item.po_status === "For_approval"
                 )
                 .map((item) => (
@@ -134,13 +135,18 @@ export default function PUrchaseOrder() {
                     key={item.id}
                     className={`
             ${
-              item.po_status === "Approved"
+              item.po_status === "approved"
                 ? "bg-green-100 hover:bg-green-200"
                 : ""
             }
             ${
               item.po_status === "For_approval"
                 ? "bg-yellow-100 hover:bg-yellow-200"
+                : ""
+            }
+            ${
+              item.po_status === "Cancelled"
+                ? "bg-red-100 hover:bg-red-200"
                 : ""
             }
             [&>td]:!bg-transparent
@@ -152,6 +158,9 @@ export default function PUrchaseOrder() {
                         <p className="my-1">{item.series_no}</p>
                       </div>
                     </TableCell>
+                    <TableCell className="capitalize">
+                      {item.pr_created ?? "n/a"}
+                    </TableCell>
                     <TableCell className="font-medium capitalize">
                       <div className="flex flex-row gap-2">
                         <HashIcon className="h-4 w-5 my-1"></HashIcon>{" "}
@@ -161,6 +170,7 @@ export default function PUrchaseOrder() {
                     <TableCell className="capitalize">
                       {item.po_status ?? "n/a"}
                     </TableCell>
+
                     <TableCell className="capitalize">
                       {item.po_created_date
                         ? new Date(item.po_created_date)
@@ -183,7 +193,29 @@ export default function PUrchaseOrder() {
                             .replace(/\//g, "-")
                         : "n/a"}
                     </TableCell>
-                    <TableCell className="capitalize">{item.purchaser_id?.name ?? "n/a"}</TableCell>
+                    <TableCell className="capitalize">
+                      {item.po_created_date && item.po_approved_date
+                        ? `${new Date(item.po_created_date)
+                            .toLocaleDateString("en-US", {
+                              month: "2-digit",
+                              day: "2-digit",
+                              year: "numeric",
+                            })
+                            .replace(/\//g, "-")} - ${new Date(
+                            item.po_approved_date
+                          )
+                            .toLocaleDateString("en-US", {
+                              month: "2-digit",
+                              day: "2-digit",
+                              year: "numeric",
+                            })
+                            .replace(/\//g, "-")}`
+                        : "n/a"}
+                    </TableCell>
+
+                    <TableCell className="capitalize">
+                      {item.purchaser_id?.name ?? "n/a"}
+                    </TableCell>
                   </TableRow>
                 ))}
           </TableBody>

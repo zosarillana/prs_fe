@@ -3,6 +3,7 @@ import { User } from "@/types/users";
 export interface PurchaseReport {
   id: number;
   series_no: string;
+  pr_created  : string;
   pr_purpose: string;
   department: string;
   po_no: string;

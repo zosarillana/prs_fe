@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   useQuery,
   useMutation,
@@ -11,89 +11,64 @@ import type { PurchaseReport } from "../types";
 import type { PaginatedResponse } from "@/types/paginator";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
+import { Uom } from "@/features/uom/types";
+import { uomService } from "@/features/uom/uomService";
 
 export function usePurchaseReports() {
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
 
+  // UI State
   const [poDialogOpen, setPoDialogOpen] = useState(false);
   const [poTargetId, setPoTargetId] = useState<number | null>(null);
-
-  const handleSetPo = (id: number) => {
-    setPoTargetId(id);
-    setPoDialogOpen(true);
-  };
-
-  // pagination + search state
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusTerm, setStatusTerm] = useState(""); // ✅ NEW STATE
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const debouncedStatusTerm = useDebounce(statusTerm, 300); // debounce for smoother UX
 
-  // modal state
   const [open, setOpen] = useState(false);
   const [viewId, setViewId] = useState<number | null>(null);
-
-  // 👉 Add these for Edit
   const [editOpen, setEditOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
-
-  // drApproveDialog
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [approveTargetId, setApproveTargetId] = useState<number | null>(null);
-
+  
+  // ✅ QUERY – include statusTerm in queryKey + queryFn
   const { data, isLoading, isFetching, refetch } = useQuery<
     PaginatedResponse<PurchaseReport>
   >({
-    queryKey: ["purchaseReports", page, pageSize, debouncedSearchTerm],
+    queryKey: [
+      "purchaseReports",
+      page,
+      pageSize,
+      debouncedSearchTerm,
+      debouncedStatusTerm, // ✅ include in key
+    ],
     queryFn: () =>
       purchaseReportService.getTable({
         pageNumber: page,
         pageSize,
         searchTerm: debouncedSearchTerm,
+        statusTerm: debouncedStatusTerm, // ✅ send to backend
       }),
     placeholderData: keepPreviousData,
     refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
   });
 
-  // ✅ Delete mutation
+  // ✅ Mutations
   const deleteReportMutation = useMutation({
     mutationFn: (id: number) => purchaseReportService.delete(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["purchaseReports"] });
       toast.success("Report deleted successfully");
     },
-    onError: () => {
-      toast.error("Failed to delete report");
-    },
+    onError: () => toast.error("Failed to delete report"),
   });
 
-  // handlers
-  const handleView = (id: number) => {
-    setViewId(id);
-    setOpen(true);
-  };
-
-  const handleEdit = (id: number) => {
-    setEditId(id); // set the target report id
-    setEditOpen(true); // open the edit dialog
-  };
-
-  const handleDelete = (item: PurchaseReport) => {
-    toast("Delete Report?", {
-      description: `Are you sure you want to delete report #${item.series_no}?`,
-      action: {
-        label: "Confirm",
-        onClick: () => deleteReportMutation.mutate(item.id),
-      },
-    });
-  };
-
-  // ✅ Update PO mutation
   const updatePoMutation = useMutation({
     mutationFn: ({ id, po_no }: { id: number; po_no: number }) =>
       purchaseReportService.updatePoNo(id, po_no),
@@ -101,12 +76,9 @@ export function usePurchaseReports() {
       await queryClient.invalidateQueries({ queryKey: ["purchaseReports"] });
       toast.success("PO number updated successfully");
     },
-    onError: () => {
-      toast.error("Failed to update PO number");
-    },
+    onError: () => toast.error("Failed to update PO number"),
   });
 
-  // ✅ Approve PO mutation (DR Approved)
   const approvePoMutation = useMutation({
     mutationFn: ({
       id,
@@ -121,9 +93,42 @@ export function usePurchaseReports() {
       await queryClient.invalidateQueries({ queryKey: ["purchaseReports"] });
       toast.success("PO approved successfully");
     },
-    onError: () => {
-      toast.error("Failed to approve PO");
+    onError: () => toast.error("Failed to approve PO"),
+  });
+
+  // Handlers
+  const handleView = (id: number) => {
+    setViewId(id);
+    setOpen(true);
+  };
+
+  const handleEdit = (id: number) => {
+    setEditId(id);
+    setEditOpen(true);
+  };
+
+  const handleDelete = (item: PurchaseReport) => {
+    toast("Delete Report?", {
+      description: `Are you sure you want to delete report #${item.series_no}?`,
+      action: {
+        label: "Confirm",
+        onClick: () => deleteReportMutation.mutate(item.id),
+      },
+    });
+  };
+
+  const handleSetPo = (id: number) => {
+    setPoTargetId(id);
+    setPoDialogOpen(true);
+  };
+
+  const cancelPoMutation = useMutation({
+    mutationFn: (id: number) => purchaseReportService.cancelPoNo(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["purchaseReports"] });
+      toast.success("PO cancelled successfully");
     },
+    onError: () => toast.error("Failed to cancel PO"),
   });
 
   return {
@@ -137,21 +142,17 @@ export function usePurchaseReports() {
     setPageSize,
     searchTerm,
     setSearchTerm,
+    statusTerm,
+    setStatusTerm, // ✅ expose setter for dropdown
     open,
     setOpen,
     viewId,
-    setViewId,
     handleView,
-    editOpen, // ✅ expose
-    setEditOpen, // ✅ expose
-    editId, // ✅ expose
-    setEditId, // ✅ expose
+    editOpen,
+    setEditOpen,
+    editId,
     handleEdit,
     handleDelete,
-    updatePo: updatePoMutation.mutate, // ✅ expose mutate
-    updatePoLoading: updatePoMutation.isPending,
-    approvePo: approvePoMutation.mutate, // ✅ expose mutate
-    approvePoLoading: approvePoMutation.isPending,
     refetch,
     poDialogOpen,
     setPoDialogOpen,
@@ -161,6 +162,9 @@ export function usePurchaseReports() {
     setApproveDialogOpen,
     approveDialogOpen,
     approveTargetId,
+    updatePo: updatePoMutation.mutate,
+    approvePo: approvePoMutation.mutate,
     approvePoMutation,
+    cancelPoMutation: cancelPoMutation.mutate,
   };
 }

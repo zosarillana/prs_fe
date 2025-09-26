@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   Building2,
@@ -11,40 +10,12 @@ import {
   TagIcon,
   User2Icon,
 } from "lucide-react";
-import { useAuthStore } from "@/store/auth/authStore";
-import { userPrivilegesService } from "@/services/userPriviligesService";
-import type { UserPrivilege } from "@/types/userPriviliges";
 
-export default function SidebarNav() {
-  const { user } = useAuthStore();
-  const [privileges, setPrivileges] = useState<UserPrivilege[]>([]);
-  const [loading, setLoading] = useState(true);
+interface SidebarNavProps {
+  can: (moduleId: number) => boolean;
+}
 
-  useEffect(() => {
-    if (!user) return;
-
-    (async () => {
-      try {
-        const data = await userPrivilegesService.getAll();
-        const userPrivs = data.filter((p) => p.user_id === user.id);
-        setPrivileges(userPrivs);
-      } catch (err) {
-        console.error("Failed to load user privileges", err);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [user]);
-
-  // Collect all module_ids the user is allowed to see
-  const allowedModuleIds = new Set<number>(
-    privileges.flatMap((p) => p.module_ids ?? [])
-  );
-
-  const can = (moduleId: number) => allowedModuleIds.has(moduleId);
-
-  if (loading) return null; // or a spinner if preferred
-
+export default function SidebarNav({ can }: SidebarNavProps) {
   return (
     <ul className="flex flex-col gap-2">
       {can(1) && (
@@ -53,7 +24,6 @@ export default function SidebarNav() {
             Home
           </span>
           <NavLink
-            reloadDocument
             to="/dashboard"
             className={({ isActive }) =>
               `flex items-center px-3 py-2 rounded-md transition-colors ${
@@ -72,7 +42,6 @@ export default function SidebarNav() {
       {can(2) && (
         <li>
           <NavLink
-            reloadDocument
             to="/purchase-reports"
             className={({ isActive }) =>
               `flex items-center px-3 py-2 rounded-md transition-colors ${
@@ -91,7 +60,6 @@ export default function SidebarNav() {
       {can(3) && (
         <li>
           <NavLink
-            reloadDocument
             to="/purchase-order"
             className={({ isActive }) =>
               `flex items-center px-3 py-2 rounded-md transition-colors ${
@@ -107,7 +75,6 @@ export default function SidebarNav() {
         </li>
       )}
 
-      {/* User Management */}
       {can(4) && (
         <>
           <span className="text-sm px-3 text-gray-900 dark:text-gray-100 -ml-1">
@@ -115,7 +82,6 @@ export default function SidebarNav() {
           </span>
           <li>
             <NavLink
-              reloadDocument
               to="/users"
               className={({ isActive }) =>
                 `flex items-center px-3 py-2 rounded-md transition-colors ${
@@ -132,7 +98,6 @@ export default function SidebarNav() {
         </>
       )}
 
-      {/* Masterdata */}
       {(can(5) || can(6) || can(7)) && (
         <>
           <span className="text-sm px-3 text-gray-900 dark:text-gray-100 -ml-1">
@@ -141,7 +106,6 @@ export default function SidebarNav() {
           {can(5) && (
             <li>
               <NavLink
-                reloadDocument
                 to="/uom"
                 className={({ isActive }) =>
                   `flex items-center px-3 py-2 rounded-md transition-colors ${
@@ -159,7 +123,6 @@ export default function SidebarNav() {
           {can(6) && (
             <li>
               <NavLink
-                reloadDocument
                 to="/department"
                 className={({ isActive }) =>
                   `flex items-center px-3 py-2 rounded-md transition-colors ${
@@ -177,7 +140,6 @@ export default function SidebarNav() {
           {can(7) && (
             <li>
               <NavLink
-                reloadDocument
                 to="/tags"
                 className={({ isActive }) =>
                   `flex items-center px-3 py-2 rounded-md transition-colors ${
@@ -195,7 +157,6 @@ export default function SidebarNav() {
         </>
       )}
 
-      {/* Logs */}
       {(can(8) || can(9)) && (
         <>
           <span className="text-sm px-3 text-gray-900 dark:text-gray-100 -ml-1">
@@ -204,7 +165,6 @@ export default function SidebarNav() {
           {can(8) && (
             <li>
               <NavLink
-                reloadDocument
                 to="/user-logs"
                 className={({ isActive }) =>
                   `flex items-center px-3 py-2 rounded-md transition-colors ${
@@ -222,7 +182,6 @@ export default function SidebarNav() {
           {can(9) && (
             <li>
               <NavLink
-                reloadDocument
                 to="/audit-logs"
                 className={({ isActive }) =>
                   `flex items-center px-3 py-2 rounded-md transition-colors ${

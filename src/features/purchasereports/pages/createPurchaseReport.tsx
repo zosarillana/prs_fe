@@ -30,6 +30,7 @@ import { TableSkeletonPrInput } from "@/components/ui/skeletons/purchasereports/
 import { Button } from "@/components/ui/button";
 
 import { useCreatePurchaseReport } from "../hooks/useCreatePurchaseReport";
+import { useTags } from "@/features/users/hooks/useTags";
 
 export default function CreatePurchaseReport() {
   const {
@@ -42,9 +43,10 @@ export default function CreatePurchaseReport() {
     handleChange,
     handleSubmit,
     loading,
-    uoms
+    uoms,
   } = useCreatePurchaseReport();
 
+  const { tags, loading: tagsLoading } = useTags(); // ✅ fetch tags
   // ✅ add new blank row
   const addRow = () => {
     setItems((prev) => [
@@ -257,33 +259,21 @@ export default function CreatePurchaseReport() {
                         </TableCell>
                         <TableCell>
                           <Select
-                            value={item.tag}
+                            value={item.tag?.toString() ?? ""} // must be string
                             onValueChange={(value) =>
                               handleChange(i, "tag", value)
                             }
+                            disabled={tagsLoading}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className="w-[160px]">
                               <SelectValue placeholder="Tag" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="it_department_tr">
-                                Information Technology Items
-                              </SelectItem>
-                              <SelectItem value="eng_department_tr">
-                                Engineering Items
-                              </SelectItem>
-                              <SelectItem value="project_department_tr">
-                                Project Related Items
-                              </SelectItem>
-                              <SelectItem value="planning_department_tr">
-                                Packaging
-                              </SelectItem>
-                              <SelectItem value="mmd_department_tr">
-                                Raw Materials
-                              </SelectItem>                        
-                              <SelectItem value="office_items">
-                                Office Items/Supplies
-                              </SelectItem>
+                              {tags.map((tag) => (
+                                <SelectItem key={tag.id} value={String(tag.description)}>
+                                  {tag.description}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </TableCell>

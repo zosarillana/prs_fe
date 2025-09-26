@@ -14,9 +14,10 @@ import SidebarNav from "./sidebarNav";
 interface SidebarProps {
   isOpen: boolean;
   toggleSidebar: () => void;
+  can: (moduleId: number) => boolean; // ✅ add this
 }
 
-export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
+export default function Sidebar({ isOpen, toggleSidebar, can }: SidebarProps) {
   const user = useAuthStore((state) => state.user);
   const [activeItem, setActiveItem] = useState<string>("");
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -174,7 +175,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
           {/* Main Navigation (Scrollable Only) */}
           <nav className="p-4">
             <div className="max-h-[calc(100vh-260px)] overflow-y-auto pr-1">
-              <SidebarNav />
+               <SidebarNav can={can} />
             </div>
           </nav>
         </div>

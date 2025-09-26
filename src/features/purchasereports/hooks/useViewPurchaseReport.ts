@@ -332,19 +332,36 @@ export function useViewPurchaseReport(
     setActionType(action);
     setOpenModal(true);
   };
-
   const confirmItemAction = async (
     remark: string,
     asRole?: "technical_reviewer" | "hod" | "both"
   ) => {
     if (!report) return;
 
+    // Count all still-pending items (including pending_pr)
     const pendingCount =
       report.item_status?.filter(
-        (s: string) => s === "pending" || s === "pending_tr"
+        (s: string) =>
+          s === "pending" || s === "pending_tr" || s === "pending_pr"
       ).length ?? 0;
 
-    const effectiveRole = pendingCount === 1 ? asRole : undefined;
+    const currentStatus = report.item_status?.[currentItemIndex];
+    const isHod = user?.role?.includes("hod");
+
+    /**
+     * ✅ Determine effectiveRole:
+     * - If this is the last item (pendingCount === 1):
+     *      ➡️ Use asRole (if supplied).
+     * - OR if the user is HOD and the item is still pending / pending_pr:
+     *      ➡️ Force HOD to be stored.
+     */
+    const effectiveRole =
+      pendingCount === 1
+        ? asRole
+        : isHod &&
+          (currentStatus === "pending" || currentStatus === "pending_pr")
+        ? "hod"
+        : undefined;
 
     toast.promise(
       purchaseReportService.updateItemStatus(
@@ -382,14 +399,20 @@ export function useViewPurchaseReport(
   };
 
   const handleHodTrAction = async (idx: number) => {
-    if (!report) return;
+    if (!report || !user?.id) return;
+
     try {
-      await purchaseReportService.updateItemStatusOnly(
+      // ✅ Use updateItemStatus to also record HOD role & user id
+      await purchaseReportService.updateItemStatus(
         report.id,
         idx,
-        "pending_tr"
+        "pending_tr", // keep status as pending_tr
+        "", // no remark needed
+        "hod", // ✅ force HOD role to be stored
+        user.id // ✅ store current HOD user id
       );
-      fetchReport();
+
+      await fetchReport();
       toast.success(`Item ${idx + 1} marked as pending_tr successfully`);
     } catch (err) {
       console.error(err);

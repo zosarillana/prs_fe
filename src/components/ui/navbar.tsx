@@ -1,7 +1,7 @@
 import { useAuthStore } from "@/store/auth/authStore";
 import { useThemeStore } from "@/store/theme/themeStore";
 import { useNotificationStore } from "@/store/notification/notificationStore";
-import { Bell, Sun, Moon, CheckCircle, Clock } from "lucide-react";
+import { Bell, Sun, Moon, CheckCircle, Clock, Maximize2, Minimize2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 interface NavbarProps {
   sidebarOpen: boolean;
@@ -29,6 +30,8 @@ export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
     markAllAsRead 
   } = useNotificationStore();
 
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -44,6 +47,10 @@ export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
     if (!isRead) {
       markAsRead(notificationId);
     }
+  };
+
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded);
   };
 
   return (
@@ -119,13 +126,33 @@ export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
             </DropdownMenuTrigger>
             
             <DropdownMenuContent 
-              className="w-80 max-h-96" 
+              className={`w-80 transition-all duration-300 ease-in-out ${
+                isExpanded ? 'h-[80vh] max-h-[80vh]' : 'max-h-96'
+              }`}
               align="end" 
               side="bottom"
               sideOffset={8}
             >
-              <DropdownMenuLabel className="flex items-center justify-between">
-                <span>Notifications</span>
+              <DropdownMenuLabel className="flex items-center justify-between sticky top-0 bg-white dark:bg-gray-950 z-10 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2">
+                  <span>Notifications</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toggleExpanded();
+                    }}
+                    className="p-1 h-auto hover:bg-gray-100 dark:hover:bg-gray-800"
+                    title={isExpanded ? "Minimize" : "Expand"}
+                  >
+                    {isExpanded ? (
+                      <Minimize2 className="w-3 h-3" />
+                    ) : (
+                      <Maximize2 className="w-3 h-3" />
+                    )}
+                  </Button>
+                </div>
                 {unreadCount > 0 && (
                   <Button
                     variant="ghost"
@@ -141,15 +168,13 @@ export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
                 )}
               </DropdownMenuLabel>
               
-              <DropdownMenuSeparator />
-              
               {notifications.length === 0 ? (
                 <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                   No notifications yet
                 </div>
               ) : (
-                <ScrollArea className="h-64">
-                  {notifications.slice(0, 10).map((notification) => (
+                <ScrollArea className={`${isExpanded ? 'h-[calc(80vh-4rem)]' : 'h-64'} transition-all duration-300`}>
+                  {(isExpanded ? notifications : notifications.slice(0, 10)).map((notification) => (
                     <DropdownMenuItem
                       key={notification.id}
                       className="p-0 focus:bg-gray-50 dark:focus:bg-gray-800"
@@ -171,12 +196,12 @@ export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium truncate ${
+                            <p className={`text-sm font-medium ${isExpanded ? '' : 'truncate'} ${
                               !notification.read_at ? 'text-gray-900 dark:text-gray-100' : 'text-gray-600 dark:text-gray-300'
                             }`}>
                               {notification.data.title}
                             </p>
-                            <div className="flex items-center gap-2 mt-1">
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
                               <p className="text-xs text-gray-500 dark:text-gray-400">
                                 Report #{notification.data.report_id}
                               </p>
@@ -202,12 +227,20 @@ export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
                 </ScrollArea>
               )}
               
-              {notifications.length > 10 && (
+              {!isExpanded && notifications.length > 10 && (
                 <>
                   <DropdownMenuSeparator />
                   <div className="p-2 text-center">
-                    <Button variant="ghost" size="sm" className="text-xs">
-                      View all notifications
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-xs"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsExpanded(true);
+                      }}
+                    >
+                      View all notifications ({notifications.length})
                     </Button>
                   </div>
                 </>
