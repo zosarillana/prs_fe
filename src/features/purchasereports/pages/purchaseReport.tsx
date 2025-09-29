@@ -419,7 +419,7 @@ export default function PurchaseReport() {
                                     setApproveDialogOpen(true);
                                   }}
                                 >
-                                  <CheckCircle className="mr-2 h-4 w-4" /> DR
+                                  <CheckCircle className="mr-2 h-4 w-4" /> Date
                                   Approve
                                 </DropdownMenuItem>
                               )}

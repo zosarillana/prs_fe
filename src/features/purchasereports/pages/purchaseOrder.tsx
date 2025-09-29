@@ -168,7 +168,7 @@ export default function PUrchaseOrder() {
                       </div>
                     </TableCell>
                     <TableCell className="capitalize">
-                       {item.po_status === "For_approval"
+                      {item.po_status === "For_approval"
                         ? "For CEO Approval"
                         : item.po_status ?? "n/a"}
                     </TableCell>
@@ -197,21 +197,11 @@ export default function PUrchaseOrder() {
                     </TableCell>
                     <TableCell className="capitalize">
                       {item.po_created_date && item.po_approved_date
-                        ? `${new Date(item.po_created_date)
-                            .toLocaleDateString("en-US", {
-                              month: "2-digit",
-                              day: "2-digit",
-                              year: "numeric",
-                            })
-                            .replace(/\//g, "-")} - ${new Date(
-                            item.po_approved_date
-                          )
-                            .toLocaleDateString("en-US", {
-                              month: "2-digit",
-                              day: "2-digit",
-                              year: "numeric",
-                            })
-                            .replace(/\//g, "-")}`
+                        ? `${Math.ceil(
+                            (new Date(item.po_approved_date).getTime() -
+                              new Date(item.po_created_date).getTime()) /
+                              (1000 * 60 * 60 * 24)
+                          )} days`
                         : "n/a"}
                     </TableCell>
 

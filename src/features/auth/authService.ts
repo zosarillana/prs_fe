@@ -76,14 +76,21 @@ export const authService = {
     meCallCounter++;
 
     // 🚨 AGGRESSIVE DEBUGGING
-    console.log(`🔥 /ME CALL #${meCallCounter} 🔥`);
-    console.log("🕐 Time:", new Date().toISOString());
-    console.log("📍 Current URL:", window.location.href);
-    console.log("📞 Call Stack:");
-    console.trace(); // This will show you EXACTLY what called this
+    // console.log(`🔥 /ME CALL #${meCallCounter} 🔥`);
+    // console.log("🕐 Time:", new Date().toISOString());
+    // console.log("📍 Current URL:", window.location.href);
+    // console.log("📞 Call Stack:");
+    // console.trace(); // This will show you EXACTLY what called this
 
     const res = await api.get("/me");
-    console.log(`✅ /ME CALL #${meCallCounter} COMPLETED`);
+    // console.log(`✅ /ME CALL #${meCallCounter} COMPLETED`);
     return res.data;
   },
+
+  refresh: async (): Promise<{ access_token: string }> => {
+    const res = await api.post("/refresh", {}, { withCredentials: true });
+    localStorage.setItem("auth_token", res.data.access_token);
+    return res.data;
+  },
+  
 };

@@ -61,7 +61,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       clearAuth: () => {
         authInitializationPromise = null;
         isHandlingAuthError = false;
-        set({ 
+        set({
           token: null,
           user: null,
           isAuthenticated: false,
@@ -73,106 +73,89 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       // 👈 Handle 401 errors from API calls
       handleAuthError: () => {
         if (isHandlingAuthError) return;
-        
+
         isHandlingAuthError = true;
         console.log("🚨 Handling 401 error");
-        
+
         // Clear auth and redirect
         get().clearAuth();
-        
+
         // Only redirect if not already on login page
-        if (!window.location.pathname.includes('/login')) {
-          window.location.href = '/login';
+        if (!window.location.pathname.includes("/login")) {
+          window.location.href = "/login";
         }
-        
+
         setTimeout(() => {
           isHandlingAuthError = false;
         }, 1000);
       },
 
       initializeAuth: async () => {
-        // 🔒 If already initializing, return the same promise
-        if (authInitializationPromise) {
-          console.log("🛡️ Auth already initializing, reusing promise");
-          return authInitializationPromise;
-        }
+        if (authInitializationPromise) return authInitializationPromise;
 
         const state = get();
-        
-        // If already initialized, do nothing
-        if (state.initialized) {
-          console.log("🛡️ Auth already initialized, skipping");
-          return;
-        }
+        if (state.initialized) return;
 
-        // 🔒 Create and store the initialization promise
         authInitializationPromise = (async () => {
-          console.log("🚀 Starting auth initialization ONCE");
-          
-          const currentState = get();
-          
-          // No token = not authenticated
-          if (!currentState.token) {
-            console.log("❌ No token found");
-            set({ initialized: true, loading: false });
-            return;
-          }
-
-          // Have both token and user = already authenticated
-          if (currentState.token && currentState.user) {
-            console.log("✅ Using cached auth data");
-            set({ 
-              isAuthenticated: true, 
-              initialized: true, 
-              loading: false 
-            });
-            return;
-          }
-
-          // Need to fetch user data
-          console.log("🔄 Calling /me API");
+          console.log("🚀 Starting auth initialization");
           set({ loading: true });
-          
+
+          let token = state.token;
+
           try {
+            // 1️⃣ No token? → try refresh first
+            if (!token) {
+              console.log("🔄 No token, attempting refresh...");
+              const refreshed = await authService.refresh();
+              token = refreshed.access_token;
+              set({ token });
+            }
+
+            if (!token) {
+              console.log("❌ No token and refresh failed");
+              set({ initialized: true, loading: false });
+              return;
+            }
+
+            // 2️⃣ With token, fetch the user
+            console.log("🔑 Fetching /me");
             const res = await authService.me();
             if (res?.user) {
-              console.log("✅ /me API success");
-              set({ 
-                user: res.user, 
-                isAuthenticated: true, 
+              set({
+                user: res.user,
+                isAuthenticated: true,
+                initialized: true,
                 loading: false,
-                initialized: true 
               });
             } else {
-              console.log("❌ /me API returned no user");
-              set({ 
+              set({
                 token: null,
-                user: null, 
-                isAuthenticated: false, 
+                user: null,
+                isAuthenticated: false,
+                initialized: true,
                 loading: false,
-                initialized: true 
               });
             }
           } catch (err: any) {
-            console.error("❌ /me API failed:", err);
-            
-            // If 401, handle it properly
+            console.error("❌ Auth init failed", err);
+
+            // Refresh might fail with 401 → handle properly
             if (err?.response?.status === 401) {
               get().handleAuthError();
             } else {
-              set({ 
+              set({
                 token: null,
-                user: null, 
-                isAuthenticated: false, 
+                user: null,
+                isAuthenticated: false,
+                initialized: true,
                 loading: false,
-                initialized: true 
               });
             }
           }
         })();
 
         await authInitializationPromise;
-        authInitializationPromise = null; // Clear when done
+        authInitializationPromise = null;
       },
     }),
     {
