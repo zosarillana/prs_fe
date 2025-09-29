@@ -28,12 +28,20 @@ export function GlobalSystemListener() {
   useEffect(() => {
     console.log("Setting up silent global system listener");
 
+    // ✅ Existing global channel for PR creation
     const globalChannel = echo.channel("purchase-report-global");
+
+    // ✅ New global channel for approvals
+    const approvalChannel = echo.channel("purchase-report-approval-global");
 
     const handleGlobalEvent = async (event: any) => {
       console.log("Global system event received (silent update):", event);
 
-      if (event.type === "global_notification") {
+      // Play bell only for notifications intended for users
+      if (
+        event.type === "global_notification" ||
+        event.type === "global_approval_notification"
+      ) {
         bellSound.current?.play().catch(() => {});
       }
 
@@ -44,8 +52,12 @@ export function GlobalSystemListener() {
       // 2. Update notification counts
       fetchCounts();
 
-      // 3. Refresh notifications only if relevant
-      if (event.type === "global_notification" || event.affects_all_users) {
+      // 3. Refresh notifications if relevant
+      if (
+        event.type === "global_notification" ||
+        event.type === "global_approval_notification" ||
+        event.affects_all_users
+      ) {
         fetchNotifications();
       }
 
@@ -59,11 +71,19 @@ export function GlobalSystemListener() {
       queryClient.invalidateQueries({ queryKey: ["recentReports"] });
     };
 
+    // 🔹 Listen to PR creation
     globalChannel.listen(".GlobalPurchaseReportCreated", handleGlobalEvent);
+
+    // 🔹 Listen to approval-related updates
+    approvalChannel.listen(
+      ".GlobalPurchaseReportApprovalUpdated",
+      handleGlobalEvent
+    );
 
     return () => {
       console.log("Cleaning up silent global system listener");
       globalChannel.stopListening(".GlobalPurchaseReportCreated");
+      approvalChannel.stopListening(".GlobalPurchaseReportApprovalUpdated");
     };
   }, [queryClient, fetchNotifications, fetchCounts]);
 

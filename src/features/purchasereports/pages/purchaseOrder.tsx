@@ -168,7 +168,9 @@ export default function PUrchaseOrder() {
                       </div>
                     </TableCell>
                     <TableCell className="capitalize">
-                      {item.po_status ?? "n/a"}
+                       {item.po_status === "For_approval"
+                        ? "For CEO Approval"
+                        : item.po_status ?? "n/a"}
                     </TableCell>
 
                     <TableCell className="capitalize">
