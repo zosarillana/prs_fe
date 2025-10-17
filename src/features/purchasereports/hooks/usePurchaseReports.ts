@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Uom } from "@/features/uom/types";
 import { uomService } from "@/features/uom/uomService";
+import { format } from "date-fns";
 
 export function usePurchaseReports() {
   const user = useAuthStore((state) => state.user);
@@ -25,16 +26,20 @@ export function usePurchaseReports() {
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusTerm, setStatusTerm] = useState(""); // ✅ NEW STATE
+  const [prStatusTerm, setPrStatusTerm] = useState(""); // ✅ NEW: for pr_status
+  const [completedTr, setCompletedTr] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const debouncedStatusTerm = useDebounce(statusTerm, 300); // debounce for smoother UX
-
+  const debouncedPrStatusTerm = useDebounce(prStatusTerm, 300); // ✅ NEW
   const [open, setOpen] = useState(false);
   const [viewId, setViewId] = useState<number | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [approveTargetId, setApproveTargetId] = useState<number | null>(null);
-  
+  const [fromDate, setFromDate] = useState<Date | null>(null);
+  const [toDate, setToDate] = useState<Date | null>(null);
+
   // ✅ QUERY – include statusTerm in queryKey + queryFn
   const { data, isLoading, isFetching, refetch } = useQuery<
     PaginatedResponse<PurchaseReport>
@@ -44,15 +49,30 @@ export function usePurchaseReports() {
       page,
       pageSize,
       debouncedSearchTerm,
-      debouncedStatusTerm, // ✅ include in key
+      debouncedStatusTerm,
+      debouncedPrStatusTerm,
+      completedTr,
+      fromDate ? format(fromDate, "yyyy-MM-dd") : undefined,
+      toDate ? format(toDate, "yyyy-MM-dd") : undefined,
     ],
-    queryFn: () =>
-      purchaseReportService.getTable({
+    queryFn: () => {
+      const params = {
         pageNumber: page,
         pageSize,
         searchTerm: debouncedSearchTerm,
-        statusTerm: debouncedStatusTerm, // ✅ send to backend
-      }),
+        statusTerm: debouncedStatusTerm,
+        prStatusTerm: debouncedPrStatusTerm,
+        completedTr,
+        fromDate: fromDate ? format(fromDate, "yyyy-MM-dd") : undefined,
+        toDate: toDate ? format(toDate, "yyyy-MM-dd") : undefined,
+      };
+
+      // 🔍 Debug log
+      console.log("🔍 API Params:", params);
+
+      return purchaseReportService.getTable(params);
+    },
+
     placeholderData: keepPreviousData,
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5,
@@ -89,11 +109,21 @@ export function usePurchaseReports() {
       date: string;
       status: string;
     }) => purchaseReportService.poApproveDate(id, { date, status }),
+
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["purchaseReports"] });
       toast.success("PO approved successfully");
     },
-    onError: () => toast.error("Failed to approve PO"),
+
+    onError: (error: any) => {
+      // Try to extract a readable error message
+      const errorMessage =
+        error?.response?.data?.error || // Axios-style error
+        error?.message || // JS Error object
+        "Failed to approve PO"; // Fallback
+
+      toast.error(errorMessage);
+    },
   });
 
   // Handlers
@@ -144,6 +174,9 @@ export function usePurchaseReports() {
     setSearchTerm,
     statusTerm,
     setStatusTerm, // ✅ expose setter for dropdown
+    prStatusTerm, // ✅ expose pr_status state
+    setPrStatusTerm, // ✅ expose pr_status setter
+    setCompletedTr,
     open,
     setOpen,
     viewId,
@@ -166,5 +199,9 @@ export function usePurchaseReports() {
     approvePo: approvePoMutation.mutate,
     approvePoMutation,
     cancelPoMutation: cancelPoMutation.mutate,
+    fromDate,
+    toDate,
+    setFromDate,
+    setToDate,
   };
 }

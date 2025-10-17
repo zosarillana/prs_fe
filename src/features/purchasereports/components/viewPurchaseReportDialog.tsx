@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import logo from "@/assets/images/logosidebar.png"; // ✅ import your logo
 import {
   Dialog,
   DialogContent,
@@ -96,7 +97,7 @@ export function ViewPurchaseReportDialog({
               {/* <p className="text-4xl font-semibold tracking-widest">
                 AGRI EXIM
               </p> */}
-              <img src="src\assets\images\logo.png" className="h-16"></img>
+              <img src={logo} className="h-32 -mb-10" />
               {/* <img src="src\assets\images\logo-blck.png" className="h-32"></img> */}
               {/* <p className="text-lg font-semibold tracking-wider">
                 GLOBAL PHILIPPINES, INC.
@@ -168,6 +169,15 @@ export function ViewPurchaseReportDialog({
                               <button
                                 type="button"
                                 className="mt-2 rounded hover:bg-muted transition"
+                                disabled={
+                                  // Disable if user has BOTH hod and purchasing roles
+                                  // AND department(s) do not include report.department
+                                  user?.role?.includes("hod") &&
+                                  user?.role?.includes("purchasing") &&
+                                  !(user?.department ?? []).includes(
+                                    report?.department
+                                  )
+                                }
                               >
                                 <ArrowDownRight className="h-4 w-4" />
                               </button>
@@ -176,7 +186,14 @@ export function ViewPurchaseReportDialog({
                             <DropdownMenuContent align="start" className="w-40">
                               <DropdownMenuItem
                                 onClick={() => bulkAction("approve")}
-                                disabled={selectedItems.length === 0}
+                                disabled={
+                                  selectedItems.length === 0 ||
+                                  (user?.role?.includes("hod") &&
+                                    user?.role?.includes("purchasing") &&
+                                    !(user?.department ?? []).includes(
+                                      report?.department
+                                    ))
+                                }
                               >
                                 <CheckCircle className="mr-2 h-4 w-4" />
                                 Approve Selected
@@ -184,7 +201,14 @@ export function ViewPurchaseReportDialog({
 
                               <DropdownMenuItem
                                 onClick={() => bulkAction("reject")}
-                                disabled={selectedItems.length === 0}
+                                disabled={
+                                  selectedItems.length === 0 ||
+                                  (user?.role?.includes("hod") &&
+                                    user?.role?.includes("purchasing") &&
+                                    !(user?.department ?? []).includes(
+                                      report?.department
+                                    ))
+                                }
                               >
                                 <X className="mr-2 h-4 w-4" />
                                 Reject Selected
@@ -193,6 +217,7 @@ export function ViewPurchaseReportDialog({
                           </DropdownMenu>
                         </div>
                       </TableHead>
+
                       <TableHead className="border-b">Item</TableHead>
                       <TableHead className="border-b">Description</TableHead>
                       <TableHead className="border-b">Quantity</TableHead>
@@ -230,10 +255,12 @@ export function ViewPurchaseReportDialog({
                         <TableCell>{report.quantity?.[idx] ?? ""}</TableCell>
                         <TableCell>{report.unit?.[idx] ?? ""}</TableCell>
                         <TableCell className={isExporting ? "hidden" : ""}>
-                          {Array.isArray(report.tag) && report.tag[idx]
-                            ? report.tag[idx]
+                          {Array.isArray(report.tag) &&
+                          report.tag[idx]?.description
+                            ? report.tag[idx].description
                             : ""}
                         </TableCell>
+
                         <TableCell>{report.remarks?.[idx] ?? "none"}</TableCell>
                         <TableCell>
                           <span
@@ -259,27 +286,23 @@ export function ViewPurchaseReportDialog({
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  // disabled={
-                                  //   !(
-                                  //     user?.role?.includes("hod") &&
-                                  //     report.tag?.[idx]?.endsWith("_tr") &&
-                                  //     report.item_status?.[idx] !==
-                                  //       "approved" &&
-                                  //     report.item_status?.[idx] !== "rejected"
-                                  //   )
-                                  //     ? isDropdownDisabled(idx)
-                                  //     : false
-                                  // }
-                                  // className={
-                                  //   !(
-                                  //     user?.role?.includes("hod") &&
-                                  //     report.tag?.[idx]?.endsWith("_tr")
-                                  //   )
-                                  //     ? isDropdownDisabled(idx)
-                                  //       ? "opacity-50 cursor-not-allowed"
-                                  //       : ""
-                                  //     : ""
-                                  // }
+                                  disabled={
+                                    // Disable for technical_reviewer if department doesn't match tag department
+                                    (user?.role?.includes(
+                                      "technical_reviewer"
+                                    ) &&
+                                      !(user?.department ?? []).some(
+                                        (dept) =>
+                                          dept ===
+                                          report.tag?.[idx]?.department?.name
+                                      )) ||
+                                    // Disable for users with BOTH hod AND purchasing if department doesn't match report department
+                                    (user?.role?.includes("hod") &&
+                                      user?.role?.includes("purchasing") &&
+                                      !(user?.department ?? []).includes(
+                                        report.department
+                                      ))
+                                  }
                                 >
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
@@ -293,18 +316,13 @@ export function ViewPurchaseReportDialog({
                                 {/* Normal Approve (hidden for HOD on _tr items) */}
                                 {!(
                                   user?.role?.includes("hod") &&
-                                  report.tag?.[idx]?.endsWith("_tr")
+                                  report.tag?.[idx]?.description?.endsWith(
+                                    "_tr"
+                                  )
                                 ) && (
                                   <HoverCard openDelay={200} closeDelay={100}>
                                     <HoverCardTrigger asChild>
                                       <DropdownMenuItem
-                                        // disabled={
-                                        //   isItemProcessed(idx) ||
-                                        //   (user?.role?.includes(
-                                        //     "technical_reviewer"
-                                        //   ) &&
-                                        //     !report.tag?.[idx]?.endsWith("_tr"))
-                                        // }
                                         onSelect={(e) => {
                                           e.preventDefault();
                                           handleItemAction(idx, "approve");
@@ -354,33 +372,18 @@ export function ViewPurchaseReportDialog({
                                   </HoverCard>
                                 )}
 
-                                {/* HOD-specific actions for _tr items */}
                                 {/* HOD/ADMIN-specific actions for _tr items */}
                                 {(user?.role?.includes("hod") ||
                                   user?.role?.includes("admin")) &&
-                                  report.tag?.[idx]?.endsWith("_tr") && (
+                                  report.tag?.[idx]?.description?.endsWith(
+                                    "_tr"
+                                  ) && (
                                     <>
                                       <DropdownMenuItem
-                                        // disabled={
-                                        //   report.item_status?.[idx] ===
-                                        //     "pending_tr" ||
-                                        //   report.item_status?.[idx] ===
-                                        //     "approved" ||
-                                        //   report.item_status?.[idx] ===
-                                        //     "rejected"
-                                        // }
                                         onSelect={(e) => {
                                           e.preventDefault();
-                                          handleHodTrAction(idx); // can rename if you want a generic function for HOD/ADMIN
+                                          handleHodTrAction(idx);
                                         }}
-                                        // className={
-                                        //   report.item_status?.[idx] ===
-                                        //     "pending_tr" ||
-                                        //   report.item_status?.[idx] ===
-                                        //     "approved"
-                                        //     ? "opacity-50 cursor-not-allowed"
-                                        //     : ""
-                                        // }
                                       >
                                         <CheckCircle className="mr-2 h-4 w-4" />
                                         Approve To Review
@@ -390,13 +393,6 @@ export function ViewPurchaseReportDialog({
 
                                 {/* Normal Reject */}
                                 <DropdownMenuItem
-                                  // disabled={
-                                  //   isItemProcessed(idx) ||
-                                  //   (user?.role?.includes(
-                                  //     "technical_reviewer"
-                                  //   ) &&
-                                  //     !report.tag?.[idx]?.endsWith("_tr"))
-                                  // }
                                   onSelect={(e) => {
                                     e.preventDefault();
                                     handleItemAction(idx, "reject");
@@ -480,8 +476,10 @@ export function ViewPurchaseReportDialog({
                       </div>
 
                       {/* Show Name & Role */}
-                      <div className="flex flex-row 
-                       uppercase">
+                      <div
+                        className="flex flex-row 
+                       uppercase"
+                      >
                         <div className="flex flex-col w-48">
                           <p className="text-md border-t m-1 text-center items-center">
                             {report.user?.name || "NOT AVAILABLE"}

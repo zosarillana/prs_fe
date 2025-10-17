@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { useCreatePurchaseReport } from "../hooks/useCreatePurchaseReport";
 import { useTags } from "@/features/users/hooks/useTags";
 
+import logo from "@/assets/images/logosidebar.png";
 export default function CreatePurchaseReport() {
   const {
     rows,
@@ -106,18 +107,21 @@ export default function CreatePurchaseReport() {
       <Card>
         <CardHeader>
           <CardTitle className="flex flex-col items-center mb-12">
-            <div className="flex flex-col items-center">
-              <p className="text-4xl font-semibold tracking-widest">
+            <div className="flex flex-col items-center mb-5">
+              {/* <p className="text-4xl font-semibold tracking-widest">
                 AGRI EXIM
-              </p>
-              <p className="text-lg font-semibold tracking-wider">
+              </p> */}
+              <img src={logo} className="h-32 -mb-12" />
+              {/* <img src="src\assets\images\logo-blck.png" className="h-32"></img> */}
+              {/* <p className="text-lg font-semibold tracking-wider">
                 GLOBAL PHILIPPINES, INC.
-              </p>
-              <p className="text-md font-light tracking-wide">
+              </p> */}
+              <p className="text-sm font-light mt-3">
                 Upper Quinokol, Brgy. Darong, Sta. Cruz, Davao Del Sur.
               </p>
             </div>
-            <p className="mt-5 text-lg font-semibold tracking-wider italic mb-2">
+
+            <p className="mt-3 text-lg text-center font-semibold mb-2">
               PURCHASE REQUISITION SLIP
             </p>
           </CardTitle>
@@ -270,7 +274,7 @@ export default function CreatePurchaseReport() {
                             </SelectTrigger>
                             <SelectContent>
                               {tags.map((tag) => (
-                                <SelectItem key={tag.id} value={String(tag.description)}>
+                                <SelectItem key={tag.id} value={String(tag.id)}>
                                   {tag.description}
                                 </SelectItem>
                               ))}

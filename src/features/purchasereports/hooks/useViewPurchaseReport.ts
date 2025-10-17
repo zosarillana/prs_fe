@@ -96,7 +96,7 @@ export function useViewPurchaseReport(
       Promise.all(
         selectedItems.map(async (idx) => {
           const status = report.item_status?.[idx];
-          const tag = report.tag?.[idx] ?? "";
+          const tagDescription = report.tag?.[idx]?.description ?? "";
 
           // ✅ Skip if already processed (approved/rejected)
           if (status === "approved" || status === "rejected") return;
@@ -118,7 +118,7 @@ export function useViewPurchaseReport(
             }
 
             // --- HOD/Admin first approval for a _tr item ---
-            else if (tag.endsWith("_tr")) {
+            else if (tagDescription.endsWith("_tr")) {
               // ✅ Always store HOD id even if status is already pending_tr
               const newStatus =
                 status === "pending_tr" ? "pending_tr" : "pending_tr";
@@ -211,6 +211,7 @@ export function useViewPurchaseReport(
       const signatureImages = ref.current.querySelectorAll(
         'img[alt*="signature"]'
       ) as NodeListOf<HTMLImageElement>;
+
       const imagePromises = Array.from(signatureImages).map(async (img) => {
         // … your existing conversion code …
       });
@@ -264,7 +265,10 @@ export function useViewPurchaseReport(
         pdf.addImage(imgData, "PNG", margin, margin, contentWidth, imgHeight);
       }
 
-      pdf.save(`Purchase_Requisition_${prId}.pdf`);
+      // ✅ Updated file name
+      const seriesNo = report?.series_no ?? "Unknown";
+      pdf.save(`PR - ${seriesNo}.pdf`);
+
       toast.success("PDF downloaded successfully!");
     } catch (error) {
       console.error("Failed to generate PDF:", error);
@@ -281,7 +285,7 @@ export function useViewPurchaseReport(
     if (!ref.current) return;
 
     try {
-      // Just ensure all images are loaded before capturing
+      // Ensure all images are loaded before capturing
       const images = ref.current.querySelectorAll(
         "img"
       ) as NodeListOf<HTMLImageElement>;
@@ -318,7 +322,11 @@ export function useViewPurchaseReport(
       const imgHeight = (imgProps.height * contentWidth) / imgProps.width;
 
       pdf.addImage(imgData, "PNG", margin, margin, contentWidth, imgHeight);
-      pdf.save(`Purchase_Requisition_${prId}.pdf`);
+
+      // ✅ Use report.series_no instead of prId
+      const seriesNo = report?.series_no ?? "Unknown";
+      pdf.save(`PR - ${seriesNo}.pdf`);
+
       toast.success("PDF downloaded successfully!");
     } catch (error) {
       console.error("Failed to generate PDF:", error);
@@ -423,7 +431,7 @@ export function useViewPurchaseReport(
   const isDropdownDisabled = (idx: number) => {
     const userRole = user?.role ?? [];
     const itemStatus = report?.item_status?.[idx];
-    const itemTag = report?.tag?.[idx];
+    const itemTagDescription = report?.tag?.[idx]?.description;
 
     if (isItemProcessed(idx)) {
       return true;
@@ -441,11 +449,13 @@ export function useViewPurchaseReport(
       userRole.includes("technical_reviewer") &&
       !userRole.includes("admin")
     ) {
-      return !itemTag?.endsWith("_tr") || itemStatus !== "pending_tr";
+      return (
+        !itemTagDescription?.endsWith("_tr") || itemStatus !== "pending_tr"
+      );
     }
 
     if (userRole.includes("hod") && !userRole.includes("admin")) {
-      return itemTag?.endsWith("_tr") || itemStatus !== "pending";
+      return itemTagDescription?.endsWith("_tr") || itemStatus !== "pending";
     }
 
     if (userRole.includes("admin")) {

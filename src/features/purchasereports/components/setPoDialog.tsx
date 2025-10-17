@@ -66,10 +66,18 @@ export function SetPoDialog({
         </DialogHeader>
         <div className="py-4">
           <Input
-            type="number"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             placeholder="Enter PO number"
             value={poNo}
-            onChange={(e) => setPoNo(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              // Only allow digits 0–9
+              if (/^\d*$/.test(value)) {
+                setPoNo(value);
+              }
+            }}
           />
         </div>
         <DialogFooter>

@@ -1,4 +1,6 @@
-import bgImage from "@/assets/images/bg.png"; // ✅ import your background
+import bgImage from "@/assets/images/bg3.jpg"; // ✅ import your background
+import bgImage2 from "@/assets/images/bg2.png"; // ✅ import your background
+import logo from "@/assets/images/logosidebar.png"; // ✅ import your logo
 import {
   Card,
   CardContent,
@@ -46,10 +48,10 @@ export default function LoginPage() {
 
   return (
     <div
-      className="flex flex-col gap-8 h-screen items-center justify-center bg-cover bg-center"
+      className="flex flex-col gap-8 h-screen items-center justify-center bg-cover bg-center bg-black/70 bg-blend-overlay"
       style={{ backgroundImage: `url(${bgImage})` }}
     >
-      <img src="src/assets/images/logo.png" className="h-24" />
+      <img src={logo} className="h-36 -mb-12" />
       <Card className="w-[350px] shadow-lg bg-white/90 backdrop-blur-sm">
         <CardHeader>
           <CardTitle>Login to your account</CardTitle>

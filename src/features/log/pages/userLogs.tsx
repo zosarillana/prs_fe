@@ -154,62 +154,108 @@ export default function UserLogs() {
       {/* pagination */}
       {data && (
         <div className="flex justify-between items-center border-t p-4 mt-2">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => page > 1 && setPage(page - 1)}
-                  className={page === 1 ? "opacity-50 pointer-events-none" : ""}
-                />
-              </PaginationItem>
+          {/* Showing info */}
+          <div className="text-sm text-muted-foreground">
+            Showing {Math.min((page - 1) * pageSize + 1, data.totalItems)}–
+            {Math.min(page * pageSize, data.totalItems)} of {data.totalItems}
+          </div>
 
-              {Array.from({ length: data.totalPages }, (_, i) => (
-                <PaginationItem key={i}>
-                  <PaginationLink
-                    isActive={page === i + 1}
-                    onClick={() => setPage(i + 1)}
-                  >
-                    {i + 1}
-                  </PaginationLink>
+          {/* Pagination and page size selector */}
+          <div className="flex items-center gap-6">
+            <Pagination>
+              <PaginationContent>
+                {/* Previous Button */}
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => page > 1 && setPage(page - 1)}
+                    className={
+                      page === 1 ? "opacity-50 pointer-events-none" : ""
+                    }
+                  />
                 </PaginationItem>
-              ))}
 
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() => page < data.totalPages && setPage(page + 1)}
-                  className={
-                    page === data.totalPages
-                      ? "opacity-50 pointer-events-none"
-                      : ""
+                {/* Dynamic Pagination with Ellipsis */}
+                {(() => {
+                  const total = data.totalPages;
+                  const visiblePages: (number | string)[] = [];
+
+                  if (total <= 7) {
+                    // If few pages, show all
+                    for (let i = 1; i <= total; i++) visiblePages.push(i);
+                  } else {
+                    const firstPage = 1;
+                    const lastPage = total;
+                    const startRange = Math.max(2, page - 1);
+                    const endRange = Math.min(total - 1, page + 1);
+
+                    visiblePages.push(firstPage);
+
+                    if (startRange > 2) visiblePages.push("...");
+
+                    for (let i = startRange; i <= endRange; i++)
+                      visiblePages.push(i);
+
+                    if (endRange < total - 1) visiblePages.push("...");
+
+                    visiblePages.push(lastPage);
                   }
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
 
-          {/* page size selector */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
-              Rows per page:
-            </span>
-            <Select
-              value={pageSize.toString()}
-              onValueChange={(val) => {
-                setPageSize(Number(val));
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="w-[100px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[5, 10, 20, 30, 50].map((size) => (
-                  <SelectItem key={size} value={size.toString()}>
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  return visiblePages.map((p, i) =>
+                    typeof p === "number" ? (
+                      <PaginationItem key={i}>
+                        <PaginationLink
+                          isActive={page === p}
+                          onClick={() => setPage(p)}
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={i}>
+                        <span className="px-2 text-muted-foreground">...</span>
+                      </PaginationItem>
+                    )
+                  );
+                })()}
+
+                {/* Next Button */}
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => page < data.totalPages && setPage(page + 1)}
+                    className={
+                      page === data.totalPages
+                        ? "opacity-50 pointer-events-none"
+                        : ""
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+
+            {/* Page size selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                Rows per page:
+              </span>
+              <Select
+                value={pageSize.toString()}
+                onValueChange={(val) => {
+                  setPageSize(Number(val));
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[5, 10, 20, 30, 50].map((size) => (
+                    <SelectItem key={size} value={size.toString()}>
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       )}

@@ -1,4 +1,5 @@
 import { User } from "@/types/users";
+import { Tag } from "../tags/types";
 
 export interface PurchaseReport {
   id: number;
@@ -21,7 +22,7 @@ export interface PurchaseReport {
   tr_user_id: User | null; // can be null
   tr_signed_at: string;
   item_description: string[];
-  tag: string[];
+  tag: Tag[];
   item_status: string[];
   pr_status: string;
   remarks: string[];

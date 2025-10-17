@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/popover";
 import { authService } from "@/features/auth/authService";
 import SidebarNav from "./sidebarNav";
+import logo from "@/assets/images/logosidebar.png"; // ✅ import your logo
 
 interface SidebarProps {
   isOpen: boolean;
@@ -55,8 +56,8 @@ export default function Sidebar({ isOpen, toggleSidebar, can }: SidebarProps) {
           <div className="flex items-center justify-between p-4 border-b border-gray-300 dark:border-gray-700">
             <div className="flex items-center gap-2">
               <img
-                src="https://agrieximorganic.com/wp-content/uploads/2025/01/AgriExim_Logo_Colour.png"
-                alt="MyApp Logo"
+                src={logo}
+                alt="agriexim logo"
                 className="h-16 -my-5 -ml-4 w-auto"
               />
               {/* <span className="text-green-700 dark:text-green-400 -ml-1 font-medium">
@@ -82,9 +83,23 @@ export default function Sidebar({ isOpen, toggleSidebar, can }: SidebarProps) {
                       {/* Left side (Avatar + text) */}
                       <div className="flex items-center gap-2">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src="https://github.com/shadcn.png" />
-                          <AvatarFallback className="bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200">
-                            {user?.name?.charAt(0).toUpperCase()}
+                          <AvatarFallback
+                            className="text-white"
+                            style={{
+                              backgroundColor: `hsl(${
+                                user?.name
+                                  ?.split("")
+                                  .reduce(
+                                    (acc, char) => acc + char.charCodeAt(0),
+                                    0
+                                  ) % 360
+                              }, 65%, 55%)`,
+                            }}
+                          >
+                            {user?.name
+                              ?.split(" ")
+                              .map((n) => n.charAt(0).toUpperCase())
+                              .join("")}
                           </AvatarFallback>
                         </Avatar>
                         <div>

@@ -36,6 +36,7 @@
     "html2canvas": "^1.4.1",
     "js-cookie": "^3.0.5",
     "jspdf": "^3.0.2",
+    "jspdf-autotable": "^5.0.2",
     "laravel-echo": "^2.2.0",
     "lucide-react": "^0.540.0",
     "pusher-js": "^8.4.0",

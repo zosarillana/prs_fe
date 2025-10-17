@@ -22,7 +22,8 @@ export const purchaseReportService = {
   getTable: async (params?: {
     searchTerm?: string;
     statusTerm?: string; // ✅ NEW
-    
+    prStatusTerm?: string;
+    completedTr?: boolean;
     fromDate?: string;
     toDate?: string;
     sortBy?: string;
@@ -40,6 +41,23 @@ export const purchaseReportService = {
     return res.data;
   },
 
+   // ✅ NEW: Get table reports without role filters
+  getTableReports: async (params?: {
+    searchTerm?: string;
+    statusTerm?: string;
+    prStatusTerm?: string;
+    completedTr?: boolean;
+    fromDate?: string;
+    toDate?: string;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+    pageNumber?: number;
+    pageSize?: number;
+  }): Promise<PaginatedResponse<any>> => {
+    const res = await api.get("api/purchase-reports/table-reports", { params });
+    return res.data;
+  },
+  
   // Create new report
   create: async (data: PurchaseReportInput): Promise<PurchaseReport> => {
     const res = await api.post("api/purchase-reports", data);

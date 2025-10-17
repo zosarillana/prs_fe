@@ -75,7 +75,6 @@ function AppWrapper() {
     })();
   }, [user]);
 
-  // loading state
   if (!initialized && loading) {
     return (
       <div className="min-h-screen flex items-center justify-center dark:bg-gray-900">
@@ -87,7 +86,7 @@ function AppWrapper() {
     );
   }
 
-  if (privLoading) return null; // or spinner while checking privileges
+  if (privLoading) return null;
 
   const can = (id?: number) => (id ? allowedModuleIds.has(id) : true);
 
@@ -98,7 +97,7 @@ function AppWrapper() {
         path={path}
         element={
           moduleId && !can(moduleId) ? (
-            <NotFound /> // 🚫 404 if user lacks privilege
+            <NotFound />
           ) : (
             element
           )
@@ -106,11 +105,18 @@ function AppWrapper() {
       />
     ));
 
+  // ✅ Root route redirect based on login status
+  const rootRedirect = user ? (
+    <Navigate to="/dashboard" replace />
+  ) : (
+    <Navigate to="/login" replace />
+  );
+
   if (hideNavbar) {
     return (
       <div className="min-h-screen dark:bg-gray-900 dark:text-gray-200">
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={rootRedirect} />
           <Route path="/login" element={<LoginPage />} />
           {renderRoutes()}
           <Route path="*" element={<NotFound />} />
@@ -122,7 +128,7 @@ function AppWrapper() {
   return (
     <Layout can={can}>
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={rootRedirect} />
         {renderRoutes()}
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -132,7 +138,7 @@ function AppWrapper() {
 
 export default function App() {
   return (
-    <Router>
+    <Router basename="/prs">
       <AppWrapper />
       <GlobalEchoListener />
       <GlobalSystemListener />

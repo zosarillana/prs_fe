@@ -57,7 +57,7 @@ export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
     <nav
       className={`
         bg-white dark:bg-gray-900 dark:text-gray-200
-        shadow-sm px-6 py-2.5 border-b border-gray-300 dark:border-gray-700
+        shadow-sm px-6 py-3 border-b border-gray-300 dark:border-gray-700
         flex justify-between items-center sticky top-0 z-40
         transition-all duration-300 ease-in-out
         ${sidebarOpen ? "ml-64" : "ml-0"}

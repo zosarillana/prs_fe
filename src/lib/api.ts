@@ -2,7 +2,7 @@
   import Cookies from "js-cookie";
 
   const api = axios.create({
-    baseURL: "http://192.168.8.254:8000", // ✅ your backend LAN address
+    baseURL: "http://192.168.30.11:8000", // ✅ your backend LAN address
     // baseURL: "http://192.168.100.52:8000", // ✅ your backend LAN address
     withCredentials: true, // 🔑 required for Sanctum cookies
     // baseURL: "http://localhost:8000",
