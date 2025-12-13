@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import {
   Building2,
+  Calendar,
   LayoutDashboard,
   ListOrdered,
   ListTodo,
@@ -56,7 +57,23 @@ export default function SidebarNav({ can }: SidebarNavProps) {
           </NavLink>
         </li>
       )}
-
+      {can(11) && (
+        <li>
+          <NavLink
+            to="/progress-reports"
+            className={({ isActive }) =>
+              `flex items-center px-3 py-2 rounded-md transition-colors ${
+                isActive
+                  ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+              }`
+            }
+          >
+            <Calendar className="w-5 h-5 mr-3" />
+            <p>Progress Status</p>
+          </NavLink>
+        </li>
+      )}
       {can(3) && (
         <li>
           <NavLink
@@ -75,6 +92,23 @@ export default function SidebarNav({ can }: SidebarNavProps) {
         </li>
       )}
 
+      {can(10) && (
+        <li>
+          <NavLink
+            to="/reports"
+            className={({ isActive }) =>
+              `flex items-center px-3 py-2 rounded-md transition-colors ${
+                isActive
+                  ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+              }`
+            }
+          >
+            <ListTree className="w-5 h-5 mr-3" />
+            <p>Reports</p>
+          </NavLink>
+        </li>
+      )}
       {can(4) && (
         <>
           <span className="text-sm px-3 text-gray-900 dark:text-gray-100 -ml-1">

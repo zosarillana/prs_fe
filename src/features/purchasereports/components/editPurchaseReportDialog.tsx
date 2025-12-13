@@ -57,7 +57,7 @@ export function EditPurchaseReportDialog({
   prId,
 }: EditPurchaseReportDialogProps) {
   const { report, loading } = useEditPurchaseReport(prId, open);
-  const { uoms, loading: uomsLoading } = useUoms(); // ✅ Global UOMs
+  const { uoms, loading: uomsLoading } = useUoms();
   const { tags, loading: tagsLoading } = useTags();
   const [items, setItems] = React.useState<PurchaseReport | null>(null);
 
@@ -80,19 +80,40 @@ export function EditPurchaseReportDialog({
   ) => {
     if (!items) return;
     const updated = { ...items };
-    (updated as any)[field][index] = value;
+    
+    if (field === "tag") {
+      // Find the tag object from the tags list
+      const tagObj = tags.find((t) => String(t.id) === value);
+      if (tagObj) {
+        updated.tag[index] = tagObj;
+      }
+    } else {
+      (updated as any)[field][index] = value;
+    }
+    
     setItems(updated);
   };
 
   const handleApproveEdit = async (idx: number) => {
     if (!items || !prId) return;
 
+    // Get the tag description to check if it ends with "_tr"
+    const currentTag = items.tag?.[idx];
+    const tagDescription = typeof currentTag === 'object' 
+      ? currentTag.description 
+      : String(currentTag ?? '');
+
     const newStatus = items.item_status.map((status, i) => {
       if (i === idx) {
-        return items.tag?.[i]?.endsWith("_tr") ? "pending_tr" : "pending";
+        return tagDescription?.endsWith("_tr") ? "pending_tr" : "pending";
       }
       return status;
     });
+
+    // Convert tag objects to tag IDs (strings) for the API
+    const tagIds = items.tag.map((t) => 
+      typeof t === 'object' ? String(t.id) : String(t)
+    );
 
     const payload: PurchaseReportInput = {
       user_id: items.user.id,
@@ -104,7 +125,7 @@ export function EditPurchaseReportDialog({
       quantity: items.quantity,
       unit: items.unit,
       item_description: items.item_description,
-      tag: items.tag,
+      tag: tagIds, // Send as string array of IDs
       item_status: newStatus,
       remarks: items.remarks,
     };
@@ -171,11 +192,19 @@ export function EditPurchaseReportDialog({
                     const isRejected =
                       status === "rejected" || status === "rejected_tr";
 
+                    // Get current tag value
+                    const currentTag = items.tag?.[idx];
+                    const tagId = typeof currentTag === 'object' 
+                      ? String(currentTag.id) 
+                      : String(currentTag);
+                    const tagDisplay = typeof currentTag === 'object' 
+                      ? currentTag.description 
+                      : currentTag;
+
                     return (
                       <TableRow key={idx}>
                         <TableCell>{idx + 1}</TableCell>
 
-                        {/* Editable fields if rejected */}
                         <TableCell>
                           {isRejected ? (
                             <Input
@@ -200,7 +229,7 @@ export function EditPurchaseReportDialog({
                                 handleChange(idx, "unit", val)
                               }
                             >
-                          <SelectTrigger className="w-[120px]">
+                              <SelectTrigger className="w-[120px]">
                                 <SelectValue placeholder="Select Unit" />
                               </SelectTrigger>
                               <SelectContent>
@@ -240,7 +269,7 @@ export function EditPurchaseReportDialog({
                         <TableCell>
                           {isRejected ? (
                             <Select
-                              value={items.tag?.[idx]?.toString() ?? ""} // ✅ ensure it's a string
+                              value={tagId}
                               onValueChange={(val) =>
                                 handleChange(idx, "tag", val)
                               }
@@ -260,7 +289,7 @@ export function EditPurchaseReportDialog({
                               </SelectContent>
                             </Select>
                           ) : (
-                            items.tag?.[idx] ?? ""
+                            tagDisplay ?? ""
                           )}
                         </TableCell>
 
@@ -316,7 +345,7 @@ export function EditPurchaseReportDialog({
                                   align="start"
                                   className="w-64 text-sm"
                                 >
-                                  Approve this item’s changes and move it back
+                                  Approve this item's changes and move it back
                                   to pending status.
                                 </HoverCardContent>
                               </HoverCard>

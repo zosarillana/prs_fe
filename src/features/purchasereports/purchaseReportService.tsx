@@ -22,7 +22,9 @@ export const purchaseReportService = {
   getTable: async (params?: {
     searchTerm?: string;
     statusTerm?: string; // ✅ NEW
-    
+    prStatusTerm?: string;
+    completedTr?: boolean;
+    ownDepartment?: boolean;
     fromDate?: string;
     toDate?: string;
     sortBy?: string;
@@ -37,6 +39,24 @@ export const purchaseReportService = {
   // Get single report
   getById: async (id: number): Promise<PurchaseReport> => {
     const res = await api.get(`api/purchase-reports/${id}`);
+    return res.data;
+  },
+
+  // ✅ NEW: Get table reports without role filters
+  getTableReports: async (params?: {
+    searchTerm?: string;
+    statusTerm?: string;
+    prStatusTerm?: string;
+    completedTr?: boolean;
+    ownDepartment?: boolean;
+    fromDate?: string;
+    toDate?: string;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+    pageNumber?: number;
+    pageSize?: number;
+  }): Promise<PaginatedResponse<any>> => {
+    const res = await api.get("api/purchase-reports/table-reports", { params });
     return res.data;
   },
 
@@ -55,7 +75,7 @@ export const purchaseReportService = {
     return res.data;
   },
 
-  // Delete report
+  // Delete reports
   delete: async (id: number): Promise<void> => {
     await api.delete(`api/purchase-reports/${id}`);
   },
@@ -94,13 +114,18 @@ export const purchaseReportService = {
     return res.data;
   },
 
-  async updatePoNo(id: number, po_no: number) {
+  async updatePoNo(id: number, po_no: string) {
     const res = await api.patch(`api/purchase-reports/${id}/po-no`, { po_no });
     return res.data;
   },
 
   async cancelPoNo(id: number) {
     const res = await api.patch(`api/purchase-reports/${id}/cancel-po-no`);
+    return res.data;
+  },
+
+  async returnPo(id: number) {
+    const res = await api.patch(`api/purchase-reports/${id}/return-po-no`);
     return res.data;
   },
 
@@ -117,5 +142,22 @@ export const purchaseReportService = {
   getSummary: async (): Promise<any> => {
     const res = await api.get("api/purchase-reports/summary");
     return res.data;
+  },
+
+  // ✅ NEW: Update delivery status of a purchase report
+  updateDeliveryStatus: async (
+    id: number,
+    deliveryStatus: "pending" | "delivered" | "partial"
+  ): Promise<PurchaseReport> => {
+    const res = await api.patch(`api/purchase-reports/${id}/delivery-status`, {
+      delivery_status: deliveryStatus,
+    });
+    return res.data;
+  },
+
+  // ✅ NEW: Get NEXT generated series number (preview)
+  getNextSeriesNo: async (): Promise<number> => {
+    const res = await api.get("api/purchase-reports/next-series");
+    return res.data.next_series_no;
   },
 };

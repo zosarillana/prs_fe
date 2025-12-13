@@ -1,4 +1,6 @@
-import bgImage from "@/assets/images/bg.png"; // ✅ import your background
+import bgImage from "@/assets/images/bg3.jpg";
+import bgImage2 from "@/assets/images/bg2.png";
+import logo from "@/assets/images/logosidebar.png";
 import {
   Card,
   CardContent,
@@ -9,16 +11,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useLogin } from "../hooks/useLogin";
 import { useAuthStore } from "@/store/auth/authStore";
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 
 export default function LoginPage() {
   const { mutate, isPending, isError, error } = useLogin();
   const setAuth = useAuthStore((state) => state.setAuth);
   const navigate = useNavigate();
+
+  // ✅ Moved useState here (correct place)
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,11 +52,11 @@ export default function LoginPage() {
 
   return (
     <div
-      className="flex flex-col gap-8 h-screen items-center justify-center bg-cover bg-center"
+      className="flex flex-col gap-8 h-screen items-center justify-center bg-cover bg-center bg-black/70 bg-blend-overlay"
       style={{ backgroundImage: `url(${bgImage})` }}
     >
-      <img src="src/assets/images/logo.png" className="h-24" />
-      <Card className="w-[350px] shadow-lg bg-white/90 backdrop-blur-sm">
+      <img src={logo} className="h-36 -mb-12" />
+      <Card className="w-[350px] shadow-lg bg-white/100 backdrop-blur-sm">
         <CardHeader>
           <CardTitle>Login to your account</CardTitle>
           <CardDescription>
@@ -69,9 +75,32 @@ export default function LoginPage() {
                 autoFocus
               />
             </div>
+
+            {/* ✅ Password field with toggle */}
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" />
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="yourpassword"
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
 
             <p className="text-sm text-gray-600">
@@ -85,12 +114,9 @@ export default function LoginPage() {
                 "Sign In"
               )}
             </Button>
+
             {isError && (
               <p className="text-red-500">
-                {/*
-      Try to read the API error message first, fallback to generic message
-      Works for Axios or similar fetch wrappers
-    */}
                 {(error as any)?.response?.data?.message ||
                   (error as any)?.message ||
                   "Login failed"}

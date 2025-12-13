@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -18,21 +19,37 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@radix-ui/react-label";
 import { TableSkeletonPrInput } from "@/components/ui/skeletons/purchasereports/tableSkeletonPrInput";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { useAuthStore } from "@/store/auth/authStore";
 
 import { useCreatePurchaseReport } from "../hooks/useCreatePurchaseReport";
 import { useTags } from "@/features/users/hooks/useTags";
 
+import logo from "@/assets/images/logosidebar.png";
+
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 export default function CreatePurchaseReport() {
+  const location = useLocation();
+  const copyFromData = location.state?.copyFrom;
+  const { editDraft, draftData } = location.state || {};
   const {
     rows,
     setRows,
@@ -44,9 +61,111 @@ export default function CreatePurchaseReport() {
     handleSubmit,
     loading,
     uoms,
-  } = useCreatePurchaseReport();
+  } = useCreatePurchaseReport({ editDraft, draftData });
 
-  const { tags, loading: tagsLoading } = useTags(); // ✅ fetch tags
+  const { user } = useAuthStore();
+  const { tags, loading: tagsLoading } = useTags();
+
+  useEffect(() => {
+    if (copyFromData) {
+      console.log("📋 Copy mode - Original dates:", {
+        date_submitted: copyFromData.date_submitted,
+        date_needed: copyFromData.date_needed,
+      });
+
+      // Parse dates properly
+      const dateSubmitted = copyFromData.date_submitted
+        ? new Date(copyFromData.date_submitted + "T00:00:00")
+        : undefined;
+
+      const dateNeeded = copyFromData.date_needed
+        ? new Date(copyFromData.date_needed + "T00:00:00")
+        : undefined;
+
+      console.log("📅 Converted dates:", {
+        dateSubmitted,
+        dateNeeded,
+        isValidSubmitted:
+          dateSubmitted instanceof Date && !isNaN(dateSubmitted.getTime()),
+        isValidNeeded:
+          dateNeeded instanceof Date && !isNaN(dateNeeded.getTime()),
+      });
+
+      setReportData({
+        purpose: copyFromData.pr_purpose,
+        department: user?.department?.[0] ?? copyFromData.department, // ✅ Get first element from array
+        date_submitted: dateSubmitted,
+        date_needed: dateNeeded,
+        amount: copyFromData.quantity.length,
+        series_no: copyFromData.series_no ?? "",
+        user_id: user?.id ?? copyFromData.user.id,
+      });
+
+      const copiedItems = copyFromData.quantity.map(
+        (_: any, index: number) => ({
+          quantity: copyFromData.quantity[index]?.toString() || "",
+          unit: copyFromData.unit[index] || "",
+          description: copyFromData.item_description[index] || "",
+          tag:
+            typeof copyFromData.tag[index] === "object"
+              ? copyFromData.tag[index]?.id?.toString() || ""
+              : copyFromData.tag[index]?.toString() || "",
+          remarks: copyFromData.remarks[index] || "",
+        })
+      );
+
+      setItems(copiedItems);
+      setRows(copiedItems.length);
+
+      toast.info(`Copied to new request (Series #${copyFromData.series_no})`);
+      window.history.replaceState({}, document.title);
+    } else if (editDraft && draftData) {
+      // --- EDIT DRAFT MODE ---
+      const dateSubmitted = draftData.date_submitted
+        ? new Date(draftData.date_submitted + "T00:00:00")
+        : undefined;
+
+      const dateNeeded = draftData.date_needed
+        ? new Date(draftData.date_needed + "T00:00:00")
+        : undefined;
+
+      setReportData({
+        user_id: user?.id ?? draftData.user.id,
+        series_no: draftData.series_no,
+        purpose: draftData.pr_purpose,
+        department: user?.department?.[0] ?? draftData.department, // ✅ Get first element from array
+        date_submitted: dateSubmitted,
+        date_needed: dateNeeded,
+        amount: draftData.quantity.length,
+      });
+
+      setItems(
+        draftData.item_description.map((desc: string, i: number) => ({
+          quantity: draftData.quantity[i]?.toString() || "",
+          unit: draftData.unit[i] || "",
+          description: desc || "",
+          tag:
+            typeof draftData.tag[i] === "object"
+              ? draftData.tag[i].id?.toString() || ""
+              : draftData.tag[i]?.toString() || "",
+          remarks: draftData.remarks[i] || "",
+        }))
+      );
+
+      setRows(draftData.item_description.length);
+      toast.info(`Loaded draft: ${draftData.series_no}`);
+      window.history.replaceState({}, document.title);
+    }
+  }, [
+    copyFromData,
+    editDraft,
+    draftData,
+    user,
+    setReportData,
+    setItems,
+    setRows,
+  ]);
+
   // ✅ add new blank row
   const addRow = () => {
     setItems((prev) => [
@@ -66,17 +185,21 @@ export default function CreatePurchaseReport() {
     <div className="p-6 -mt-4">
       <div className="flex flex-row justify-between items-center mb-6">
         <div className="flex flex-col items-start gap-2">
-          <h1 className="text-3xl font-bold">Create Purchase Request</h1>
+          <h1 className="text-3xl font-bold">
+            {copyFromData ? "Copy Purchase Request" : "Create Purchase Request"}
+          </h1>
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/purchase-reports">
+                <BreadcrumbLink href="/prs/purchase-reports">
                   Purchase Requests
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Create</BreadcrumbPage>
+                <BreadcrumbPage>
+                  {copyFromData ? "Copy" : "Create"}
+                </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -106,18 +229,14 @@ export default function CreatePurchaseReport() {
       <Card>
         <CardHeader>
           <CardTitle className="flex flex-col items-center mb-12">
-            <div className="flex flex-col items-center">
-              <p className="text-4xl font-semibold tracking-widest">
-                AGRI EXIM
-              </p>
-              <p className="text-lg font-semibold tracking-wider">
-                GLOBAL PHILIPPINES, INC.
-              </p>
-              <p className="text-md font-light tracking-wide">
+            <div className="flex flex-col items-center mb-5">
+              <img src={logo} className="h-32 -mb-12" />
+              <p className="text-sm font-light mt-3">
                 Upper Quinokol, Brgy. Darong, Sta. Cruz, Davao Del Sur.
               </p>
             </div>
-            <p className="mt-5 text-lg font-semibold tracking-wider italic mb-2">
+
+            <p className="mt-3 text-lg text-center font-semibold mb-2">
               PURCHASE REQUISITION SLIP
             </p>
           </CardTitle>
@@ -135,7 +254,12 @@ export default function CreatePurchaseReport() {
                   id="purpose"
                   placeholder="Purpose"
                   value={reportData?.purpose ?? ""}
-                  disabled
+                  onChange={(e) =>
+                    setReportData((prev: any) => ({
+                      ...prev,
+                      purpose: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -160,21 +284,28 @@ export default function CreatePurchaseReport() {
                 </Label>
                 <Input
                   id="series_no"
-                  placeholder="PR Number"
+                  placeholder="Series No."
                   value={reportData?.series_no ?? ""}
                   disabled
                 />
               </div>
               <div className="flex items-center gap-2">
-                <Label htmlFor="date" className="text-sm text-right">
-                  Date:
-                </Label>
-                <Input
-                  id="date"
-                  placeholder="Date"
-                  value={reportData?.date_submitted?.toLocaleDateString() ?? ""}
-                  disabled
-                />
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="date" className="text-sm text-right">
+                    Date:
+                  </Label>
+                  <Input
+                    id="date"
+                    placeholder="Date"
+                    value={
+                      reportData?.date_submitted instanceof Date &&
+                      !isNaN(reportData.date_submitted.getTime())
+                        ? reportData.date_submitted.toLocaleDateString()
+                        : ""
+                    }
+                    disabled
+                  />
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Label
@@ -186,7 +317,12 @@ export default function CreatePurchaseReport() {
                 <Input
                   id="date_needed"
                   placeholder="Date Needed"
-                  value={reportData?.date_needed?.toLocaleDateString() ?? ""}
+                  value={
+                    reportData?.date_needed instanceof Date &&
+                    !isNaN(reportData.date_needed.getTime())
+                      ? reportData.date_needed.toLocaleDateString()
+                      : ""
+                  }
                   disabled
                 />
               </div>
@@ -227,27 +363,61 @@ export default function CreatePurchaseReport() {
                           />
                         </TableCell>
                         <TableCell>
-                          <Select
-                            value={item.unit}
-                            onValueChange={(value) =>
-                              handleChange(i, "unit", value)
-                            }
-                          >
-                            <SelectTrigger className="w-[120px]">
-                              <SelectValue placeholder="Unit" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {uoms.map((uom) => (
-                                <SelectItem
-                                  key={uom.id}
-                                  value={uom.description}
-                                >
-                                  {uom.description}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className="w-[120px] justify-between"
+                              >
+                                {item.unit
+                                  ? uoms.find(
+                                      (uom) => uom.description === item.unit
+                                    )?.description
+                                  : "Select unit..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-[120px] p-0"
+                              align="start"
+                            >
+                              <Command>
+                                <CommandInput placeholder="Search unit..." />
+                                <CommandList>
+                                  <CommandEmpty>No unit found.</CommandEmpty>
+                                  <CommandGroup>
+                                    {uoms.map((uom) => (
+                                      <CommandItem
+                                        key={uom.id}
+                                        value={uom.description}
+                                        onSelect={() => {
+                                          handleChange(
+                                            i,
+                                            "unit",
+                                            uom.description
+                                          );
+                                          // Popover closes automatically
+                                        }}
+                                      >
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4",
+                                            item.unit === uom.description
+                                              ? "opacity-100"
+                                              : "opacity-0"
+                                          )}
+                                        />
+                                        {uom.description}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                         </TableCell>
+
                         <TableCell>
                           <Input
                             placeholder="Enter description"
@@ -258,24 +428,60 @@ export default function CreatePurchaseReport() {
                           />
                         </TableCell>
                         <TableCell>
-                          <Select
-                            value={item.tag?.toString() ?? ""} // must be string
-                            onValueChange={(value) =>
-                              handleChange(i, "tag", value)
-                            }
-                            disabled={tagsLoading}
-                          >
-                            <SelectTrigger className="w-[160px]">
-                              <SelectValue placeholder="Tag" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {tags.map((tag) => (
-                                <SelectItem key={tag.id} value={String(tag.description)}>
-                                  {tag.description}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className="w-full justify-between"
+                                disabled={tagsLoading}
+                              >
+                                {item.tag
+                                  ? tags.find(
+                                      (tag) => String(tag.id) === item.tag
+                                    )?.description
+                                  : "Select tag..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-full p-0"
+                              align="start"
+                            >
+                              <Command>
+                                <CommandInput placeholder="Search tag..." />
+                                <CommandList>
+                                  <CommandEmpty>No tag found.</CommandEmpty>
+                                  <CommandGroup>
+                                    {tags.map((tag) => (
+                                      <CommandItem
+                                        key={tag.id}
+                                        value={tag.description ?? ""}
+                                        onSelect={() => {
+                                          handleChange(
+                                            i,
+                                            "tag",
+                                            String(tag.id)
+                                          );
+                                          // The popover will close automatically on select
+                                        }}
+                                      >
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4",
+                                            item.tag === String(tag.id)
+                                              ? "opacity-100"
+                                              : "opacity-0"
+                                          )}
+                                        />
+                                        {tag.description}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                         </TableCell>
                         <TableCell>
                           <Input
@@ -315,9 +521,23 @@ export default function CreatePurchaseReport() {
                   <Button type="button" variant="outline" onClick={addRow}>
                     + Add Row
                   </Button>
-                  <Button type="button" className="w-32" onClick={handleSubmit}>
-                    Submit
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      className="w-32 text-white"
+                      onClick={() => handleSubmit(false)} // normal submit
+                    >
+                      Submit
+                    </Button>
+
+                    <Button
+                      type="button"
+                      className="w-32 bg-gray-900 hover:bg-gray-900 text-white"
+                      onClick={() => handleSubmit(true)} // 👈 draft submit
+                    >
+                      Save as Draft
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>

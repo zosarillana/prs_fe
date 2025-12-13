@@ -184,62 +184,74 @@ export default function Users() {
         </Table>
 
         {/* pagination footer */}
-        <div className="flex items-center justify-end w-full border-t p-4">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => page > 1 && setPage(page - 1)}
-                  className={page === 1 ? "pointer-events-none opacity-50" : ""}
-                />
-              </PaginationItem>
+        <div className="flex items-center justify-between w-full border-t p-4">
+          {/* Showing info */}
+          <div className="text-sm text-muted-foreground">
+            Showing {Math.min((page - 1) * pageSize + 1, data?.totalItems ?? 0)}
+            –{Math.min(page * pageSize, data?.totalItems ?? 0)} of{" "}
+            {data?.totalItems ?? 0}
+          </div>
 
-              {Array.from({ length: data?.totalPages ?? 0 }, (_, i) => (
-                <PaginationItem key={i}>
-                  <PaginationLink
-                    isActive={page === i + 1}
-                    onClick={() => setPage(i + 1)}
-                  >
-                    {i + 1}
-                  </PaginationLink>
+          {/* Pagination + page size selector */}
+          <div className="flex items-center justify-end gap-6">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => page > 1 && setPage(page - 1)}
+                    className={
+                      page === 1 ? "pointer-events-none opacity-50" : ""
+                    }
+                  />
                 </PaginationItem>
-              ))}
 
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() =>
-                    data && page < data.totalPages && setPage(page + 1)
-                  }
-                  className={
-                    data && page === data.totalPages
-                      ? "pointer-events-none opacity-50"
-                      : ""
-                  }
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-
-          {/* page size selector */}
-          <div className="flex items-center gap-2 w-[200px]">
-            <span className="text-sm text-muted-foreground w-full">
-              Rows per page:
-            </span>
-            <Select
-              value={pageSize.toString()}
-              onValueChange={(value) => setPageSize(Number(value))}
-            >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Rows" />
-              </SelectTrigger>
-              <SelectContent>
-                {[5, 10, 20, 30, 50].map((size) => (
-                  <SelectItem key={size} value={size.toString()}>
-                    {size}
-                  </SelectItem>
+                {Array.from({ length: data?.totalPages ?? 0 }, (_, i) => (
+                  <PaginationItem key={i}>
+                    <PaginationLink
+                      isActive={page === i + 1}
+                      onClick={() => setPage(i + 1)}
+                    >
+                      {i + 1}
+                    </PaginationLink>
+                  </PaginationItem>
                 ))}
-              </SelectContent>
-            </Select>
+
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() =>
+                      data && page < data.totalPages && setPage(page + 1)
+                    }
+                    className={
+                      data && page === data.totalPages
+                        ? "pointer-events-none opacity-50"
+                        : ""
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+
+            {/* Page size selector */}
+            <div className="flex items-center gap-2 w-[200px]">
+              <span className="text-sm text-muted-foreground w-full">
+                Rows per page:
+              </span>
+              <Select
+                value={pageSize.toString()}
+                onValueChange={(value) => setPageSize(Number(value))}
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Rows" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[5, 10, 20, 30, 50].map((size) => (
+                    <SelectItem key={size} value={size.toString()}>
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </div>

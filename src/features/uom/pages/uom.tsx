@@ -88,7 +88,7 @@ export default function UomPage() {
       toast.error("Please enter a UOM description");
       return;
     }
-    
+
     const t = toast.loading("Creating UOM...");
     try {
       await uomService.create({ description: newUOM.trim() });
@@ -111,37 +111,47 @@ export default function UomPage() {
     setEditValue("");
   }, []);
 
-  const handleUpdateUOM = useCallback(async (id: number) => {
-    if (!editValue.trim()) {
-      toast.error("Please enter a UOM description");
-      return;
-    }
-    
-    const t = toast.loading("Updating UOM...");
-    try {
-      const updated = await uomService.update(id, { description: editValue.trim() });
-      setUoms((prev) =>
-        prev.map((u) => (u.id === id ? { ...u, description: updated.description } : u))
-      );
-      cancelEdit();
-      toast.success("UOM updated successfully", { id: t });
-    } catch (err) {
-      console.error("Failed to update UOM:", err);
-      toast.error("Failed to update UOM", { id: t });
-    }
-  }, [editValue, cancelEdit]);
+  const handleUpdateUOM = useCallback(
+    async (id: number) => {
+      if (!editValue.trim()) {
+        toast.error("Please enter a UOM description");
+        return;
+      }
 
-  const handleDeleteUOM = useCallback(async (id: number) => {
-    const t = toast.loading("Deleting UOM...");
-    try {
-      await uomService.delete(id);
-      await loadUoms();
-      toast.success("UOM deleted successfully", { id: t });
-    } catch (err) {
-      console.error("Failed to delete UOM:", err);
-      toast.error("Failed to delete UOM", { id: t });
-    }
-  }, [loadUoms]);
+      const t = toast.loading("Updating UOM...");
+      try {
+        const updated = await uomService.update(id, {
+          description: editValue.trim(),
+        });
+        setUoms((prev) =>
+          prev.map((u) =>
+            u.id === id ? { ...u, description: updated.description } : u
+          )
+        );
+        cancelEdit();
+        toast.success("UOM updated successfully", { id: t });
+      } catch (err) {
+        console.error("Failed to update UOM:", err);
+        toast.error("Failed to update UOM", { id: t });
+      }
+    },
+    [editValue, cancelEdit]
+  );
+
+  const handleDeleteUOM = useCallback(
+    async (id: number) => {
+      const t = toast.loading("Deleting UOM...");
+      try {
+        await uomService.delete(id);
+        await loadUoms();
+        toast.success("UOM deleted successfully", { id: t });
+      } catch (err) {
+        console.error("Failed to delete UOM:", err);
+        toast.error("Failed to delete UOM", { id: t });
+      }
+    },
+    [loadUoms]
+  );
 
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage);
@@ -155,7 +165,9 @@ export default function UomPage() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Unit of Measurement</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Unit of Measurement
+        </h1>
         <Badge variant="secondary" className="text-sm">
           {totalItems} UOMs
         </Badge>
@@ -178,10 +190,10 @@ export default function UomPage() {
                 placeholder="UOM Description (e.g., kg, meters, pieces)"
                 value={newUOM}
                 onChange={(e) => setNewUOM(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddUOM()}
+                onKeyDown={(e) => e.key === "Enter" && handleAddUOM()}
               />
             </div>
-            <Button 
+            <Button
               onClick={handleAddUOM}
               className="flex items-center gap-2"
               disabled={!newUOM.trim()}
@@ -221,7 +233,9 @@ export default function UomPage() {
                 <Package className="h-6 w-6" />
               </div>
               <p className="text-lg font-medium">No UOMs found</p>
-              <p className="text-sm">Create your first Unit of Measurement to get started</p>
+              <p className="text-sm">
+                Create your first Unit of Measurement to get started
+              </p>
             </div>
           ) : (
             <div className="rounded-md border">
@@ -247,13 +261,17 @@ export default function UomPage() {
                             placeholder="UOM Description"
                             className="max-w-sm"
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleUpdateUOM(uom.id);
-                              if (e.key === 'Escape') cancelEdit();
+                              if (e.key === "Enter") handleUpdateUOM(uom.id);
+                              if (e.key === "Escape") cancelEdit();
                             }}
                             autoFocus
                           />
                         ) : (
-                          uom.description || <span className="italic text-muted-foreground/70">No description</span>
+                          uom.description || (
+                            <span className="italic text-muted-foreground/70">
+                              No description
+                            </span>
+                          )
                         )}
                       </TableCell>
                       <TableCell className="text-center">
@@ -300,13 +318,19 @@ export default function UomPage() {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete UOM</AlertDialogTitle>
+                                    <AlertDialogTitle>
+                                      Delete UOM
+                                    </AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Are you sure you want to delete "{uom.description}"? This action cannot be undone.
+                                      Are you sure you want to delete "
+                                      {uom.description}"? This action cannot be
+                                      undone.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogCancel>
+                                      Cancel
+                                    </AlertDialogCancel>
                                     <AlertDialogAction
                                       onClick={() => handleDeleteUOM(uom.id)}
                                       className="bg-destructive hover:bg-destructive/90"
@@ -330,61 +354,75 @@ export default function UomPage() {
           {/* Pagination Controls */}
           {!loading && uoms.length > 0 && (
             <div className="flex justify-between items-center mt-6">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() => page > 1 && handlePageChange(page - 1)}
-                      className={
-                        page === 1 ? "opacity-50 pointer-events-none" : "cursor-pointer"
-                      }
-                    />
-                  </PaginationItem>
+              {/* Showing info */}
+              <div className="text-sm text-muted-foreground">
+                Showing {Math.min((page - 1) * pageSize + 1, totalItems)}–
+                {Math.min(page * pageSize, totalItems)} of {totalItems}
+              </div>
 
-                  {Array.from({ length: totalPages }, (_, i) => (
-                    <PaginationItem key={i}>
-                      <PaginationLink
-                        isActive={page === i + 1}
-                        onClick={() => handlePageChange(i + 1)}
-                        className="cursor-pointer"
-                      >
-                        {i + 1}
-                      </PaginationLink>
+              {/* Pagination and page size controls */}
+              <div className="flex items-center gap-6">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => page > 1 && handlePageChange(page - 1)}
+                        className={
+                          page === 1
+                            ? "opacity-50 pointer-events-none"
+                            : "cursor-pointer"
+                        }
+                      />
                     </PaginationItem>
-                  ))}
 
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={() => page < totalPages && handlePageChange(page + 1)}
-                      className={
-                        page === totalPages
-                          ? "opacity-50 pointer-events-none"
-                          : "cursor-pointer"
-                      }
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  Rows per page:
-                </span>
-                <Select
-                  value={pageSize.toString()}
-                  onValueChange={handlePageSizeChange}
-                >
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[5, 10, 20, 30].map((size) => (
-                      <SelectItem key={size} value={size.toString()}>
-                        {size}
-                      </SelectItem>
+                    {Array.from({ length: totalPages }, (_, i) => (
+                      <PaginationItem key={i}>
+                        <PaginationLink
+                          isActive={page === i + 1}
+                          onClick={() => handlePageChange(i + 1)}
+                          className="cursor-pointer"
+                        >
+                          {i + 1}
+                        </PaginationLink>
+                      </PaginationItem>
                     ))}
-                  </SelectContent>
-                </Select>
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() =>
+                          page < totalPages && handlePageChange(page + 1)
+                        }
+                        className={
+                          page === totalPages
+                            ? "opacity-50 pointer-events-none"
+                            : "cursor-pointer"
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+
+                {/* Page size selector */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Rows per page:
+                  </span>
+                  <Select
+                    value={pageSize.toString()}
+                    onValueChange={handlePageSizeChange}
+                  >
+                    <SelectTrigger className="w-[100px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[5, 10, 20, 30].map((size) => (
+                        <SelectItem key={size} value={size.toString()}>
+                          {size}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           )}

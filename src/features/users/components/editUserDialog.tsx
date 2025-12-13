@@ -1,4 +1,4 @@
-// Updated EditUserDialog.tsx
+// Updated EditUserDialog.tsx with multi-role selection
 import {
   Dialog,
   DialogContent,
@@ -22,14 +22,22 @@ import type { User } from "../types";
 import { useEffect, useState } from "react";
 import { departmentService } from "@/features/department/departmentService";
 import type { Department } from "@/features/department/types";
-import { toast } from "sonner";
-import { Eye, EyeOff, Lock, User as UserIcon } from "lucide-react";
+import { Eye, EyeOff, Lock, User as UserIcon, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface EditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   user: User | null;
 }
+
+const ROLE_OPTIONS = [
+  { value: "user", label: "Maker" },
+  { value: "hod", label: "Head of Department" },
+  { value: "technical_reviewer", label: "Technical Reviewer" },
+  { value: "admin", label: "Admin" },
+  { value: "purchasing", label: "Purchasing" },
+];
 
 export function EditUserDialog({ open, onOpenChange, user }: EditDialogProps) {
   const {
@@ -40,8 +48,8 @@ export function EditUserDialog({ open, onOpenChange, user }: EditDialogProps) {
     setEmail,
     department,
     setDepartment,
-    role,
-    setRole,
+    roles,
+    setRoles,
     isPending,
     handleSubmit,
     // Password form states
@@ -61,6 +69,25 @@ export function EditUserDialog({ open, onOpenChange, user }: EditDialogProps) {
   // Local state for departments
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loadingDepts, setLoadingDepts] = useState(false);
+
+  // Role management functions
+  const handleRoleSelect = (roleValue: string) => {
+    if (!roles.includes(roleValue)) {
+      setRoles([...roles, roleValue]);
+    }
+  };
+
+  const handleRoleRemove = (roleValue: string) => {
+    setRoles(roles.filter(r => r !== roleValue));
+  };
+
+  const getRoleLabel = (roleValue: string) => {
+    return ROLE_OPTIONS.find(r => r.value === roleValue)?.label || roleValue;
+  };
+
+  const availableRoles = ROLE_OPTIONS.filter(
+    role => !roles.includes(role.value)
+  );
 
   // Fetch all departments (paginated) when dialog opens
   const fetchAllDepartments = async () => {
@@ -160,19 +187,53 @@ export function EditUserDialog({ open, onOpenChange, user }: EditDialogProps) {
               </div>
 
               <div className="space-y-2">
-                <Label>Role</Label>
-                <Select value={role} onValueChange={setRole}>
+                <Label>Roles</Label>
+                
+                {/* Display selected roles as badges */}
+                {roles.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {roles.map((roleValue) => (
+                      <Badge
+                        key={roleValue}
+                        variant="secondary"
+                        className="flex items-center gap-1 pl-2 pr-1"
+                      >
+                        {getRoleLabel(roleValue)}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => handleRoleRemove(roleValue)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                {/* Select dropdown to add more roles */}
+                <Select
+                  value=""
+                  onValueChange={handleRoleSelect}
+                  disabled={availableRoles.length === 0}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
+                    <SelectValue
+                      placeholder={
+                        availableRoles.length === 0
+                          ? "All roles selected"
+                          : "Add a role"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="user">Maker</SelectItem>
-                    <SelectItem value="hod">Head of Department</SelectItem>
-                    <SelectItem value="technical_reviewer">
-                      Technical Reviewer
-                    </SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="purchasing">Purchasing</SelectItem>
+                    {availableRoles.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
