@@ -163,7 +163,7 @@ export default function PurchaseReport() {
     heading = "For TR Approval";
   } else if (prStatusTerm === "returned") {
     heading = "Returned PR";
-  } else if (prStatusTerm === "rejected") {
+  } else if (prStatusTerm === "Rejected") {
     heading = "Rejected PR";
   } else if (statusTerm === "approved") {
     heading = "Approved Purchase Orders";
@@ -232,8 +232,17 @@ export default function PurchaseReport() {
                 } else if (value === "for_approval_ceo") {
                   setStatusTerm("For_approval");
                   setPrStatusTerm("");
-                } else if (value === "canceled") {
-                  setPrStatusTerm("canceled");
+                } else if (value === "Cancelled") {
+                  setPrStatusTerm("Cancelled");
+                  setStatusTerm("");
+                } else if (value === "Rejected") {
+                  setPrStatusTerm("Rejected");
+                  setStatusTerm("");
+                } else if (value === "Rejected") {
+                  setPrStatusTerm("Rejected");
+                  setStatusTerm("");
+                } else if (value === "returned") {
+                  setPrStatusTerm("returned");
                   setStatusTerm("");
                 } else {
                   setStatusTerm(value);
@@ -269,8 +278,8 @@ export default function PurchaseReport() {
                           For Approval
                         </SelectItem>
                         <SelectItem value="approved">Approved POs</SelectItem>
-                        <SelectItem value="canceled">Cancelled</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="Cancelled">Cancelled</SelectItem>
+                        <SelectItem value="Rejected">Rejected</SelectItem>
                         <SelectItem value="returned">Returned</SelectItem>
                         <SelectItem value="closed">Closed</SelectItem>
                       </>
@@ -288,7 +297,7 @@ export default function PurchaseReport() {
                         <SelectItem value="for_approval">
                           For Purchase Order Creation
                         </SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="Rejected">Rejected</SelectItem>
                         <SelectItem value="returned">Returned</SelectItem>
                       </>
                     );
@@ -301,7 +310,7 @@ export default function PurchaseReport() {
                         <SelectItem value="for_approval">
                           For Purchase Order Creation
                         </SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="Rejected">Rejected</SelectItem>
                         <SelectItem value="returned">Returned</SelectItem>
                       </>
                     );
@@ -315,8 +324,8 @@ export default function PurchaseReport() {
                         <SelectItem value="for_approval_ceo">
                           For Approval
                         </SelectItem>
-                        <SelectItem value="canceled">Cancelled</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="Cancelled">Cancelled</SelectItem>
+                        <SelectItem value="Rejected">Rejected</SelectItem>
                         <SelectItem value="returned">Returned</SelectItem>
                         <SelectItem value="closed">Closed</SelectItem>
                       </>
@@ -339,8 +348,8 @@ export default function PurchaseReport() {
                           For Approval
                         </SelectItem>
                         <SelectItem value="approved">Approved POs</SelectItem>
-                        <SelectItem value="canceled">Cancelled</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="Cancelled">Cancelled</SelectItem>
+                        <SelectItem value="Rejected">Rejected</SelectItem>
                         <SelectItem value="returned">Returned</SelectItem>
                         <SelectItem value="closed">Closed</SelectItem>
                       </>
@@ -490,7 +499,7 @@ export default function PurchaseReport() {
                   <TableCell className="capitalize">
                     {item.po_status === "For_approval"
                       ? "For Approval"
-                      : item.po_status === "canceled" ||
+                      : item.po_status === "Cancelled" ||
                         item.po_status === "cancelled"
                       ? "Cancelled"
                       : item.po_status ?? "n/a"}

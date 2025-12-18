@@ -11,6 +11,7 @@ import {
 import { authService } from "@/features/auth/authService";
 import SidebarNav from "./sidebarNav";
 import logo from "@/assets/images/logosidebar.png"; // ✅ import your logo
+import { ScrollArea } from "../scroll-area";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -43,7 +44,7 @@ export default function Sidebar({ isOpen, toggleSidebar, can }: SidebarProps) {
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 h-full w-64 
+        className={`fixed top-0 left-0 h-full w-64
             bg-white dark:bg-gray-800 
             shadow-lg z-50
             transform transition-all duration-300 ease-in-out
@@ -189,8 +190,10 @@ export default function Sidebar({ isOpen, toggleSidebar, can }: SidebarProps) {
 
           {/* Main Navigation (Scrollable Only) */}
           <nav className="p-4">
-            <div className="max-h-[calc(100vh-260px)] overflow-y-auto pr-1">
+            <div className="max-h-[calc(100vh-260px)]">
+                <ScrollArea className="h-full w-full">
               <SidebarNav can={can} />
+              </ScrollArea>
             </div>
           </nav>
         </div>

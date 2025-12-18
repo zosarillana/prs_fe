@@ -16,6 +16,7 @@ import Tags from "@/features/tags/pages/tags";
 import NotFound from "@/features/misc/pages/notFound";
 import Reports from "@/features/purchasereports/pages/reports";
 import ProgressReport from "@/features/purchasereports/pages/progressReport";
+import PriceMonitoring from "@/features/pricemonitoring/pages/priceMonitoring";
 
 export const appRoutes = [
   {
@@ -72,6 +73,11 @@ export const appRoutes = [
   {
     path: "/reports",
     element: <Reports />,
+    moduleId: 10,
+  },
+  {
+    path: "/price-monitoring",
+    element: <PriceMonitoring />,
     moduleId: 10,
   },
   {

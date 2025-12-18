@@ -14,3 +14,4 @@ If you are developing a production application, we recommend using TypeScript wi
 
 # For local development
 npm run dev -- --host 192.168.30.11 --port 5173
+npm run dev -- --host 192.168.8.254 --port 5173

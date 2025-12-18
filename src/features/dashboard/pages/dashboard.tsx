@@ -369,7 +369,7 @@ export default function Dashboard() {
               <CardSkeleton />
             ) : (
               <Link
-                to="/purchase-reports?prStatusTerm=rejected"
+                to="/purchase-reports?prStatusTerm=Rejected"
                 className="block"
               >
                 <Card className="group cursor-pointer transition hover:shadow-md">
