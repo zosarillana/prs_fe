@@ -190,7 +190,7 @@ export default function Sidebar({ isOpen, toggleSidebar, can }: SidebarProps) {
 
           {/* Main Navigation (Scrollable Only) */}
           <nav className="p-4">
-            <div className="max-h-[calc(100vh-260px)]">
+            <div className="max-h-[calc(100vh-260px)] overflow-y-auto">
                 <ScrollArea className="h-full w-full">
               <SidebarNav can={can} />
               </ScrollArea>

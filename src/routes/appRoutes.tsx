@@ -17,6 +17,8 @@ import NotFound from "@/features/misc/pages/notFound";
 import Reports from "@/features/purchasereports/pages/reports";
 import ProgressReport from "@/features/purchasereports/pages/progressReport";
 import PriceMonitoring from "@/features/pricemonitoring/pages/priceMonitoring";
+import Items from "@/features/pricemonitoring/pages/item";
+import Vendors from "@/features/pricemonitoring/pages/vendor";
 
 export const appRoutes = [
   {
@@ -25,7 +27,7 @@ export const appRoutes = [
     label: "Dashboard",
     icon: LayoutDashboard,
     showInSidebar: true,
-    moduleId: 1,   // ✅ privilege mapping
+    moduleId: 1, // ✅ privilege mapping
   },
   {
     path: "/purchase-reports",
@@ -78,7 +80,17 @@ export const appRoutes = [
   {
     path: "/price-monitoring",
     element: <PriceMonitoring />,
-    moduleId: 10,
+    moduleId: 12,
+  },
+  {
+    path: "/items",
+    element: <Items />,
+    moduleId: 13,
+  },
+  {
+    path: "/vendors",
+    element: <Vendors />,
+    moduleId: 14,
   },
   {
     path: "/progress-reports",

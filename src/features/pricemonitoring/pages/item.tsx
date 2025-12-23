@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   Table,
   TableBody,
@@ -25,17 +25,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { usePriceMonitoringHook } from "../hooks/usePriceMonitoring";
-import { useGetItemPriceHook } from "../hooks/useGetItemPrice";
-import { ItemPriceDialog } from "../components/itemPriceDialog";
-import { itemPriceService } from "../itemPriceService";
+import { useGetItemsHook } from "../hooks/useGetItem";
+import { ItemDialog } from "../components/itemDialog";
 import { toast } from "sonner";
+import { itemService } from "../itemService";
 import { useAuthStore } from "@/store/auth/authStore";
 
-export default function PriceMonitoring() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const importMutation = usePriceMonitoringHook();
+export default function Items() {
   const {
     tableQuery,
     page,
@@ -44,31 +40,17 @@ export default function PriceMonitoring() {
     setPageSize,
     searchTerm,
     setSearchTerm,
-  } = useGetItemPriceHook();
+  } = useGetItemsHook();
 
   const items = tableQuery.data?.items ?? [];
   const totalPages = tableQuery.data?.totalPages ?? 1;
   const user = useAuthStore((state) => state.user);
-
   const canManagePrices =
     user?.role?.includes("admin") || user?.role?.includes("purchasing");
-  const canManageImport = user?.role?.includes("admin");
 
-  // 🧩 MODAL STATE
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingItemPrice, setEditingItemPrice] = useState<any | null>(null);
+  const [editingItem, setEditingItem] = useState<any | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      importMutation.mutate(file, {
-        onSuccess: () => tableQuery.refetch(),
-      });
-      e.target.value = "";
-    }
-  };
-
-  /** Helper: generate visible page numbers with ellipsis */
   const getVisiblePages = () => {
     const visible: (number | string)[] = [];
     if (totalPages <= 5) {
@@ -88,17 +70,17 @@ export default function PriceMonitoring() {
 
   const handleDelete = async (id: number) => {
     const confirmed = window.confirm(
-      "Are you sure you want to delete this item price?"
+      "Are you sure you want to delete this item?"
     );
 
     if (!confirmed) return;
 
     try {
-      await itemPriceService.delete(id);
-      toast.success("Item price deleted");
+      await itemService.delete(id);
+      toast.success("Item deleted");
       tableQuery.refetch();
     } catch (err: any) {
-      toast.error(err?.message ?? "Failed to delete item price");
+      toast.error(err?.message ?? "Failed to delete item");
     }
   };
 
@@ -106,15 +88,14 @@ export default function PriceMonitoring() {
     <div className="p-6">
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Item Prices</h1>
+        <h1 className="text-3xl font-bold">Items</h1>
 
         <div className="flex items-center gap-3">
-          {/* Search */}
           <div className="relative w-64">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search items or vendors..."
+              placeholder="Search items..."
               className="pl-8"
               value={searchTerm}
               onChange={(e) => {
@@ -123,37 +104,16 @@ export default function PriceMonitoring() {
               }}
             />
           </div>
-
           {canManagePrices && (
-            <>
-              <Button
-                onClick={() => {
-                  setEditingItemPrice(null);
-                  setModalOpen(true);
-                }}
-              >
-                Add Entry
-              </Button>
-              {canManageImport && (
-                <>
-                  <Button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={importMutation.isPending}
-                  >
-                    {importMutation.isPending ? "Importing..." : "Import Excel"}
-                  </Button>
-                </>
-              )}
-            </>
+            <Button
+              onClick={() => {
+                setEditingItem(null);
+                setModalOpen(true);
+              }}
+            >
+              Add Item
+            </Button>
           )}
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.xls"
-            hidden
-            onChange={handleFileChange}
-          />
         </div>
       </div>
 
@@ -162,9 +122,7 @@ export default function PriceMonitoring() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Item</TableHead>
-              <TableHead>Vendor</TableHead>
-              <TableHead>Unit Price</TableHead>
+              <TableHead>Item Name</TableHead>
               <TableHead>Created At</TableHead>
               <TableHead>Updated At</TableHead>
               {canManagePrices && <TableHead>Actions</TableHead>}
@@ -174,7 +132,7 @@ export default function PriceMonitoring() {
           <TableBody>
             {tableQuery.isLoading && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-6">
+                <TableCell colSpan={4} className="text-center py-6">
                   Loading...
                 </TableCell>
               </TableRow>
@@ -182,30 +140,25 @@ export default function PriceMonitoring() {
 
             {!tableQuery.isLoading && items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-6">
+                <TableCell colSpan={4} className="text-center py-6">
                   No data found
                 </TableCell>
               </TableRow>
             )}
 
-            {items.map((row: any) => (
-              <TableRow key={row.id}>
-                <TableCell className="font-medium">
-                  {row.item?.name ?? "-"}
-                </TableCell>
-                <TableCell>{row.vendor?.name ?? "-"}</TableCell>
-                <TableCell>{row.unit_price}</TableCell>
+            {items.map((item: any) => (
+              <TableRow key={item.id}>
+                <TableCell className="font-medium">{item.item_name}</TableCell>
                 <TableCell>
-                  {row.created_at
-                    ? new Date(row.created_at).toLocaleDateString()
+                  {item.created_at
+                    ? new Date(item.created_at).toLocaleDateString()
                     : "-"}
                 </TableCell>
                 <TableCell>
-                  {row.updated_at
-                    ? new Date(row.updated_at).toLocaleDateString()
+                  {item.updated_at
+                    ? new Date(item.updated_at).toLocaleDateString()
                     : "-"}
                 </TableCell>
-
                 {canManagePrices && (
                   <TableCell>
                     <div className="flex gap-2">
@@ -213,16 +166,7 @@ export default function PriceMonitoring() {
                         size="sm"
                         variant="outline"
                         onClick={() => {
-                          // Map the row data to match what ItemPriceDialog expects
-                          setEditingItemPrice({
-                            id: row.id,
-                            item_id: row.item_id, // These should exist in your API response
-                            vendor_id: row.vendor_id, // These should exist in your API response
-                            unit_price: row.unit_price,
-                            item: row.item,
-                            vendor: row.vendor,
-                          });
-                          console.log("Editing row:", row); // Debug: Check what's in row
+                          setEditingItem(item);
                           setModalOpen(true);
                         }}
                       >
@@ -232,7 +176,7 @@ export default function PriceMonitoring() {
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => handleDelete(row.id)}
+                        onClick={() => handleDelete(item.id)}
                       >
                         Delete
                       </Button>
@@ -292,39 +236,33 @@ export default function PriceMonitoring() {
               </PaginationContent>
             </Pagination>
 
-            {/* Page size */}
-            <div className="flex items-center gap-2 w-[200px]">
-              <span className="text-sm text-muted-foreground w-full">
-                Rows per page:
-              </span>
-              <Select
-                value={pageSize.toString()}
-                onValueChange={(value) => {
-                  setPageSize(Number(value));
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Rows" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[5, 10, 20, 50, 100].map((size) => (
-                    <SelectItem key={size} value={size.toString()}>
-                      {size}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => {
+                setPageSize(Number(value));
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[5, 10, 20, 50, 100].map((size) => (
+                  <SelectItem key={size} value={size.toString()}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
 
-      {/* 🧩 MODAL */}
-      <ItemPriceDialog
+      {/* MODAL */}
+      <ItemDialog
         open={modalOpen}
         onOpenChange={setModalOpen}
-        itemPrice={editingItemPrice}
+        item={editingItem}
         onSuccess={() => tableQuery.refetch()}
       />
     </div>
