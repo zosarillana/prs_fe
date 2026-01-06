@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -67,6 +67,8 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
+import { StatusFilterDropdown } from "../filters/statusFilterDropdown";
+import { TagFilterDropdown } from "../filters/tagFilterDropdown";
 export default function PurchaseReport() {
   const [searchParams] = useSearchParams();
   const ownCreated = searchParams.get("ownCreated") === "true";
@@ -121,6 +123,8 @@ export default function PurchaseReport() {
     returnPoMutation,
     handleCopyToNew,
     handleViewDraft,
+    tagDescription,
+    setTagDescription,
     fromDate,
     toDate,
     setFromDate,
@@ -207,157 +211,20 @@ export default function PurchaseReport() {
         <div className="flex flex-col gap-4">
           <div className="flex flex-row gap-2 items-center">
             {/* ✅ Status Filter Dropdown */}
-            <Select
-              value={
-                statusTerm === "For_approval"
-                  ? "for_approval_ceo"
-                  : prStatusTerm || statusTerm || "all"
-              }
-              onValueChange={(value) => {
-                if (value === "all") {
-                  setStatusTerm("");
-                  setPrStatusTerm("");
-                } else if (value === "on_hold") {
-                  setPrStatusTerm("on_hold");
-                  setStatusTerm("");
-                } else if (value === "on_hold_tr") {
-                  setPrStatusTerm("on_hold_tr");
-                  setStatusTerm("");
-                } else if (value === "for_approval") {
-                  setPrStatusTerm("for_approval");
-                  setStatusTerm("");
-                } else if (value === "closed") {
-                  setPrStatusTerm("closed");
-                  setStatusTerm("");
-                } else if (value === "for_approval_ceo") {
-                  setStatusTerm("For_approval");
-                  setPrStatusTerm("");
-                } else if (value === "Cancelled") {
-                  setPrStatusTerm("Cancelled");
-                  setStatusTerm("");
-                } else if (value === "Rejected") {
-                  setPrStatusTerm("Rejected");
-                  setStatusTerm("");
-                } else if (value === "Rejected") {
-                  setPrStatusTerm("Rejected");
-                  setStatusTerm("");
-                } else if (value === "returned") {
-                  setPrStatusTerm("returned");
-                  setStatusTerm("");
-                } else {
-                  setStatusTerm(value);
-                  setPrStatusTerm("");
-                }
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by Status" />
-              </SelectTrigger>
-              <SelectContent>
-                {(() => {
-                  // ✅ user must have BOTH roles to see all options
-                  const canSeeAllStatuses =
-                    user?.role?.includes("hod") &&
-                    user?.role?.includes("purchasing");
+            <StatusFilterDropdown
+              statusTerm={statusTerm}
+              prStatusTerm={prStatusTerm}
+              setStatusTerm={setStatusTerm}
+              setPrStatusTerm={setPrStatusTerm}
+              setPage={setPage}
+              user={user}
+            />
 
-                  if (canSeeAllStatuses) {
-                    return (
-                      <>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="on_hold_tr">
-                          For TR Approval
-                        </SelectItem>
-                        <SelectItem value="on_hold">
-                          For HOD Approval
-                        </SelectItem>
-                        <SelectItem value="for_approval">
-                          For Purchase Order Creation
-                        </SelectItem>
-                        <SelectItem value="for_approval_ceo">
-                          For Approval
-                        </SelectItem>
-                        <SelectItem value="approved">Approved POs</SelectItem>
-                        <SelectItem value="Cancelled">Cancelled</SelectItem>
-                        <SelectItem value="Rejected">Rejected</SelectItem>
-                        <SelectItem value="returned">Returned</SelectItem>
-                        <SelectItem value="closed">Closed</SelectItem>
-                      </>
-                    );
-                  } else if (user?.role?.includes("hod")) {
-                    return (
-                      <>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="on_hold_tr">
-                          For TR Approval
-                        </SelectItem>
-                        <SelectItem value="on_hold">
-                          For HOD Approval
-                        </SelectItem>
-                        <SelectItem value="for_approval">
-                          For Purchase Order Creation
-                        </SelectItem>
-                        <SelectItem value="Rejected">Rejected</SelectItem>
-                        <SelectItem value="returned">Returned</SelectItem>
-                      </>
-                    );
-                  } else if (user?.role?.includes("tr")) {
-                    return (
-                      <>
-                        <SelectItem value="on_hold_tr">
-                          For TR Approval
-                        </SelectItem>
-                        <SelectItem value="for_approval">
-                          For Purchase Order Creation
-                        </SelectItem>
-                        <SelectItem value="Rejected">Rejected</SelectItem>
-                        <SelectItem value="returned">Returned</SelectItem>
-                      </>
-                    );
-                  } else if (user?.role?.includes("purchasing")) {
-                    return (
-                      <>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="for_approval">
-                          For Purchase Order Creation
-                        </SelectItem>
-                        <SelectItem value="for_approval_ceo">
-                          For Approval
-                        </SelectItem>
-                        <SelectItem value="Cancelled">Cancelled</SelectItem>
-                        <SelectItem value="Rejected">Rejected</SelectItem>
-                        <SelectItem value="returned">Returned</SelectItem>
-                        <SelectItem value="closed">Closed</SelectItem>
-                      </>
-                    );
-                  } else {
-                    // Default for other roles
-                    return (
-                      <>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="on_hold">
-                          For HOD Approval
-                        </SelectItem>
-                        <SelectItem value="on_hold_tr">
-                          For TR Approval
-                        </SelectItem>
-                        <SelectItem value="for_approval">
-                          For Purchase Order Creation
-                        </SelectItem>
-                        <SelectItem value="for_approval_ceo">
-                          For Approval
-                        </SelectItem>
-                        <SelectItem value="approved">Approved POs</SelectItem>
-                        <SelectItem value="Cancelled">Cancelled</SelectItem>
-                        <SelectItem value="Rejected">Rejected</SelectItem>
-                        <SelectItem value="returned">Returned</SelectItem>
-                        <SelectItem value="closed">Closed</SelectItem>
-                      </>
-                    );
-                  }
-                })()}
-              </SelectContent>
-            </Select>
+            <TagFilterDropdown
+              tagDescription={tagDescription}
+              setTagDescription={setTagDescription}
+              setPage={setPage}
+            />
 
             {/* Search Box */}
             <div className="relative w-64">
@@ -703,6 +570,7 @@ export default function PurchaseReport() {
                                         },
                                       });
                                     }}
+                                    className="text-red-500 hover:text-red-600 focus:text-red-600"
                                   >
                                     <X />
                                     <span>Cancel PR</span>

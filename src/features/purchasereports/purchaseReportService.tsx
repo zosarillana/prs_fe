@@ -10,6 +10,7 @@ export const purchaseReportService = {
     fromDate?: string;
     toDate?: string;
     sortBy?: string;
+    tagDescription?: string;
     sortOrder?: "asc" | "desc";
     pageNumber?: number;
     pageSize?: number;
@@ -28,6 +29,7 @@ export const purchaseReportService = {
     fromDate?: string;
     toDate?: string;
     sortBy?: string;
+    tagDescription?: string;
     sortOrder?: "asc" | "desc";
     pageNumber?: number;
     pageSize?: number;
@@ -159,5 +161,14 @@ export const purchaseReportService = {
   getNextSeriesNo: async (): Promise<number> => {
     const res = await api.get("api/purchase-reports/next-series");
     return res.data.next_series_no;
+  },
+
+  // ✅ Remove a single item row
+  removeRow: async (id: number, rowIndex: number): Promise<PurchaseReport> => {
+    const res = await api.delete(`api/purchase-reports/${id}/row`, {
+      params: { row_index: rowIndex },
+    });
+
+    return res.data;
   },
 };

@@ -27,6 +27,7 @@ export function usePurchaseReports() {
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusTerm, setStatusTerm] = useState(""); // ✅ NEW STATE
+  const [tagDescription, setTagDescription] = useState(""); // ✅ NEW STATE
   const [prStatusTerm, setPrStatusTerm] = useState(""); // ✅ NEW: for pr_status
   const [completedTr, setCompletedTr] = useState(false);
   const [ownDepartment, setOwnDepartment] = useState(false);
@@ -55,6 +56,7 @@ export function usePurchaseReports() {
       debouncedPrStatusTerm,
       completedTr,
       ownDepartment,
+      tagDescription,
       fromDate ? format(fromDate, "yyyy-MM-dd") : undefined,
       toDate ? format(toDate, "yyyy-MM-dd") : undefined,
     ],
@@ -67,6 +69,7 @@ export function usePurchaseReports() {
         prStatusTerm: debouncedPrStatusTerm,
         completedTr,
         ownDepartment,
+        tagDescription,
         fromDate: fromDate ? format(fromDate, "yyyy-MM-dd") : undefined,
         toDate: toDate ? format(toDate, "yyyy-MM-dd") : undefined,
       };
@@ -245,6 +248,7 @@ export function usePurchaseReports() {
     setSearchTerm("");
     setStatusTerm("");
     setPrStatusTerm("");
+    setTagDescription("");
     setCompletedTr(false);
     setOwnDepartment(false);
     setFromDate(null);
@@ -267,6 +271,8 @@ export function usePurchaseReports() {
     setStatusTerm, // ✅ expose setter for dropdown
     prStatusTerm, // ✅ expose pr_status state
     setPrStatusTerm, // ✅ expose pr_status setter
+    tagDescription,
+    setTagDescription,
     setCompletedTr,
     ownDepartment,
     setOwnDepartment,
@@ -299,6 +305,6 @@ export function usePurchaseReports() {
     setToDate,
     handleCopyToNew,
     handleViewDraft,
-    handleClearFilters
+    handleClearFilters,
   };
 }

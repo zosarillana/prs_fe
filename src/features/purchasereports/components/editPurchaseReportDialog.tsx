@@ -37,7 +37,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { Edit, MoreVertical } from "lucide-react";
+import { Edit, MoreVertical, Trash2Icon } from "lucide-react";
 import { TableSkeletonPrInput } from "@/components/ui/skeletons/purchasereports/tableSkeletonPrInput";
 import { useEditPurchaseReport } from "../hooks/useEditPurcasheReport";
 import type { PurchaseReport, PurchaseReportInput } from "../types";
@@ -80,7 +80,7 @@ export function EditPurchaseReportDialog({
   ) => {
     if (!items) return;
     const updated = { ...items };
-    
+
     if (field === "tag") {
       // Find the tag object from the tags list
       const tagObj = tags.find((t) => String(t.id) === value);
@@ -90,7 +90,7 @@ export function EditPurchaseReportDialog({
     } else {
       (updated as any)[field][index] = value;
     }
-    
+
     setItems(updated);
   };
 
@@ -99,9 +99,10 @@ export function EditPurchaseReportDialog({
 
     // Get the tag description to check if it ends with "_tr"
     const currentTag = items.tag?.[idx];
-    const tagDescription = typeof currentTag === 'object' 
-      ? currentTag.description 
-      : String(currentTag ?? '');
+    const tagDescription =
+      typeof currentTag === "object"
+        ? currentTag.description
+        : String(currentTag ?? "");
 
     const newStatus = items.item_status.map((status, i) => {
       if (i === idx) {
@@ -111,8 +112,8 @@ export function EditPurchaseReportDialog({
     });
 
     // Convert tag objects to tag IDs (strings) for the API
-    const tagIds = items.tag.map((t) => 
-      typeof t === 'object' ? String(t.id) : String(t)
+    const tagIds = items.tag.map((t) =>
+      typeof t === "object" ? String(t.id) : String(t)
     );
 
     const payload: PurchaseReportInput = {
@@ -135,6 +136,27 @@ export function EditPurchaseReportDialog({
       setItems({ ...items, item_status: newStatus });
     } catch (err) {
       console.error("Approve edit failed:", err);
+    }
+  };
+
+  const handleRemoveRow = async (idx: number) => {
+    if (!items || !prId) return;
+
+    try {
+      const updatedReport = await purchaseReportService.removeRow(prId, idx);
+
+      // 🔄 Sync UI with backend response
+      setItems({
+        ...updatedReport,
+        quantity: [...(updatedReport.quantity ?? [])],
+        unit: [...(updatedReport.unit ?? [])],
+        item_description: [...(updatedReport.item_description ?? [])],
+        tag: [...(updatedReport.tag ?? [])],
+        remarks: [...(updatedReport.remarks ?? [])],
+        item_status: [...(updatedReport.item_status ?? [])],
+      });
+    } catch (err) {
+      console.error("Remove row failed:", err);
     }
   };
 
@@ -194,12 +216,14 @@ export function EditPurchaseReportDialog({
 
                     // Get current tag value
                     const currentTag = items.tag?.[idx];
-                    const tagId = typeof currentTag === 'object' 
-                      ? String(currentTag.id) 
-                      : String(currentTag);
-                    const tagDisplay = typeof currentTag === 'object' 
-                      ? currentTag.description 
-                      : currentTag;
+                    const tagId =
+                      typeof currentTag === "object"
+                        ? String(currentTag.id)
+                        : String(currentTag);
+                    const tagDisplay =
+                      typeof currentTag === "object"
+                        ? currentTag.description
+                        : currentTag;
 
                     return (
                       <TableRow key={idx}>
@@ -349,6 +373,22 @@ export function EditPurchaseReportDialog({
                                   to pending status.
                                 </HoverCardContent>
                               </HoverCard>
+                              <DropdownMenuItem
+                                disabled={!isRejected} // ✅ disable if not rejected
+                                onSelect={(e) => {
+                                  e.preventDefault();
+                                  if (!isRejected) return; // safety check
+                                  handleRemoveRow(idx);
+                                }}
+                                className={`text-red-600 focus:text-red-600 ${
+                                  !isRejected
+                                    ? "opacity-50 cursor-not-allowed"
+                                    : ""
+                                }`} // visually indicate disabled
+                              >
+                                <Trash2Icon className="mr-2 h-4 w-4" /> Remove
+                                Row
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

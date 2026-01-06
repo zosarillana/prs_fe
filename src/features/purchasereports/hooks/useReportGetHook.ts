@@ -81,6 +81,7 @@ export function useReportGetHook() {
     setPage(1); // Reset to first page when clearing filters
   };
 
+  
   return {
     data,
     loading: isLoading,

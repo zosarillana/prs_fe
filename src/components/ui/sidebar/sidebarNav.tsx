@@ -168,32 +168,41 @@ export default function SidebarNav({ can }: SidebarNavProps) {
               >
                 Prices
               </NavLink>
+              {can(13) && (
+                <>
+                  {" "}
+                  <NavLink
+                    to="/items"
+                    className={({ isActive }) =>
+                      `block rounded-md px-3 py-2 text-sm transition-colors ${
+                        isActive
+                          ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                      }`
+                    }
+                  >
+                    Items
+                  </NavLink>
+                </>
+              )}
 
-              <NavLink
-                to="/items"
-                className={({ isActive }) =>
-                  `block rounded-md px-3 py-2 text-sm transition-colors ${
-                    isActive
-                      ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium"
-                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                  }`
-                }
-              >
-                Items
-              </NavLink>
-
-              <NavLink
-                to="/vendors"
-                className={({ isActive }) =>
-                  `block rounded-md px-3 py-2 text-sm transition-colors ${
-                    isActive
-                      ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium"
-                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                  }`
-                }
-              >
-                Vendors
-              </NavLink>
+              {can(14) && (
+                <>
+                  {" "}
+                  <NavLink
+                    to="/vendors"
+                    className={({ isActive }) =>
+                      `block rounded-md px-3 py-2 text-sm transition-colors ${
+                        isActive
+                          ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                      }`
+                    }
+                  >
+                    Vendors
+                  </NavLink>
+                </>
+              )}
             </CollapsibleContent>
           </Collapsible>
         </li>
