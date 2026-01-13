@@ -5,6 +5,7 @@ export interface UserPrivilegeFilters {
   user_id?: number | number[];
   tag_ids?: number[];
   module_ids?: number[];
+  role?: string; // 👈 ADD
   sort_by?: string;
   sort_order?: "asc" | "desc";
   limit?: number;
@@ -44,9 +45,15 @@ export const userPrivilegesService = {
       params.append("limit", String(filters.limit));
     }
 
+    if (filters?.role) {
+      params.append("role", filters.role);
+    }
+
     const queryString = params.toString();
-    const url = queryString ? `api/user-privileges?${queryString}` : "api/user-privileges";
-    
+    const url = queryString
+      ? `api/user-privileges?${queryString}`
+      : "api/user-privileges";
+
     const res = await api.get(url);
     return res.data;
   },

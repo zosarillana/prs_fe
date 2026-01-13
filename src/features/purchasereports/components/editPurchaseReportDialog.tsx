@@ -93,28 +93,32 @@ export function EditPurchaseReportDialog({
 
     setItems(updated);
   };
-
   const handleApproveEdit = async (idx: number) => {
     if (!items || !prId) return;
 
-    // Get the tag description to check if it ends with "_tr"
-    const currentTag = items.tag?.[idx];
+    const rawTag = items.tag?.[idx];
     const tagDescription =
-      typeof currentTag === "object"
-        ? currentTag.description
-        : String(currentTag ?? "");
+      typeof rawTag === "object" && rawTag !== null
+        ? rawTag.description ?? ""
+        : String(rawTag ?? "");
 
-    const newStatus = items.item_status.map((status, i) => {
-      if (i === idx) {
-        return tagDescription?.endsWith("_tr") ? "pending_tr" : "pending";
-      }
-      return status;
-    });
+    const targetStatus = tagDescription.endsWith("_tr") ? "pending" : "pending";
 
-    // Convert tag objects to tag IDs (strings) for the API
+    // ✅ Clone and update ONLY the selected index
+    const newStatus = [...(items.item_status || [])]; // ✅ Add fallback
+    newStatus[idx] = targetStatus;
+
+    // Convert tag objects to tag IDs (strings)
     const tagIds = items.tag.map((t) =>
       typeof t === "object" ? String(t.id) : String(t)
     );
+
+    console.log("📤 SENDING PAYLOAD:", {
+      idx,
+      newStatus,
+      hasItemStatus: "item_status" in items,
+      itemStatusValue: items.item_status,
+    });
 
     const payload: PurchaseReportInput = {
       user_id: items.user.id,
@@ -126,19 +130,31 @@ export function EditPurchaseReportDialog({
       quantity: items.quantity,
       unit: items.unit,
       item_description: items.item_description,
-      tag: tagIds, // Send as string array of IDs
-      item_status: newStatus,
-      remarks: items.remarks,
+      tag: tagIds,
+      item_status: newStatus, // ✅ Make sure this is always included
+      remarks: items.remarks || [], // ✅ Add fallback
     };
 
+    console.log("📤 FINAL PAYLOAD:", payload);
+
     try {
-      await purchaseReportService.update(prId, payload);
-      setItems({ ...items, item_status: newStatus });
+      const response = await purchaseReportService.update(prId, payload);
+      console.log("✅ RESPONSE:", response);
+
+      setItems({
+        ...response,
+        quantity: [...(response.quantity ?? [])],
+        unit: [...(response.unit ?? [])],
+        item_description: [...(response.item_description ?? [])],
+        tag: [...(response.tag ?? [])],
+        remarks: [...(response.remarks ?? [])],
+        item_status: [...(response.item_status ?? [])],
+      });
     } catch (err) {
       console.error("Approve edit failed:", err);
     }
   };
-
+  
   const handleRemoveRow = async (idx: number) => {
     if (!items || !prId) return;
 
@@ -211,6 +227,7 @@ export function EditPurchaseReportDialog({
                 <TableBody>
                   {items.item_description?.map((_, idx) => {
                     const status = items.item_status?.[idx] ?? "pending";
+                    const isReturned = status === "return";
                     const isRejected =
                       status === "rejected" || status === "rejected_tr";
 
@@ -230,7 +247,7 @@ export function EditPurchaseReportDialog({
                         <TableCell>{idx + 1}</TableCell>
 
                         <TableCell>
-                          {isRejected ? (
+                          {isReturned ? (
                             <Input
                               type="number"
                               min={1}
@@ -246,7 +263,7 @@ export function EditPurchaseReportDialog({
                         </TableCell>
 
                         <TableCell>
-                          {isRejected ? (
+                          {isReturned ? (
                             <Select
                               value={items.unit?.[idx] ?? ""}
                               onValueChange={(val) =>
@@ -273,7 +290,7 @@ export function EditPurchaseReportDialog({
                         </TableCell>
 
                         <TableCell>
-                          {isRejected ? (
+                          {isReturned ? (
                             <Input
                               placeholder="Enter description"
                               value={items.item_description?.[idx] ?? ""}
@@ -291,7 +308,7 @@ export function EditPurchaseReportDialog({
                         </TableCell>
 
                         <TableCell>
-                          {isRejected ? (
+                          {isReturned ? (
                             <Select
                               value={tagId}
                               onValueChange={(val) =>
@@ -348,14 +365,14 @@ export function EditPurchaseReportDialog({
                               <HoverCard openDelay={200} closeDelay={100}>
                                 <HoverCardTrigger asChild>
                                   <DropdownMenuItem
-                                    disabled={!isRejected}
+                                    disabled={!isReturned}
                                     onSelect={(e) => {
                                       e.preventDefault();
-                                      if (!isRejected) return;
+                                      if (!isReturned) return;
                                       handleApproveEdit(idx);
                                     }}
                                     className={
-                                      !isRejected
+                                      !isReturned
                                         ? "opacity-50 cursor-not-allowed"
                                         : ""
                                     }

@@ -16,7 +16,7 @@ export function useViewPurchaseReport(
   const [loading, setLoading] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [actionType, setActionType] = useState<
-    "approve" | "reject" | "approve_to_review"
+    "approve" | "reject" | "approve_to_review" | "return"
   >("approve");
   const [currentItemIndex, setCurrentItemIndex] = useState<number>(0);
   // const user = useAuthStore((state) => state.user);
@@ -783,7 +783,10 @@ export function useViewPurchaseReport(
   };
 
   // --- existing action handlers ---
-  const handleItemAction = (index: number, action: "approve" | "reject") => {
+  const handleItemAction = (
+    index: number,
+    action: "approve" | "reject" | "return"
+  ) => {
     setCurrentItemIndex(index);
     setActionType(action);
     setOpenModal(true);
@@ -818,24 +821,12 @@ export function useViewPurchaseReport(
         : newRemark;
 
     /**
-     * ✅ Determine effective role logic:
-     * - If user has BOTH roles → choose based on current status
-     * - If Admin → act as TECHNICAL_REVIEWER if tag ends with "_tr", else as HOD
-     * - Otherwise follow normal role detection
+     * ✅ Determine effective role logic
      */
-    const effectiveRole = hasBothRoles
-      ? currentStatus === "pending_tr" || currentStatus === "pending_pr"
-        ? "technical_reviewer"
-        : "both"
-      : isAdmin
-      ? tagDescription.endsWith("_tr")
-        ? "technical_reviewer"
-        : "hod"
-      : isHod
-      ? "hod"
-      : isTechnicalReviewer
-      ? "technical_reviewer"
-      : undefined;
+    const isTrItem = tagDescription.endsWith("_tr");
+
+    let effectiveRole: "hod" | "technical_reviewer";
+    effectiveRole = isTrItem ? "technical_reviewer" : "hod";
 
     // ✅ Handle "approve_to_review" separately
     if (actionType === "approve_to_review") {
@@ -865,10 +856,23 @@ export function useViewPurchaseReport(
       return;
     }
 
-    // ✅ Support "returned" items as well
-    const newStatus = actionType === "approve" ? "approved" : "rejected";
+    // ✅ MAP actionType → backend status (THIS WAS MISSING)
+    let newStatus: "approved" | "rejected" | "return";
 
-    // ✅ Normal approve/reject flow
+    switch (actionType) {
+      case "approve":
+        newStatus = "approved";
+        break;
+      case "return":
+        newStatus = "return"; // 🆕 new process
+        break;
+      case "reject":
+      default:
+        newStatus = "rejected";
+        break;
+    }
+
+    // ✅ Normal approve / reject / return flow
     toast.promise(
       purchaseReportService.updateItemStatus(
         report.id,
@@ -885,8 +889,13 @@ export function useViewPurchaseReport(
           setOpenModal(false);
           await fetchReport();
           onSuccess?.();
+
           return `Item ${currentItemIndex + 1} ${
-            actionType === "approve" ? "approved" : "rejected"
+            actionType === "approve"
+              ? "approved"
+              : actionType === "return"
+              ? "returned"
+              : "rejected"
           } successfully`;
         },
         error: "Failed to update item status. Please try again.",

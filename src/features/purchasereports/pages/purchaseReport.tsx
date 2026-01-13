@@ -69,6 +69,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { StatusFilterDropdown } from "../filters/statusFilterDropdown";
 import { TagFilterDropdown } from "../filters/tagFilterDropdown";
+import { PurchasingUserDropdown } from "../filters/purchasingFilterDropdown";
 export default function PurchaseReport() {
   const [searchParams] = useSearchParams();
   const ownCreated = searchParams.get("ownCreated") === "true";
@@ -125,6 +126,8 @@ export default function PurchaseReport() {
     handleViewDraft,
     tagDescription,
     setTagDescription,
+    purchaserName,
+    setPurchaserName,
     fromDate,
     toDate,
     setFromDate,
@@ -226,6 +229,12 @@ export default function PurchaseReport() {
               setPage={setPage}
             />
 
+            <PurchasingUserDropdown
+              purchaserName={purchaserName}
+              setPurchaserName={setPurchaserName}
+              setPage={setPage}
+            />
+
             {/* Search Box */}
             <div className="relative w-64">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -263,13 +272,16 @@ export default function PurchaseReport() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[140px] border-b">PR Number</TableHead>
-              <TableHead className="w-[140px] border-b">PR Created</TableHead>
+              <TableHead className="w-[140px] border-b text-gray-500">
+                PR Number
+              </TableHead>
+              <TableHead className="border-b">SAP ID</TableHead>
               <TableHead className="border-b">Purpose</TableHead>
               <TableHead className="border-b">Department</TableHead>
               <TableHead className="border-b">Submitted By</TableHead>
               <TableHead className="border-b">Status</TableHead>
               <TableHead className="border-b">PO Status</TableHead>
+              <TableHead className="border-b">PR Created</TableHead>
               <TableHead className="border-b">Date Needed</TableHead>
               {(user?.role?.includes("user") ||
                 user?.role?.includes("admin") ||
@@ -286,7 +298,7 @@ export default function PurchaseReport() {
                   # of Days On Hold for PO
                 </TableHead>
               )}
-
+              <TableHead className="border-b">Purchasing Associate</TableHead>
               <TableHead className="w-[100px] border-b">Action</TableHead>
             </TableRow>
           </TableHeader>
@@ -330,14 +342,14 @@ export default function PurchaseReport() {
                 <TableRow key={item.id} onClick={() => handleView(item.id)}>
                   <TableCell
                     className="flex gap-2 font-semi
-                  bold"
+                  bold text-gray-500"
                   >
-                    <HashIcon className="h-4 w-5 my-1" />
+                    <HashIcon className="h-4 w-5 my-1 " />
                     <p className="my-1">{item.series_no}</p>
                   </TableCell>
-                  <TableCell className="font-medium">
-                    {item.pr_created}
-                  </TableCell>
+
+                  <TableCell className="font-medium">null</TableCell>
+
                   <TableCell className="capitalize">
                     {item.pr_purpose
                       .toLowerCase()
@@ -363,6 +375,7 @@ export default function PurchaseReport() {
                       ? "For TR Approval"
                       : statusMap[item.pr_status] || item.pr_status}
                   </TableCell>
+
                   <TableCell className="capitalize">
                     {item.po_status === "For_approval"
                       ? "For Approval"
@@ -370,6 +383,9 @@ export default function PurchaseReport() {
                         item.po_status === "cancelled"
                       ? "Cancelled"
                       : item.po_status ?? "n/a"}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {item.pr_created}
                   </TableCell>
                   <TableCell>{item.date_needed}</TableCell>
                   {(user?.role?.includes("user") ||
@@ -448,6 +464,10 @@ export default function PurchaseReport() {
                       })()}
                     </TableCell>
                   )}
+
+                  <TableCell className="capitalize">
+                    {item.purchaser_id?.name ?? "n/a"}
+                  </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -459,7 +479,6 @@ export default function PurchaseReport() {
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-
                       <DropdownMenuContent
                         align="start"
                         className="w-34 animate-in fade-in-0 zoom-in-95"

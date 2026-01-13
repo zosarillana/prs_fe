@@ -34,6 +34,7 @@ import {
   ArrowDownRight,
   HashIcon,
   File,
+  ArrowLeftFromLine,
 } from "lucide-react";
 import { RemarkPrDialog } from "./remarkPrDialog";
 import { useViewPurchaseReport } from "../hooks/useViewPurchaseReport";
@@ -249,7 +250,14 @@ export function ViewPurchaseReportDialog({
                     </TableHeader>
                     <TableBody>
                       {report.item_description?.map((desc, idx) => (
-                        <TableRow key={idx}>
+                        <TableRow
+                          key={idx}
+                          className={
+                            report.item_status?.[idx] === "rejected"
+                              ? "line-through opacity-60"
+                              : ""
+                          }
+                        >
                           {!isExporting && (
                             <TableCell>
                               <Checkbox
@@ -400,16 +408,12 @@ export function ViewPurchaseReportDialog({
                                     className="w-34 animate-in fade-in-0 zoom-in-95"
                                     onCloseAutoFocus={(e) => e.preventDefault()}
                                   >
-                                    {/* Disable all buttons if item is not actionable */}
-                                    {user?.role?.includes(
-                                      "technical_reviewer"
-                                    ) &&
-                                    !user?.role?.includes("hod") &&
-                                    !user?.role?.includes("admin") &&
-                                    report.item_status?.[idx] === "pending" ? (
+                                    {/* 🔒 GLOBAL HARD STOPS — FIRST */}
+                                    {report.item_status?.[idx] ===
+                                    "rejected" ? (
                                       <DropdownMenuItem disabled>
                                         <span className="text-gray-400">
-                                          Pending PR – Actions Disabled
+                                          Rejected – Actions Disabled
                                         </span>
                                       </DropdownMenuItem>
                                     ) : report.item_status?.[idx] ===
@@ -443,15 +447,40 @@ export function ViewPurchaseReportDialog({
                                           <HoverCardTrigger asChild>
                                             <DropdownMenuItem
                                               disabled={
-                                                // Admin can always approve
                                                 isAdmin
                                                   ? false
-                                                  : // If user has both roles, treat them as Technical Reviewer
-                                                  isHod && isTechnicalReviewer
+                                                  : // ❌ HOD + TR but wrong department (except office_items)
+                                                  user?.role?.includes("hod") &&
+                                                    user?.role?.includes(
+                                                      "technical_reviewer"
+                                                    ) &&
+                                                    !user?.role?.includes(
+                                                      "admin"
+                                                    ) &&
+                                                    !(
+                                                      report.tag?.[idx]
+                                                        ?.department ===
+                                                        "office_items" ||
+                                                      (
+                                                        user?.department ?? []
+                                                      ).some(
+                                                        (d) =>
+                                                          d ===
+                                                          report.tag?.[idx]
+                                                            ?.department
+                                                      )
+                                                    )
+                                                  ? true
+                                                  : // ✅ HOD + TR acts as TR ONLY for non-office_items
+                                                  isHod &&
+                                                    isTechnicalReviewer &&
+                                                    report.tag?.[idx]
+                                                      ?.department !==
+                                                      "office_items"
                                                   ? report.item_status?.[
                                                       idx
                                                     ] !== "pending_tr"
-                                                  : // HOD should not approve if the tag ends with _tr
+                                                  : // ❌ HOD cannot approve _tr items
                                                   isHod &&
                                                     report.tag?.[
                                                       idx
@@ -459,19 +488,17 @@ export function ViewPurchaseReportDialog({
                                                       "_tr"
                                                     )
                                                   ? true
-                                                  : // Technical Reviewer can approve if status is pending_tr
+                                                  : // ✅ Technical Reviewer approves pending_tr
                                                   isTechnicalReviewer &&
                                                     report.item_status?.[
                                                       idx
                                                     ] === "pending_tr"
                                                   ? false
-                                                  : // Otherwise, check normal conditions
-                                                    !(
+                                                  : !(
                                                       isTechnicalReviewer ||
                                                       isHod
                                                     ) ||
                                                     shouldDisableApproveForHod ||
-                                                    // Disable Approve if tag description ends with _tr and status is NOT pending_tr
                                                     (report.tag?.[
                                                       idx
                                                     ]?.description?.endsWith(
@@ -588,6 +615,17 @@ export function ViewPurchaseReportDialog({
                                             </DropdownMenuItem>
                                           )}
 
+                                        {/* ✅ Return */}
+                                        <DropdownMenuItem
+                                          onSelect={(e) => {
+                                            e.preventDefault();
+                                            handleItemAction(idx, "return");
+                                          }}
+                                        >
+                                          <ArrowLeftFromLine className="h-4 w-4" />
+                                          <span>Return</span>
+                                        </DropdownMenuItem>
+
                                         {/* ✅ Reject */}
                                         <DropdownMenuItem
                                           onSelect={(e) => {
@@ -595,7 +633,7 @@ export function ViewPurchaseReportDialog({
                                             handleItemAction(idx, "reject");
                                           }}
                                         >
-                                          <X className="mr-2 h-4 w-4" />
+                                          <X className="h-4 w-4" />
                                           <span>Reject</span>
                                         </DropdownMenuItem>
                                       </>

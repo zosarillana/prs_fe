@@ -26,9 +26,10 @@ import {
 } from "@/components/ui/select";
 import { HashIcon, Loader, Search } from "lucide-react";
 import { TableSkeleton } from "@/components/ui/skeletons/purchasereports/tableSkeleton";
-import { useReportGetHook } from "../hooks/useReportGetHook"; // ✅ NEW HOOK
+import { useReportGetHook } from "../hooks/useReportGetHook";
 import { useUpdateDeliveryStatus } from "../hooks/useUpdateDeliveryStatus";
 import { Progress } from "@/components/ui/progress";
+import { ViewPurchaseReportDialog } from "../components/viewPurchaseReportDialog";
 
 export default function PurchaseOrder() {
   const { updateDeliveryStatus, updating } = useUpdateDeliveryStatus();
@@ -46,6 +47,16 @@ export default function PurchaseOrder() {
     setStatusTerm,
     user,
   } = useReportGetHook();
+
+  // State for view dialog
+  const [open, setOpen] = React.useState(false);
+  const [viewId, setViewId] = React.useState<number | null>(null);
+
+  // Handler to open view dialog
+  const handleView = (id: number) => {
+    setViewId(id);
+    setOpen(true);
+  };
 
   // ✅ Set default statusTerm for this page (POs only)
   React.useEffect(() => {
@@ -78,7 +89,7 @@ export default function PurchaseOrder() {
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
-                setPage(1); // ✅ Add this line to reset to page 1 when searching
+                setPage(1);
               }}
             />
           </div>
@@ -118,7 +129,7 @@ export default function PurchaseOrder() {
             )}
             {/* Data rows */}
             {data?.items?.map((item) => (
-              <TableRow key={item.id}>
+              <TableRow key={item.id} onClick={() => handleView(item.id)}>
                 <TableCell className="font-medium capitalize">
                   <div className="flex flex-row gap-2">
                     <HashIcon className="h-4 w-5 my-1" />
@@ -222,7 +233,7 @@ export default function PurchaseOrder() {
                   })()}
                 </TableCell>
 
-                <TableCell className="capitalize">
+                <TableCell className="capitalize" onClick={(e) => e.stopPropagation()}>
                   <Select
                     disabled={
                       // Disable if user is NOT admin or purchasing
@@ -383,6 +394,16 @@ export default function PurchaseOrder() {
           </div>
         </div>
       </div>
+
+      {/* View Dialog */}
+      <ViewPurchaseReportDialog
+        open={open}
+        onOpenChange={setOpen}
+        prId={viewId}
+        onSuccess={() => {
+          // Optionally refetch data after dialog actions
+        }}
+      />
     </div>
   );
 }

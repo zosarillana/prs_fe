@@ -86,7 +86,7 @@ export const purchaseReportService = {
   updateItemStatus: async (
     id: number,
     index: number,
-    status: "approved" | "rejected" | "pending" | "pending_tr",
+    status: "approved" | "rejected" | "pending" | "pending_tr" | "return",
     remark?: string,
     asRole?: "technical_reviewer" | "hod" | "both",
     loggedUserId?: number // 👈 add this

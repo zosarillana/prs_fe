@@ -28,6 +28,7 @@ export function usePurchaseReports() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusTerm, setStatusTerm] = useState(""); // ✅ NEW STATE
   const [tagDescription, setTagDescription] = useState(""); // ✅ NEW STATE
+  const [purchaserName, setPurchaserName] = useState(""); // ✅ NEW STATE
   const [prStatusTerm, setPrStatusTerm] = useState(""); // ✅ NEW: for pr_status
   const [completedTr, setCompletedTr] = useState(false);
   const [ownDepartment, setOwnDepartment] = useState(false);
@@ -57,6 +58,7 @@ export function usePurchaseReports() {
       completedTr,
       ownDepartment,
       tagDescription,
+      purchaserName,
       fromDate ? format(fromDate, "yyyy-MM-dd") : undefined,
       toDate ? format(toDate, "yyyy-MM-dd") : undefined,
     ],
@@ -70,6 +72,7 @@ export function usePurchaseReports() {
         completedTr,
         ownDepartment,
         tagDescription,
+        purchaserName,
         fromDate: fromDate ? format(fromDate, "yyyy-MM-dd") : undefined,
         toDate: toDate ? format(toDate, "yyyy-MM-dd") : undefined,
       };
@@ -249,6 +252,7 @@ export function usePurchaseReports() {
     setStatusTerm("");
     setPrStatusTerm("");
     setTagDescription("");
+    setPurchaserName("");
     setCompletedTr(false);
     setOwnDepartment(false);
     setFromDate(null);
@@ -273,6 +277,8 @@ export function usePurchaseReports() {
     setPrStatusTerm, // ✅ expose pr_status setter
     tagDescription,
     setTagDescription,
+    purchaserName,
+    setPurchaserName,
     setCompletedTr,
     ownDepartment,
     setOwnDepartment,

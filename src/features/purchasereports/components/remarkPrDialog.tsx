@@ -14,7 +14,7 @@ interface RemarkPrDialogProps {
   open: boolean;
   onClose: () => void;
   onConfirm: (remark: string) => void;
-  action: "approve" | "reject" | "approve_to_review";
+  action: "approve" | "reject" | "approve_to_review" | "return";
 }
 
 export function RemarkPrDialog({
