@@ -29,7 +29,7 @@ import { TableSkeleton } from "@/components/ui/skeletons/purchasereports/tableSk
 import { useReportGetHook } from "../hooks/useReportGetHook";
 import { useUpdateDeliveryStatus } from "../hooks/useUpdateDeliveryStatus";
 import { Progress } from "@/components/ui/progress";
-import { ViewPurchaseReportDialog } from "../components/viewPurchaseReportDialog";
+import { ViewPurchaseReportDialog } from "../components/purchasereports/viewPurchaseReportDialog";
 
 export default function PurchaseOrder() {
   const { updateDeliveryStatus, updating } = useUpdateDeliveryStatus();

@@ -36,8 +36,8 @@ import {
   File,
   ArrowLeftFromLine,
 } from "lucide-react";
-import { RemarkPrDialog } from "./remarkPrDialog";
-import { useViewPurchaseReport } from "../hooks/useViewPurchaseReport";
+import { RemarkPrDialog } from "../remarkPrDialog";
+import { useViewPurchaseReport } from "../../hooks/useViewPurchaseReport";
 import { useRef } from "react";
 import {
   HoverCard,
