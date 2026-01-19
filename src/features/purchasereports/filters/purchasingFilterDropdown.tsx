@@ -85,11 +85,7 @@ export const PurchasingUserDropdown: React.FC<Props> = ({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          className="w-64 justify-between"
-        >
+        <Button variant="outline" role="combobox" className="w-full sm:w-auto">
           {purchaserName || "Select purchaser..."}
           <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
         </Button>

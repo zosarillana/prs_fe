@@ -39,8 +39,11 @@ export const TagFilterDropdown: React.FC<Props> = ({
 
   useEffect(() => {
     const fetchTags = async () => {
-      const data = await tagsService.getAll({ sort_by: "description", sort_order: "asc" });
-      const normalized = data.map(tag => ({
+      const data = await tagsService.getAll({
+        sort_by: "description",
+        sort_order: "asc",
+      });
+      const normalized = data.map((tag) => ({
         id: tag.id,
         description: tag.description ?? "",
       }));
@@ -49,7 +52,7 @@ export const TagFilterDropdown: React.FC<Props> = ({
     fetchTags();
   }, []);
 
-  const filteredTags = tags.filter(tag =>
+  const filteredTags = tags.filter((tag) =>
     tag.description!.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -62,11 +65,7 @@ export const TagFilterDropdown: React.FC<Props> = ({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          className="w-64 justify-between"
-        >
+        <Button variant="outline" role="combobox" className="w-full sm:w-auto">
           {tagDescription || "Select tag..."}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -81,16 +80,20 @@ export const TagFilterDropdown: React.FC<Props> = ({
           <CommandList>
             <CommandEmpty>No tag found.</CommandEmpty>
             <CommandGroup>
-              {filteredTags.map(tag => (
+              {filteredTags.map((tag) => (
                 <CommandItem
                   key={tag.id}
                   value={tag.description ?? ""}
-                  onSelect={() => handleSelect(String(tag.id), tag.description ?? "")}
+                  onSelect={() =>
+                    handleSelect(String(tag.id), tag.description ?? "")
+                  }
                 >
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      tagDescription === tag.description ? "opacity-100" : "opacity-0"
+                      tagDescription === tag.description
+                        ? "opacity-100"
+                        : "opacity-0"
                     )}
                   />
                   {tag.description ?? "No description"}

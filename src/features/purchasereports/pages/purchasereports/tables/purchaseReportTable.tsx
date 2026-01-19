@@ -139,11 +139,24 @@ export function PurchaseReportTable({
               <TableCell>{item.department}</TableCell>
               <TableCell>{item.user.name}</TableCell>
 
-              <TableCell>
-                {statusMap[item.pr_status] ?? item.pr_status}
+              <TableCell className="capitalize">
+                {item.pr_status === "on_hold"
+                  ? "For HOD Approval"
+                  : item.pr_status === "on_hold_return"
+                  ? "On Hold For Edit"
+                  : item.pr_status === "on_hold_tr"
+                  ? "For TR Approval"
+                  : statusMap[item.pr_status] || item.pr_status}
+              </TableCell>
+              <TableCell className="capitalize">
+                {item.po_status === "For_approval"
+                  ? "For Approval"
+                  : item.po_status === "Cancelled" ||
+                    item.po_status === "cancelled"
+                  ? "Cancelled"
+                  : item.po_status ?? "n/a"}
               </TableCell>
 
-              <TableCell>{item.po_status ?? "n/a"}</TableCell>
               <TableCell>{item.pr_created}</TableCell>
               <TableCell>{item.date_needed}</TableCell>
               {(user?.role?.includes("user") ||
@@ -215,35 +228,236 @@ export function PurchaseReportTable({
               )}
               <TableCell>{item.purchaser_id?.name ?? "n/a"}</TableCell>
 
-              <TableCell onClick={(e) => e.stopPropagation()}>
+              <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => handleView(item.id)}>
+                  <DropdownMenuContent
+                    align="start"
+                    className="w-34 animate-in fade-in-0 zoom-in-95"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Always show View button */}
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleView(item.id);
+                      }}
+                    >
                       <Eye className="mr-2 h-4 w-4" /> View
                     </DropdownMenuItem>
 
-                    {user?.role?.includes("admin") && (
+                    {/* Only show other options if user is NOT both hod and purchasing */}
+                    {!(
+                      user?.role?.includes("hod") &&
+                      user?.role?.includes("purchasing")
+                    ) && (
                       <>
-                        <DropdownMenuItem onClick={() => handleEdit(item.id)}>
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
+                        {user?.role?.includes("admin") && (
+                          <>
+                            {/* Edit */}
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(item.id);
+                              }}
+                            >
+                              <Edit className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                            {/* Drafted */}
+                            {item.pr_status == "drafted" && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewDraft(item.id);
+                                }}
+                              >
+                                <File className="mr-2 h-4 w-4" /> View Draft
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyToNew(item.id);
+                              }}
+                            >
+                              <Copy className="mr-2 h-4 w-4" /> Copy To New
+                            </DropdownMenuItem>
+                          </>
+                        )}
 
-                        <DropdownMenuItem
-                          onClick={() => handleCopyToNew(item.id)}
-                        >
-                          <Copy className="mr-2 h-4 w-4" /> Copy
-                        </DropdownMenuItem>
+                        {user?.role?.includes("user") &&
+                          !user?.role?.includes("admin") && (
+                            <>
+                              {/* Drafted */}
+                              {item.pr_status === "drafted" && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewDraft(item.id);
+                                  }}
+                                >
+                                  <File className="mr-2 h-4 w-4" /> View Draft
+                                </DropdownMenuItem>
+                              )}
 
-                        <DropdownMenuItem onClick={() => handleDelete(item)}>
-                          <Trash className="mr-2 h-4 w-4 text-red-500" />
-                          <span className="text-red-500">Delete</span>
-                        </DropdownMenuItem>
+                              {/* Edit */}
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEdit(item.id);
+                                }}
+                              >
+                                <Edit className="mr-2 h-4 w-4" /> Edit
+                              </DropdownMenuItem>
+
+                              {/* Copy To New */}
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCopyToNew(item.id);
+                                }}
+                              >
+                                <Copy className="mr-2 h-4 w-4" /> Copy To New
+                              </DropdownMenuItem>
+
+                              {/* Cancel PR Maker*/}
+                              <DropdownMenuItem
+                                disabled={
+                                  item.pr_status === "for_approval" ||
+                                  item.pr_status === "Closed"
+                                }
+                                onClick={(e) => {
+                                  if (item.pr_status === "for_approval") return;
+                                  e.stopPropagation();
+                                  toast("Cancel PR?", {
+                                    description: `Are you sure you want to cancel PR for #${item.series_no}?`,
+                                    action: {
+                                      label: "Confirm",
+                                      onClick: () => cancelPoMutation(item.id),
+                                    },
+                                  });
+                                }}
+                                className="text-red-500 hover:text-red-600 focus:text-red-600"
+                              >
+                                <X />
+                                <span>Cancel PR</span>
+                              </DropdownMenuItem>
+                            </>
+                          )}
+
+                        {(user?.role?.includes("purchasing") ||
+                          user?.role?.includes("admin")) && (
+                          <>
+                            {/* Set PO Number (only if PR is for approval) */}
+                            {item.pr_status === "for_approval" && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSetPo(item.id);
+                                }}
+                              >
+                                <FileDigit className="mr-2 h-4 w-4" /> Set PO
+                                Number
+                              </DropdownMenuItem>
+                            )}
+                            {item.pr_status === "for_approval" && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toast("Return PR?", {
+                                    description: `Are you sure you want to return PR for #${item.series_no}?`,
+                                    action: {
+                                      label: "Confirm",
+                                      onClick: () => returnPoMutation(item.id),
+                                    },
+                                  });
+                                }}
+                              >
+                                <ArrowLeftCircle className="mr-2 h-4 w-4 text-amber-500" />{" "}
+                                <span className="text-amber-500">
+                                  Return PR
+                                </span>
+                              </DropdownMenuItem>
+                            )}
+                            {/* Date Approve + Return PR (only if PO is for approval) */}
+                            {item.po_status === "For_approval" && (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setApproveTargetId(item.id);
+                                    setApproveDialogOpen(true);
+                                  }}
+                                >
+                                  <CheckCircle className="mr-2 h-4 w-4" /> Date
+                                  Approve
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {/* Cancel PO ADMIN */}
+                            {(item.pr_status === "Closed" ||
+                              item.po_status === "for_approval") && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toast("Cancel PO?", {
+                                    description: `Are you sure you want to cancel the PO for #${item.series_no}?`,
+                                    action: {
+                                      label: "Confirm",
+                                      onClick: () => cancelPoMutation(item.id),
+                                    },
+                                  });
+                                }}
+                              >
+                                <X className="mr-2 h-4 w-4 text-red-500" />{" "}
+                                <span className="text-red-500">Cancel PO</span>
+                              </DropdownMenuItem>
+                            )}
+                          </>
+                        )}
+                        {/* Delete */}
+
+                        {user?.role?.includes("admin") && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(item);
+                              }}
+                            >
+                              <Trash className="mr-2 h-4 w-4 text-red-500" />
+                              <span className="text-red-500">Delete</span>
+                            </DropdownMenuItem>
+                            {/* Cancel PR ADMIN */}
+                            {(item.pr_status === "for_approval" ||
+                              item.pr_status === "on_hold" ||
+                              item.pr_status === "on_hold_tr") && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toast("Cancel PO?", {
+                                    description: `Are you sure you want to cancel PR for #${item.series_no}?`,
+                                    action: {
+                                      label: "Confirm",
+                                      onClick: () => cancelPoMutation(item.id),
+                                    },
+                                  });
+                                }}
+                              >
+                                <CircleXIcon className="mr-2 h-4 w-4 text-red-500" />{" "}
+                                <span className="text-red-500">Cancel PR</span>
+                              </DropdownMenuItem>
+                            )}
+                          </>
+                        )}
                       </>
                     )}
                   </DropdownMenuContent>

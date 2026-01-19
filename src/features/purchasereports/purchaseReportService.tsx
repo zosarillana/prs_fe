@@ -77,6 +77,24 @@ export const purchaseReportService = {
     return res.data;
   },
 
+  // Update existing item row
+  approveEdit(
+    prId: number,
+    index: number,
+    itemData: {
+      quantity: string | number;
+      unit: string;
+      item_description: string;
+      tag: any;
+      remarks: string;
+    }
+  ) {
+    return api.post<PurchaseReport>(
+      `/api/purchase-reports/${prId}/items/${index}/approve-edit`,
+      itemData // ✅ Send the item data in request body
+    );
+  },
+
   // Delete reports
   delete: async (id: number): Promise<void> => {
     await api.delete(`api/purchase-reports/${id}`);
@@ -169,6 +187,40 @@ export const purchaseReportService = {
       params: { row_index: rowIndex },
     });
 
+    return res.data;
+  },
+
+  addItem: async (id: number): Promise<PurchaseReport> => {
+    const res = await api.post(`api/purchase-reports/${id}/row`);
+    return res.data;
+  },
+
+  // ✅ Bulk remove item rows
+  removeRows: async (
+    id: number,
+    rowIndices: number[]
+  ): Promise<PurchaseReport> => {
+    const res = await api.delete(`api/purchase-report/${id}/items`, {
+      data: { row_indices: rowIndices }, // DELETE with request body
+    });
+    return res.data;
+  },
+
+  // ✅ Bulk approve/edit items
+  approveEdits: async (
+    id: number,
+    itemsData: Array<{
+      index: number;
+      quantity?: string | number;
+      unit?: string;
+      item_description?: string;
+      tag?: any;
+      remarks?: string;
+    }>
+  ): Promise<PurchaseReport> => {
+    const res = await api.patch(`api/purchase-report/${id}/items/approve`, {
+      items_data: itemsData, // PATCH body
+    });
     return res.data;
   },
 };

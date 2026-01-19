@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth/authStore";
-import { purchaseReportService } from "../purchaseReportService";
+import { purchaseReportService } from "../../purchaseReportService";
 
 export function CreatePurchaseReportDialog({
   onSubmit,

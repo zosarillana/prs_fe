@@ -27,6 +27,8 @@ export function getPurchaseReportHeading({
   if (completedTr) return "Completed TR";
   if (ownDepartment) return "Department Total PRs";
   if (prStatusTerm === "closed") return "Closed PRs";
+  if (prStatusTerm === "drafted") return "Drafted PRs";
+  if (prStatusTerm === "on_hold_return") return "On Hold For Edit PRs";
   if (statusTerm === "for_approval" || prStatusTerm === "for_approval")
     return "For Purchase Order Creation";
   if (forCeoApproval) return "For PO Approval";

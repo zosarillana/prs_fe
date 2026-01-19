@@ -30,6 +30,8 @@ interface SummaryCounts {
   completed_tr?: number;
   returned?: number;
   rejected?: number;
+  on_hold_return?: number;
+  drafted?: number;
 }
 
 export default function Dashboard() {
@@ -148,57 +150,115 @@ export default function Dashboard() {
               ))}
 
             {/* Own Created */}
-            {!canSeeAll &&
-              roles.includes("user") &&
-              (isLoading ? (
-                <CardSkeleton />
-              ) : (
-                <Link to="/purchase-reports?ownCreated=true" className="block">
-                  <Card className="group cursor-pointer transition hover:shadow-md">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">
-                        Own Created
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        {data?.own_created ?? 0}
-                      </div>
-                      <p className="text-xs text-muted-foreground group-hover:underline group-hover:font-bold">
-                        Created by You
-                      </p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+            {!canSeeAll && roles.includes("user") && (
+              <>
+                {isLoading ? (
+                  <CardSkeleton />
+                ) : (
+                  <Link
+                    to="/purchase-reports?ownCreated=true"
+                    className="block"
+                  >
+                    <Card className="group cursor-pointer transition hover:shadow-md">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                          Own Created
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {data?.own_created ?? 0}
+                        </div>
+                        <p className="text-xs text-muted-foreground group-hover:underline group-hover:font-bold">
+                          Created by You
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )}
+              </>
+            )}
 
             {/* Department Total */}
             {!canSeeAll &&
-              roles.some((r) => ["admin", "user", "hod"].includes(r)) &&
-              (isLoading ? (
-                <CardSkeleton />
-              ) : (
-                <Link
-                  to="/purchase-reports?ownDepartment=true"
-                  className="block"
-                >
-                  <Card className="group cursor-pointer transition hover:shadow-md">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">
-                        Department Total PR's
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        {data?.department_total ?? 0}
-                      </div>
-                      <p className="text-xs text-muted-foreground group-hover:underline group-hover:font-bold">
-                        Total for Department PR's
-                      </p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+              roles.some((r) => ["admin", "user", "hod"].includes(r)) && (
+                <>
+                  {isLoading ? (
+                    <CardSkeleton />
+                  ) : (
+                    <Link
+                      to="/purchase-reports?ownDepartment=true"
+                      className="block"
+                    >
+                      <Card className="group cursor-pointer transition hover:shadow-md">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">
+                            Department Total PR's
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">
+                            {data?.department_total ?? 0}
+                          </div>
+                          <p className="text-xs text-muted-foreground group-hover:underline group-hover:font-bold">
+                            Total for Department PR's
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  )}
+
+                  {isLoading ? (
+                    <CardSkeleton />
+                  ) : (
+                    <Link
+                      to="/purchase-reports?prStatusTerm=on_hold_return"
+                      className="block"
+                    >
+                      <Card className="group cursor-pointer transition hover:shadow-md">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">
+                            On Hold For Edit
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">
+                            {data?.on_hold_return ?? 0}
+                          </div>
+                          <p className="text-xs text-muted-foreground group-hover:underline group-hover:font-bold">
+                            For On Hold For Edit PRs
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  )}
+
+                  {isLoading ? (
+                    <CardSkeleton />
+                  ) : (
+                    <Link
+                      to="/purchase-reports?prStatusTerm=drafted"
+                      className="block"
+                    >
+                      <Card className="group cursor-pointer transition hover:shadow-md">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">
+                            Drafted
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">
+                            {data?.drafted ?? 0}
+                          </div>
+                          <p className="text-xs text-muted-foreground group-hover:underline group-hover:font-bold">
+                            Drafted PRs
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  )}
+                </>
+              )}
 
             {/* Total PRs */}
             {(canSeeAll || roles.includes("admin")) &&

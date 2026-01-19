@@ -1,0 +1,368 @@
+"use client";
+
+import React, { useMemo } from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import { Button } from "@/components/ui/button";
+import {
+  Edit,
+  MoreVertical,
+  Trash2Icon,
+  CheckCircle,
+  X,
+  ArrowDownRight,
+} from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import type { PurchaseReport } from "@/features/purchasereports/types";
+import { Tag } from "@/features/tags/types";
+
+interface Props {
+  items: PurchaseReport;
+  uoms: { id: number; description: string }[];
+  tags: Tag[];
+  user: any; // for bulk dropdown logic
+  report?: any; // for bulk dropdown logic
+  bulkAction: (action: "approve" | "remove", indices: number[]) => void;
+
+  onChange: (
+    index: number,
+    field: "quantity" | "unit" | "item_description" | "tag",
+    value: string,
+  ) => void;
+
+  onApproveEdit: (index: number) => void;
+  onRemoveRow: (index: number) => void;
+}
+
+export function EditPurchaseReportDialogTable({
+  items,
+  uoms,
+  tags,
+  onChange,
+  onApproveEdit,
+  onRemoveRow,
+  user,
+  report,
+  bulkAction,
+}: Props) {
+  const [selectedItems, setSelectedItems] = React.useState<number[]>([]);
+
+  React.useEffect(() => {
+    setSelectedItems([]);
+  }, [items]);
+
+  // const isIndeterminate =
+  //   selectedItems.length > 0 && selectedItems.length < totalRows;
+
+  const isSelectableStatus = (status?: string) =>
+    status === "return" || status === "returned";
+
+  const selectableIndices = useMemo(() => {
+    return (
+      items.item_status
+        ?.map((status, idx) => (isSelectableStatus(status) ? idx : null))
+        .filter((idx): idx is number => idx !== null) ?? []
+    );
+  }, [items.item_status]);
+
+  const totalSelectable = selectableIndices.length;
+
+  const allSelected =
+    totalSelectable > 0 &&
+    selectableIndices.every((i) => selectedItems.includes(i));
+
+  const isIndeterminate = selectedItems.length > 0 && !allSelected;
+
+  const toggleAll = (checked: boolean) => {
+    setSelectedItems(checked ? selectableIndices : []);
+  };
+
+  const toggleItem = (idx: number, checked: boolean) => {
+    setSelectedItems((prev) =>
+      checked ? [...prev, idx] : prev.filter((i) => i !== idx),
+    );
+  };
+
+  const uniqueTags = useMemo(() => {
+    const seen = new Set<number>();
+    return tags.filter((tag) => {
+      if (seen.has(tag.id)) return false;
+      seen.add(tag.id);
+      return true;
+    });
+  }, [tags]);
+
+  return (
+    <Table className="border-separate border-spacing-0 w-full [&_td]:p-3 [&_th]:p-3">
+      <TableHeader>
+        <TableRow>
+          {/* ✅ Select All + Dropdown */}
+          <TableHead className="border-b w-12 print:hidden">
+            <div className="flex items-center justify-start">
+              <Checkbox
+                checked={
+                  allSelected ? true : isIndeterminate ? "indeterminate" : false
+                }
+                onCheckedChange={(checked) =>
+                  toggleAll(checked === true)
+                }
+              />
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="rounded hover:bg-muted transition p-1"
+                  >
+                    <ArrowDownRight className="h-4 w-4" />
+                  </button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent align="start" className="w-40">
+                  <DropdownMenuItem
+                    onClick={() => bulkAction("approve", selectedItems)}
+                    disabled={selectedItems.length === 0}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Approve Selected
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => bulkAction("remove", selectedItems)}
+                    disabled={selectedItems.length === 0}
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Remove Selected
+                  </DropdownMenuItem>
+                  {/* <DropdownMenuItem
+                    onClick={() => bulkAction("approve")}
+                    disabled={
+                      selectedItems.length === 0 || // No items selected
+                      !(user?.role === "user" || user?.role === "admin") || // Only user or admin
+                      report?.status !== "return : returned" // Status must be "return : returned"
+                    }
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Approve Selected
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => bulkAction("remove")}
+                    disabled={
+                      selectedItems.length === 0 || // No items selected
+                      !(user?.role === "user" || user?.role === "admin") || // Only user or admin
+                      report?.status !== "return : returned" // Status must be "return : returned"
+                    }
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Reject Selected
+                  </DropdownMenuItem> */}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </TableHead>
+
+          <TableHead className="w-5 border-b text-center">#</TableHead>
+          <TableHead className="w-24 border-b text-center">Qty</TableHead>
+          <TableHead className="w-32 border-b">Unit</TableHead>
+          <TableHead className="w-64 border-b">Description</TableHead>
+          <TableHead className="w-40 border-b">Tag</TableHead>
+          <TableHead className="w-28 border-b text-center">Status</TableHead>
+          <TableHead className="w-48 border-b">Remarks</TableHead>
+          <TableHead className="w-20 border-b text-center">Action</TableHead>
+        </TableRow>
+      </TableHeader>
+
+      <TableBody>
+        {items.item_description?.map((_, idx) => {
+          const status = items.item_status?.[idx] ?? "pending";
+          const isReturned = ["return", "returned"].includes(status);
+          const isRejected = status === "rejected" || status === "rejected_tr";
+          const canEditRow = isReturned || isRejected;
+
+          const currentTag = items.tag?.[idx];
+          const tagId =
+            typeof currentTag === "object"
+              ? String(currentTag.id)
+              : String(currentTag ?? "");
+
+          return (
+            <TableRow key={idx}>
+              {/* ✅ Row Checkbox */}
+              <TableCell className="text-start">
+                <Checkbox
+                  checked={selectedItems.includes(idx)}
+                  disabled={!canEditRow}
+                  onCheckedChange={(checked) => {
+                    if (!canEditRow) return;
+                    toggleItem(idx, checked === true);
+                  }}
+                />
+              </TableCell>
+
+              <TableCell className="text-center">{idx + 1}</TableCell>
+
+              <TableCell>
+                {isReturned ? (
+                  <Input
+                    type="number"
+                    min={1}
+                    value={items.quantity?.[idx] ?? ""}
+                    onChange={(e) => onChange(idx, "quantity", e.target.value)}
+                  />
+                ) : (
+                  items.quantity?.[idx]
+                )}
+              </TableCell>
+
+              <TableCell>
+                {isReturned ? (
+                  <Select
+                    value={items.unit?.[idx] ?? ""}
+                    onValueChange={(val) => onChange(idx, "unit", val)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {uoms.map((uom) => (
+                        <SelectItem key={uom.id} value={uom.description}>
+                          {uom.description}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  items.unit?.[idx]
+                )}
+              </TableCell>
+
+              <TableCell>
+                {isReturned ? (
+                  <Input
+                    value={items.item_description?.[idx] ?? ""}
+                    onChange={(e) =>
+                      onChange(idx, "item_description", e.target.value)
+                    }
+                  />
+                ) : (
+                  items.item_description?.[idx]
+                )}
+              </TableCell>
+
+              <TableCell>
+                <Select
+                  value={tagId}
+                  onValueChange={(val) => onChange(idx, "tag", val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select tag" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {uniqueTags.map((tag) => (
+                      <SelectItem key={tag.id} value={String(tag.id)}>
+                        {tag.description ?? "Unnamed tag"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </TableCell>
+
+              <TableCell className="text-center">
+                <span
+                  className={`px-2 py-1 rounded-full text-xs capitalize ${
+                    status === "approved" || status === "approved_tr"
+                      ? "bg-green-100 text-green-800"
+                      : isRejected
+                        ? "bg-red-100 text-red-800"
+                        : "bg-yellow-100 text-yellow-800"
+                  }`}
+                >
+                  {status}
+                </span>
+              </TableCell>
+
+              <TableCell>{items.remarks?.[idx] ?? "none"}</TableCell>
+
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+
+                  <DropdownMenuContent align="start">
+                    <HoverCard>
+                      <HoverCardTrigger asChild>
+                        <DropdownMenuItem
+                          disabled={!canEditRow}
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            if (canEditRow) onApproveEdit(idx);
+                          }}
+                          className={`${
+                            canEditRow
+                              ? "cursor-pointer hover:bg-muted"
+                              : "opacity-50 cursor-not-allowed pointer-events-none"
+                          }`}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Approve Edit
+                        </DropdownMenuItem>
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-64 text-sm">
+                        Approve this item's changes and move it back to pending
+                        status.
+                      </HoverCardContent>
+                    </HoverCard>
+
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        if (canEditRow) onRemoveRow(idx);
+                      }}
+                      className={`text-red-600 ${
+                        canEditRow
+                          ? "hover:text-red-800 cursor-pointer"
+                          : "opacity-50 cursor-not-allowed pointer-events-none"
+                      }`}
+                    >
+                      <Trash2Icon className="mr-2 h-4 w-4" />
+                      Remove Row
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
+}

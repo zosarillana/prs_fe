@@ -1,7 +1,7 @@
 // appRoutes.ts
 import Dashboard from "@/features/dashboard/pages/dashboard";
 import PurchaseReport from "@/features/purchasereports/pages/purchasereports/purchaseReport";
-import CreatePurchaseReport from "@/features/purchasereports/pages/createPurchaseReport";
+import CreatePurchaseReport from "@/features/purchasereports/pages/createpurchasereport/createPurchaseReport";
 import ProtectedRoute from "./protectedRoute";
 import { LayoutDashboard, Receipt } from "lucide-react";
 import Users from "@/features/users/pages/users";

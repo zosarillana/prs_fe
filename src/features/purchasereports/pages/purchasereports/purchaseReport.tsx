@@ -8,8 +8,8 @@ import { Search, Plus } from "lucide-react";
 
 import { Link } from "react-router-dom";
 import { DrApproveDialog } from "../../components/drApproveDialog";
-import { EditPurchaseReportDialog } from "../../components/editPurchaseReportDialog";
-import { ViewPurchaseReportDialog } from "../../components/purchasereports/viewPurchaseReportDialog";
+import { EditPurchaseReportDialog } from "../../components/update/editPurchaseReportDialog";
+import { ViewPurchaseReportDialog } from "../../components/view/viewPurchaseReportDialog";
 import { SetPoDialog } from "../../components/setPoDialog";
 import { PurchasingUserDropdown } from "../../filters/purchasingFilterDropdown";
 import { StatusFilterDropdown } from "../../filters/statusFilterDropdown";
@@ -98,11 +98,32 @@ export default function PurchaseReport() {
   return (
     <div className="p-6 -mt-4">
       {/* header */}
-      <div className="flex flex-row justify-between items-center mb-6">
+      <div className="grid grid-cols-1 lg:flex lg:flex-row lg:justify-between lg:items-center mb-6">
         <h1 className="text-3xl font-bold mb-6">{heading}</h1>
         <div className="flex flex-col gap-4">
-          <div className="flex flex-row gap-2 items-center">
-            {/* ✅ Status Filter Dropdown */}
+          <div
+            className="
+      flex flex-col-reverse sm:flex-row sm:flex-wrap
+      justify-end items-stretch sm:items-center
+      gap-2 sm:gap-4
+    "
+          >
+            {/* Search Box - appears first on mobile, last on desktop */}
+            <div className="relative w-full sm:w-auto order-first sm:order-last">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search requests..."
+                className="pl-8 w-full"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+
+            {/* Filter dropdowns */}
             <StatusFilterDropdown
               statusTerm={statusTerm}
               prStatusTerm={prStatusTerm}
@@ -124,31 +145,19 @@ export default function PurchaseReport() {
               setPage={setPage}
             />
 
-            {/* Search Box */}
-            <div className="relative w-64">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search requests..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setPage(1); // ✅ Add this line to reset to page 1 when searching
-                }}
-              />
-            </div>
-
             {/* Create Button */}
             {!(
               user?.role?.includes("hod") ||
               user?.role?.includes("technical_reviewer") ||
               user?.role?.includes("purchasing")
             ) && (
-              <Button asChild>
+              <Button asChild className="w-full sm:w-auto">
                 <Link to="/purchase-reports/create">
                   <Plus className="h-4 w-4 mr-2" />
-                  Create Purchase Request
+                  <span className="hidden sm:inline">
+                    Create Purchase Request
+                  </span>
+                  <span className="sm:hidden">Create</span>
                 </Link>
               </Button>
             )}

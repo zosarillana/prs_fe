@@ -39,6 +39,14 @@ export const StatusFilterDropdown: React.FC<Props> = ({
       case "closed":
       case "Cancelled":
       case "Rejected":
+      case "drafted":
+        setPrStatusTerm(value);
+        setStatusTerm("");
+        break;
+      case "on_hold_return":
+        setPrStatusTerm(value);
+        setStatusTerm("");
+        break;
       case "returned":
         setPrStatusTerm(value);
         setStatusTerm("");
@@ -70,6 +78,8 @@ export const StatusFilterDropdown: React.FC<Props> = ({
         { value: "Rejected", label: "Rejected" },
         { value: "returned", label: "Returned" },
         { value: "closed", label: "Closed" },
+        { value: "on_hold_return", label: "On hold For Edit" },
+        { value: "drafted", label: "Drafted" },
       ];
     } else if (user?.role?.includes("hod")) {
       return [
@@ -79,6 +89,8 @@ export const StatusFilterDropdown: React.FC<Props> = ({
         { value: "for_approval", label: "For Purchase Order Creation" },
         { value: "Rejected", label: "Rejected" },
         { value: "returned", label: "Returned" },
+        { value: "on_hold_return", label: "On Hold For Edit" },
+        { value: "drafted", label: "Drafted" },
       ];
     } else if (user?.role?.includes("tr")) {
       return [
@@ -86,6 +98,8 @@ export const StatusFilterDropdown: React.FC<Props> = ({
         { value: "for_approval", label: "For Purchase Order Creation" },
         { value: "Rejected", label: "Rejected" },
         { value: "returned", label: "Returned" },
+        { value: "on_hold_return", label: "On Hold For Edit" },
+        { value: "drafted", label: "Drafted" },
       ];
     } else if (user?.role?.includes("purchasing")) {
       return [
@@ -96,6 +110,8 @@ export const StatusFilterDropdown: React.FC<Props> = ({
         { value: "Rejected", label: "Rejected" },
         { value: "returned", label: "Returned" },
         { value: "closed", label: "Closed" },
+        { value: "on_hold_return", label: "On Hold For Edit" },
+        { value: "drafted", label: "Drafted" },
       ];
     } else {
       return [
@@ -109,16 +125,20 @@ export const StatusFilterDropdown: React.FC<Props> = ({
         { value: "Rejected", label: "Rejected" },
         { value: "returned", label: "Returned" },
         { value: "closed", label: "Closed" },
+        { value: "on_hold_return", label: "On Hold For Edit" },
+        { value: "drafted", label: "Drafted" },
       ];
     }
   };
 
   const selectedValue =
-    statusTerm === "For_approval" ? "for_approval_ceo" : prStatusTerm || statusTerm || "all";
+    statusTerm === "For_approval"
+      ? "for_approval_ceo"
+      : prStatusTerm || statusTerm || "all";
 
   return (
     <Select value={selectedValue} onValueChange={handleChange}>
-      <SelectTrigger className="w-[180px]">
+      <SelectTrigger className="w-full sm:w-auto">
         <SelectValue placeholder="Filter by Status" />
       </SelectTrigger>
       <SelectContent>
