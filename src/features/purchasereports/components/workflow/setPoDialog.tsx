@@ -8,7 +8,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { usePurchaseReports } from "../hooks/usePurchaseReports"; // ✅ adjust path
+import { usePurchaseReports } from "../../hooks/usePurchaseReports";
 import { toast } from "sonner";
 
 interface SetPoDialogProps {

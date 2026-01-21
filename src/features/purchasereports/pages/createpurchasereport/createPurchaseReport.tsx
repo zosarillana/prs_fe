@@ -23,11 +23,13 @@ import { useTags } from "@/features/users/hooks/useTags";
 import logo from "@/assets/images/logosidebar.png";
 
 import { CreatePurchaseRequestTable } from "./tables/createPurchaseReportTable";
+import { initializeReportData, addBlankRow, removeRowByIndex } from "../createpurchasereport/utils/createPurchaseReport";
 
 export default function CreatePurchaseReport() {
   const location = useLocation();
   const copyFromData = location.state?.copyFrom;
   const { editDraft, draftData } = location.state || {};
+
   const {
     rows,
     setRows,
@@ -45,120 +47,21 @@ export default function CreatePurchaseReport() {
   const { tags, loading: tagsLoading } = useTags();
 
   useEffect(() => {
-    if (copyFromData) {
-      console.log("📋 Copy mode - Original dates:", {
-        date_submitted: copyFromData.date_submitted,
-        date_needed: copyFromData.date_needed,
-      });
+    initializeReportData({
+      copyFromData,
+      editDraft,
+      draftData,
+      user,
+      setReportData,
+      setItems,
+      setRows,
+    });
+  }, [copyFromData, editDraft, draftData, user, setReportData, setItems, setRows]);
 
-      // Parse dates properly
-      const dateSubmitted = copyFromData.date_submitted
-        ? new Date(copyFromData.date_submitted + "T00:00:00")
-        : undefined;
-
-      const dateNeeded = copyFromData.date_needed
-        ? new Date(copyFromData.date_needed + "T00:00:00")
-        : undefined;
-
-      console.log("📅 Converted dates:", {
-        dateSubmitted,
-        dateNeeded,
-        isValidSubmitted:
-          dateSubmitted instanceof Date && !isNaN(dateSubmitted.getTime()),
-        isValidNeeded:
-          dateNeeded instanceof Date && !isNaN(dateNeeded.getTime()),
-      });
-
-      setReportData({
-        purpose: copyFromData.pr_purpose,
-        department: user?.department?.[0] ?? copyFromData.department, // ✅ Get first element from array
-        date_submitted: dateSubmitted,
-        date_needed: dateNeeded,
-        amount: copyFromData.quantity.length,
-        series_no: copyFromData.series_no ?? "",
-        user_id: user?.id ?? copyFromData.user.id,
-      });
-
-      const copiedItems = copyFromData.quantity.map(
-        (_: any, index: number) => ({
-          quantity: copyFromData.quantity[index]?.toString() || "",
-          unit: copyFromData.unit[index] || "",
-          description: copyFromData.item_description[index] || "",
-          tag:
-            typeof copyFromData.tag[index] === "object"
-              ? copyFromData.tag[index]?.id?.toString() || ""
-              : copyFromData.tag[index]?.toString() || "",
-          remarks: copyFromData.remarks[index] || "",
-        })
-      );
-
-      setItems(copiedItems);
-      setRows(copiedItems.length);
-
-      toast.info(`Copied to new request (Series #${copyFromData.series_no})`);
-      window.history.replaceState({}, document.title);
-    } else if (editDraft && draftData) {
-      // --- EDIT DRAFT MODE ---
-      const dateSubmitted = draftData.date_submitted
-        ? new Date(draftData.date_submitted + "T00:00:00")
-        : undefined;
-
-      const dateNeeded = draftData.date_needed
-        ? new Date(draftData.date_needed + "T00:00:00")
-        : undefined;
-
-      setReportData({
-        user_id: user?.id ?? draftData.user.id,
-        series_no: draftData.series_no,
-        purpose: draftData.pr_purpose,
-        department: user?.department?.[0] ?? draftData.department, // ✅ Get first element from array
-        date_submitted: dateSubmitted,
-        date_needed: dateNeeded,
-        amount: draftData.quantity.length,
-      });
-
-      setItems(
-        draftData.item_description.map((desc: string, i: number) => ({
-          quantity: draftData.quantity[i]?.toString() || "",
-          unit: draftData.unit[i] || "",
-          description: desc || "",
-          tag:
-            typeof draftData.tag[i] === "object"
-              ? draftData.tag[i].id?.toString() || ""
-              : draftData.tag[i]?.toString() || "",
-          remarks: draftData.remarks[i] || "",
-        }))
-      );
-
-      setRows(draftData.item_description.length);
-      toast.info(`Loaded draft: ${draftData.series_no}`);
-      window.history.replaceState({}, document.title);
-    }
-  }, [
-    copyFromData,
-    editDraft,
-    draftData,
-    user,
-    setReportData,
-    setItems,
-    setRows,
-  ]);
-
-  // ✅ add new blank row
-  const addRow = () => {
-    setItems((prev) => [
-      ...prev,
-      { quantity: "", unit: "", description: "", tag: "", remarks: "" },
-    ]);
-    setRows((r) => r + 1);
-  };
-
-  // ✅ remove a row by index
-  const removeRow = (index: number) => {
-    setItems((prev) => prev.filter((_, i) => i !== index));
-    setRows((r) => (r > 0 ? r - 1 : 0));
-  };
-
+  // Use helper for adding/removing rows
+  const addRow = () => addBlankRow(setItems, setRows);
+  const removeRow = (index: number) => removeRowByIndex(index, setItems, setRows);
+  
   return (
     <div className="p-6 -mt-4">
       <div className="flex flex-row justify-between items-center mb-6">

@@ -1,5 +1,9 @@
 import api from "@/lib/api";
-import { PurchaseReport, PurchaseReportInput } from "./types";
+import {
+  PurchaseReport,
+  PurchaseReportInput,
+  PurchaseReportCleanItem,
+} from "./types";
 import { PaginatedResponse } from "@/types/paginator";
 
 // Service for Purchase Requests
@@ -71,7 +75,7 @@ export const purchaseReportService = {
   // Update existing report
   update: async (
     id: number,
-    data: PurchaseReportInput
+    data: PurchaseReportInput,
   ): Promise<PurchaseReport> => {
     const res = await api.put(`api/purchase-reports/${id}`, data);
     return res.data;
@@ -87,11 +91,11 @@ export const purchaseReportService = {
       item_description: string;
       tag: any;
       remarks: string;
-    }
+    },
   ) {
     return api.post<PurchaseReport>(
       `/api/purchase-reports/${prId}/items/${index}/approve-edit`,
-      itemData // ✅ Send the item data in request body
+      itemData, // ✅ Send the item data in request body
     );
   },
 
@@ -107,7 +111,7 @@ export const purchaseReportService = {
     status: "approved" | "rejected" | "pending" | "pending_tr" | "return",
     remark?: string,
     asRole?: "technical_reviewer" | "hod" | "both",
-    loggedUserId?: number // 👈 add this
+    loggedUserId?: number, // 👈 add this
   ): Promise<PurchaseReport> => {
     const res = await api.patch(`api/purchase-reports/${id}/approve-item`, {
       index,
@@ -122,14 +126,14 @@ export const purchaseReportService = {
   updateItemStatusOnly: async (
     id: number,
     index: number,
-    status: string
+    status: string,
   ): Promise<PurchaseReport> => {
     const res = await api.patch(
       `api/purchase-reports/${id}/update-item-status-only`,
       {
         index,
         status,
-      }
+      },
     );
     return res.data;
   },
@@ -153,7 +157,7 @@ export const purchaseReportService = {
   async poApproveDate(id: number, payload: { date: string; status: string }) {
     const res = await api.post(
       `api/purchase-reports/${id}/po-approve-date`,
-      payload
+      payload,
     );
     return res.data;
   },
@@ -167,7 +171,7 @@ export const purchaseReportService = {
   // ✅ NEW: Update delivery status of a purchase report
   updateDeliveryStatus: async (
     id: number,
-    deliveryStatus: "pending" | "delivered" | "partial"
+    deliveryStatus: "pending" | "delivered" | "partial",
   ): Promise<PurchaseReport> => {
     const res = await api.patch(`api/purchase-reports/${id}/delivery-status`, {
       delivery_status: deliveryStatus,
@@ -198,7 +202,7 @@ export const purchaseReportService = {
   // ✅ Bulk remove item rows
   removeRows: async (
     id: number,
-    rowIndices: number[]
+    rowIndices: number[],
   ): Promise<PurchaseReport> => {
     const res = await api.delete(`api/purchase-report/${id}/items`, {
       data: { row_indices: rowIndices }, // DELETE with request body
@@ -216,11 +220,30 @@ export const purchaseReportService = {
       item_description?: string;
       tag?: any;
       remarks?: string;
-    }>
+    }>,
   ): Promise<PurchaseReport> => {
     const res = await api.patch(`api/purchase-report/${id}/items/approve`, {
       items_data: itemsData, // PATCH body
     });
+    return res.data;
+  },
+
+  getClean: async (params?: {
+    searchTerm?: string;
+    fromDate?: string;
+    toDate?: string;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+    pageNumber?: number;
+    pageSize?: number;
+  }): Promise<PaginatedResponse<PurchaseReportCleanItem>> => {
+    const res = await api.get("api/purchase-reports-clean", { params });
+    return res.data;
+  },
+
+  // ✅ Clean single report
+  getCleanById: async (id: number): Promise<PurchaseReportCleanItem> => {
+    const res = await api.get(`api/purchase-reports-clean/${id}`);
     return res.data;
   },
 };

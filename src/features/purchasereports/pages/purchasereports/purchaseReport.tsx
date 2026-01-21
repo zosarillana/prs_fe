@@ -1,5 +1,5 @@
 import { usePurchaseReports } from "../../hooks/usePurchaseReports";
-import { usePurchaseReportUrlSync } from "./hooks/userPurchaseReportUrlSync";
+import { usePurchaseReportUrlSync } from "./hooks/usePurchaseReportUrlSync";
 import { getPurchaseReportHeading } from "./utils/getPurchaseReportHeading";
 import { STATUS_MAP } from "./constants/purchaseReports";
 import { Input } from "@/components/ui/input";
@@ -7,14 +7,14 @@ import { TableSkeleton } from "@/components/ui/skeletons/purchasereports/tableSk
 import { Search, Plus } from "lucide-react";
 
 import { Link } from "react-router-dom";
-import { DrApproveDialog } from "../../components/drApproveDialog";
+import { DrApproveDialog } from "../../components/workflow/drApproveDialog";
 import { EditPurchaseReportDialog } from "../../components/update/editPurchaseReportDialog";
 import { ViewPurchaseReportDialog } from "../../components/view/viewPurchaseReportDialog";
-import { SetPoDialog } from "../../components/setPoDialog";
-import { PurchasingUserDropdown } from "../../filters/purchasingFilterDropdown";
-import { StatusFilterDropdown } from "../../filters/statusFilterDropdown";
-import { TagFilterDropdown } from "../../filters/tagFilterDropdown";
-import { TablePagination } from "./pagination/tablePagination";
+import { SetPoDialog } from "../../components/workflow/setPoDialog";
+import { PurchasingUserDropdown } from "../../filters/dropdowns/purchasingFilterDropdown";
+import { StatusFilterDropdown } from "../../filters/dropdowns/statusFilterDropdown";
+import { TagFilterDropdown } from "../../filters/dropdowns/tagFilterDropdown";
+import { TablePagination } from "../../filters/pagination/tablePagination";
 import { PurchaseReportTable } from "./tables/purchaseReportTable";
 import { Button } from "@/components/ui/button";
 export default function PurchaseReport() {

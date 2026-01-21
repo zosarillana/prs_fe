@@ -39,8 +39,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 
 // 🆕 Import your new hook here
-import { useReportGetHook } from "../hooks/useReportGetHook";
-import { purchaseReportService } from "../purchaseReportService";
+import { useReportGetHook } from "../../hooks/useReportGetHook";
+import { purchaseReportService } from "../../purchaseReportService";
 import { Progress } from "@/components/ui/progress";
 
 export default function Reports() {

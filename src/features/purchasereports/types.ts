@@ -52,3 +52,49 @@ type PurchaseItem = {
   tag: string;
   remarks: string;
 };
+
+// services/purchase-reports/types-clean.ts
+
+export interface PurchaseReportCleanItem {
+  id: number;
+  series_no: string;
+  pr_purpose: string;
+  department: string;
+  created_at: string;
+
+  purchaser: {
+    id: number;
+    name: string;
+    email: string;
+    department: string[];
+    role: string[];
+    signature?: string | null;
+  } | null;
+
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    department: string[];
+    role: string[];
+    signature?: string | null;
+  } | null;
+
+  items: Array<{
+    quantity: number | string;
+    unit: string;
+    description: string;
+    tag: {
+      id: number | null;
+      description: string;
+      department: string | null;
+    };
+    status: string;
+    remarks: string;
+  }>;
+
+  date_submitted: string | null;
+  date_needed: string | null;
+  delivery_status: string | null;
+}
+

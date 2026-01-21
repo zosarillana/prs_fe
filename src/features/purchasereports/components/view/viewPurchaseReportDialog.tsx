@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { TableSkeletonPrInput } from "@/components/ui/skeletons/purchasereports/tableSkeletonPrInput";
 import { File } from "lucide-react";
-import { RemarkPrDialog } from "../remarkPrDialog";
+import { RemarkPrDialog } from "../workflow/remarkPrDialog";
 import { PurchaseReportItemsTable } from "./table/viewPurchaseReportDialogTable";
 import { useViewPurchaseReportDialog } from "./hooks/useViewPurchaseReportDialog";
 import { SignatureSection } from "./components/SignatureSection";
