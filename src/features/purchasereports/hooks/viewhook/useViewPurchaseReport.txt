@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { PurchaseReport } from "../types";
-import { purchaseReportService } from "../purchaseReportService";
+import { PurchaseReport } from "../../types";
+import { purchaseReportService } from "../../purchaseReportService";
 import { toast } from "sonner";
 // import { useAuthStore } from "@/store/auth/authStore";
 import { authRoles } from "@/store/auth/authRoles"; // adjust path

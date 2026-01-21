@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { useAuthStore } from "@/store/auth/authStore";
-import { useViewPurchaseReport } from "@/features/purchasereports/hooks/useViewPurchaseReport";
+import { useViewPurchaseReport } from "@/features/purchasereports/hooks/viewhook/useViewPurchaseReport";
 
 export function useViewPurchaseReportDialog(prId: number | null, open: boolean) {
   const user = useAuthStore((state) => state.user);
