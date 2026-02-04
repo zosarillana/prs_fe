@@ -41,9 +41,11 @@ type Props = {
   statusMap: Record<string, string>;
 
   handleView: (id: number) => void;
+  handleViewMultiple: (id: number) => void;
   handleEdit: (id: number) => void;
   handleDelete: (item: any) => void;
   handleSetPo: (id: number) => void;
+  handleSetSap: (id: number) => void;
   handleCopyToNew: (id: number) => void;
   handleViewDraft: (id: number) => void;
 
@@ -67,8 +69,10 @@ export function PurchaseReportTable({
   handleEdit,
   handleDelete,
   handleSetPo,
+  handleSetSap,
   handleCopyToNew,
   handleViewDraft,
+  handleViewMultiple,
   cancelPoMutation,
   returnPoMutation,
   setApproveDialogOpen,
@@ -78,10 +82,12 @@ export function PurchaseReportTable({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[140px] border-b text-gray-500">
-            PR Number
+          <TableHead className="w-[80px] border-b text-gray-500">
+            SL #
           </TableHead>
-          <TableHead className="border-b">SAP ID</TableHead>
+          <TableHead className="w-[100px] border-b text-start">
+            SAP - PR
+          </TableHead>
           <TableHead className="border-b">Purpose</TableHead>
           <TableHead className="border-b">Department</TableHead>
           <TableHead className="border-b">Submitted By</TableHead>
@@ -104,14 +110,16 @@ export function PurchaseReportTable({
           )}
 
           <TableHead className="border-b">Purchasing Associate</TableHead>
-          <TableHead className="w-[100px] border-b">Action</TableHead>
+          <TableHead className="w-[100px] text-center border-b">
+            Action
+          </TableHead>
         </TableRow>
       </TableHeader>
 
       <TableBody className="cursor-pointer">
         {fetching && (
           <TableRow>
-            <TableCell colSpan={12} className="p-0">
+            <TableCell colSpan={13} className="p-0">
               <Progress indeterminate />
             </TableCell>
           </TableRow>
@@ -129,32 +137,62 @@ export function PurchaseReportTable({
           })
           .map((item: any) => (
             <TableRow key={item.id} onClick={() => handleView(item.id)}>
-              <TableCell className="flex gap-2 font-semibold text-gray-500">
-                <HashIcon className="h-4 w-4 mt-1" />
-                {item.series_no}
+              <TableCell className="font-semibold text-gray-500">
+                <p className="flex gap-1">
+                  <span>
+                    <HashIcon className="h-4 w-4" />
+                  </span>{" "}
+                  {item.series_no}
+                </p>
               </TableCell>
 
-              <TableCell>—</TableCell>
-              <TableCell className="capitalize">{item.pr_purpose}</TableCell>
-              <TableCell>{item.department}</TableCell>
-              <TableCell>{item.user.name}</TableCell>
+              <TableCell className="text-start flex items-center gap-2 mt-2.5">
+                {item.sap_id ? (
+                  <>
+                    <span
+                      className="w-2 h-2 bg-green-500 rounded-full"
+                      title="Online"
+                    ></span>
+                    <span>{item.sap_id}</span>
+                  </>
+                ) : (
+                  "—"
+                )}
+              </TableCell>
 
+              <TableCell className="capitalize">
+                {item.pr_purpose ? item.pr_purpose.toLowerCase() : "N/A"}
+              </TableCell>
+
+              <TableCell>
+                {item.department
+                  .split("_")
+                  .map((word: string) =>
+                    word.toLowerCase() === "it"
+                      ? "IT"
+                      : word.charAt(0).toUpperCase() +
+                        word.slice(1).toLowerCase(),
+                  )
+                  .join(" ")}
+              </TableCell>
+
+              <TableCell>{item.user.name}</TableCell>
               <TableCell className="capitalize">
                 {item.pr_status === "on_hold"
                   ? "For HOD Approval"
                   : item.pr_status === "on_hold_return"
-                  ? "On Hold For Edit"
-                  : item.pr_status === "on_hold_tr"
-                  ? "For TR Approval"
-                  : statusMap[item.pr_status] || item.pr_status}
+                    ? "On Hold For Edit"
+                    : item.pr_status === "on_hold_tr"
+                      ? "For TR Approval"
+                      : statusMap[item.pr_status] || item.pr_status}
               </TableCell>
               <TableCell className="capitalize">
                 {item.po_status === "For_approval"
                   ? "For Approval"
                   : item.po_status === "Cancelled" ||
-                    item.po_status === "cancelled"
-                  ? "Cancelled"
-                  : item.po_status ?? "n/a"}
+                      item.po_status === "cancelled"
+                    ? "Cancelled"
+                    : (item.po_status ?? "n/a")}
               </TableCell>
 
               <TableCell>{item.pr_created}</TableCell>
@@ -183,8 +221,8 @@ export function PurchaseReportTable({
                       0,
                       Math.floor(
                         (latestDate.getTime() - createdDate.getTime()) /
-                          (1000 * 60 * 60 * 24)
-                      )
+                          (1000 * 60 * 60 * 24),
+                      ),
                     );
 
                     return `${diffDays} day${diffDays !== 1 ? "s" : ""}`;
@@ -217,7 +255,7 @@ export function PurchaseReportTable({
 
                     let diffDays = Math.floor(
                       (endDate.getTime() - latestApprovalDate.getTime()) /
-                        (1000 * 60 * 60 * 24)
+                        (1000 * 60 * 60 * 24),
                     );
 
                     if (diffDays < 0) diffDays = 0;
@@ -228,7 +266,7 @@ export function PurchaseReportTable({
               )}
               <TableCell>{item.purchaser_id?.name ?? "n/a"}</TableCell>
 
-              <TableCell>
+              <TableCell className="text-center">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -356,16 +394,60 @@ export function PurchaseReportTable({
                         {(user?.role?.includes("purchasing") ||
                           user?.role?.includes("admin")) && (
                           <>
-                            {/* Set PO Number (only if PR is for approval) */}
-                            {item.pr_status === "for_approval" && (
+                            {/* Set SAP PR */}
+                            {item.sap_id == null &&
+                              item.pr_status === "for_approval" && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSetSap(item.id);
+                                  }}
+                                >
+                                  <FileDigit className="mr-2 h-4 w-4" /> Set SAP
+                                  - PR
+                                </DropdownMenuItem>
+                              )}
+
+                            {/* Set PO Number */}
+                            {item.sap_id !== null &&
+                              item.pr_status === "for_approval" &&
+                              item.po_status !== "po_partial" && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSetPo(item.id);
+                                  }}
+                                >
+                                  <FileDigit className="mr-2 h-4 w-4" />
+                                  Set PO Number
+                                </DropdownMenuItem>
+                              )}
+
+                            {/* Edit PO Number */}
+                            {item.sap_id !== null &&
+                              item.pr_status === "Closed" && (
+                                <DropdownMenuItem
+                                  title="This is only temporary"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSetPo(item.id);
+                                  }}
+                                >
+                                  <FileDigit className="mr-2 h-4 w-4" /> Edit PO
+                                  Number
+                                </DropdownMenuItem>
+                              )}
+                            {/* Multiple PO */}
+                            {item.sap_id !== null && (
                               <DropdownMenuItem
+                                // disabled={true}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleSetPo(item.id);
+                                  handleViewMultiple(item.id);
                                 }}
                               >
-                                <FileDigit className="mr-2 h-4 w-4" /> Set PO
-                                Number
+                                <FileDigit className="mr-2 h-4 w-4" />
+                                Multiple PO
                               </DropdownMenuItem>
                             )}
                             {item.pr_status === "for_approval" && (
@@ -387,9 +469,9 @@ export function PurchaseReportTable({
                                 </span>
                               </DropdownMenuItem>
                             )}
-                            {/* Date Approve + Return PR (only if PO is for approval) */}
-                            {item.po_status === "For_approval" && (
-                              <>
+                            {/* Date Approve (only if PO is for approval and not partial) */}
+                            {item.po_status === "For_approval" &&
+                              item.po_status !== "po_partial" && (
                                 <DropdownMenuItem
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -397,11 +479,11 @@ export function PurchaseReportTable({
                                     setApproveDialogOpen(true);
                                   }}
                                 >
-                                  <CheckCircle className="mr-2 h-4 w-4" /> Date
-                                  Approve
+                                  <CheckCircle className="mr-2 h-4 w-4" />
+                                  Date Approve
                                 </DropdownMenuItem>
-                              </>
-                            )}
+                              )}
+
                             {/* Cancel PO ADMIN */}
                             {(item.pr_status === "Closed" ||
                               item.po_status === "for_approval") && (

@@ -32,7 +32,8 @@ export const ProgressReportTable = ({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>PR Number</TableHead>
+          <TableHead>SL #</TableHead>
+          <TableHead>SAP - PR</TableHead>
           <TableHead>PR Created</TableHead>
           <TableHead>Purpose</TableHead>
           <TableHead>Department</TableHead>
@@ -57,11 +58,30 @@ export const ProgressReportTable = ({
             onClick={() => onOpenCalendar(item.id)}
             className="cursor-pointer hover:bg-muted/50"
           >
-            <TableCell className="flex gap-2 font-semibold">
-              <HashIcon className="h-4 w-5 my-1" />
-              {item.series_no}
+            <TableCell className="font-semibold text-gray-500">
+              <p className="flex gap-1">
+                <span>
+                  <HashIcon className="h-4 w-4" />
+                </span>{" "}
+                {item.series_no}
+              </p>
             </TableCell>
 
+            <TableCell className="text-start flex items-center gap-2 mt-2.5">
+              {item.sap_id ? (
+                <>
+                  <span
+                    className="w-2 h-2 bg-green-500 rounded-full"
+                    title="Online"
+                  ></span>
+                  <span>{item.sap_id}</span>
+                </>
+              ) : (
+                "—"
+              )}
+            </TableCell>
+
+            <TableCell>{item.pr_created}</TableCell>
             <TableCell>{item.pr_created}</TableCell>
             <TableCell>{item.pr_purpose}</TableCell>
             <TableCell>
@@ -89,9 +109,7 @@ export const ProgressReportTable = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
-                  <DropdownMenuItem
-                    onClick={() => onOpenCalendar(item.id)}
-                  >
+                  <DropdownMenuItem onClick={() => onOpenCalendar(item.id)}>
                     <Calendar className="mr-2 h-4 w-4" />
                     Progress Status
                   </DropdownMenuItem>

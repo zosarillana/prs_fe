@@ -50,7 +50,7 @@ import { useReportGetHook } from "../../hooks/useReportGetHook";
 import { purchaseReportService } from "../../purchaseReportService";
 import { Progress } from "@/components/ui/progress";
 
-export default function Reports() {
+export default function ReportsDates() {
   const printRef = useRef<HTMLDivElement>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
@@ -153,26 +153,11 @@ export default function Reports() {
           item.pr_purpose ?? "N/A",
           item.department ?? "N/A",
           item.user?.name ?? "N/A",
-          diffDays(prCreated, hodApproved) +
-            " (" +
-            (item.hod_signed_at ?? "—") +
-            ")",
-          diffDays(hodApproved, trApproved) +
-            " (" +
-            (item.tr_signed_at ?? "—") +
-            ")",
-          diffDays(latestApproval, poCreated) +
-            " (" +
-            (item.po_created_date ?? "—") +
-            ")",
-          diffDays(poCreated, poApproved) +
-            " (" +
-            (item.po_approved_date ?? "—") +
-            ")",
-          diffDays(prCreated, poApproved) +
-            " (" +
-            (item.po_approved_date ?? "—") +
-            ")",
+          diffDays(prCreated, hodApproved),
+          diffDays(hodApproved, trApproved),
+          diffDays(latestApproval, poCreated),
+          diffDays(poCreated, poApproved),
+          diffDays(prCreated, poApproved),
           item.purchaser_id?.name ?? "N/A",
         ];
       });
@@ -295,7 +280,7 @@ export default function Reports() {
   if (loading) {
     return (
       <div className="p-6 -mt-4">
-        <h1 className="text-3xl font-bold mb-6">Reports (By Days and Date)</h1>
+        <h1 className="text-3xl font-bold mb-6">Reports (By Dates)</h1>
         <TableSkeleton rows={5} />
       </div>
     );
@@ -305,7 +290,7 @@ export default function Reports() {
     <div className="p-6 -mt-4">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold mb-6">Reports (By Days and Date)</h1>
+        <h1 className="text-3xl font-bold mb-6">Reports (By Dates)</h1>
 
         <div className="flex items-center gap-3">
           {/* From Date */}
@@ -488,22 +473,10 @@ export default function Reports() {
                       .join(" ")}
                   </TableCell>
                   <TableCell>{item.user?.name ?? "N/A"}</TableCell>
-                  <TableCell>
-                    {diffDays(prCreated, hodApproved)} (
-                    {item.hod_signed_at || "—"})
-                  </TableCell>
-                  <TableCell>
-                    {diffDays(hodApproved, trApproved)} (
-                    {item.tr_signed_at || "—"})
-                  </TableCell>
-                  <TableCell>
-                    {diffDays(latestApproval, poCreated)} (
-                    {item.po_approved_date || "—"})
-                  </TableCell>
-                  <TableCell>
-                    {diffDays(poCreated, poApproved)} (
-                    {item.po_approved_date || "—"})
-                  </TableCell>
+                  <TableCell>{diffDays(prCreated, hodApproved)}</TableCell>
+                  <TableCell>{diffDays(hodApproved, trApproved)}</TableCell>
+                  <TableCell>{diffDays(latestApproval, poCreated)}</TableCell>
+                  <TableCell>{diffDays(poCreated, poApproved)}</TableCell>
                   <TableCell>
                     {poCreated ? diffDays(prCreated, poApproved) : "N/A"}
                   </TableCell>

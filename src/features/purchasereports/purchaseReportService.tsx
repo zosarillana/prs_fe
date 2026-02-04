@@ -3,6 +3,7 @@ import {
   PurchaseReport,
   PurchaseReportInput,
   PurchaseReportCleanItem,
+  PurchaseReportItemPo,
 } from "./types";
 import { PaginatedResponse } from "@/types/paginator";
 
@@ -138,10 +139,10 @@ export const purchaseReportService = {
     return res.data;
   },
 
-  async updatePoNo(id: number, po_no: string) {
-    const res = await api.patch(`api/purchase-reports/${id}/po-no`, { po_no });
-    return res.data;
-  },
+  // async updatePoNo(id: number, po_no: string) {
+  //   const res = await api.patch(`api/purchase-reports/${id}/po-no`, { po_no });
+  //   return res.data;
+  // },
 
   async cancelPoNo(id: number) {
     const res = await api.patch(`api/purchase-reports/${id}/cancel-po-no`);
@@ -245,5 +246,74 @@ export const purchaseReportService = {
   getCleanById: async (id: number): Promise<PurchaseReportCleanItem> => {
     const res = await api.get(`api/purchase-reports-clean/${id}`);
     return res.data;
+  },
+
+  updateSapId: async (id: number, sap_id: string) => {
+    const res = await api.patch(`api/purchase-reports/${id}/sap-id`, {
+      sap_id,
+    });
+    return res.data;
+  },
+
+  // ✅ Update WHOLE DOCUMENT PO NO
+  updateDocumentPoNo: async (
+    id: number,
+    poNo: string,
+  ): Promise<PurchaseReport> => {
+    const res = await api.patch(`api/purchase-reports/${id}/po-no`, {
+      po_no: poNo,
+    });
+
+    return res.data;
+  },
+
+  // ✅ Update PER-ITEM PO NO
+  updatePerItemPoNo: async (
+    id: number,
+    payload: {
+      item_index: number;
+      po_no: string;
+      status?: string;
+    },
+  ): Promise<PurchaseReport> => {
+    const res = await api.patch(
+      `api/purchase-reports/${id}/items/po-no`,
+      payload,
+    );
+
+    return res.data;
+  },
+
+  // ✅ Approve WHOLE DOCUMENT PO
+  approveDocumentPoDate: async (
+    id: number,
+    payload: {
+      date: string;
+      status: "approved" | "canceled";
+    },
+  ): Promise<PurchaseReport> => {
+    const res = await api.patch(
+      `api/purchase-reports/${id}/po-approve-date`,
+      payload,
+    );
+
+    return res.data.report; // ← matches your controller response
+  },
+
+  // ✅ Approve PER-ITEM PO
+  approvePerItemPoDate: async (
+    id: number,
+    payload: {
+      item_index: number;
+      date: string;
+      status: "approved" | "canceled";
+    },
+  ): Promise<PurchaseReportItemPo> => {
+    const res = await api.patch(
+      `api/purchase-reports/${id}/items/po-approve-date`,
+      payload,
+    );
+
+    return res.data.item_po;
   },
 };

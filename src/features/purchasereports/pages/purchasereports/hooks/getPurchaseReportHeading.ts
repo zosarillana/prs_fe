@@ -31,7 +31,6 @@ export function getPurchaseReportHeading({
   if (prStatusTerm === "on_hold_return") return "On Hold For Edit PRs";
   if (statusTerm === "for_approval" || prStatusTerm === "for_approval")
     return "For Purchase Order Creation";
-  if (statusTerm === "partial_po") return "Partial PO";
   if (forCeoApproval) return "For PO Approval";
   if (forPoApproval) return "For Purchase Order Creation";
   if (approvedPo) return "Approved POs";

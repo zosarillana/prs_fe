@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 interface RemarkPrDialogProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: (remark: string) => void;
+  onConfirm: (remark: string, asRole?: "technical_reviewer" | "hod" | "both") => void;
   action: "approve" | "reject" | "approve_to_review" | "return";
 }
 

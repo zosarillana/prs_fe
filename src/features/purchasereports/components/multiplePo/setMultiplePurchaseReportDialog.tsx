@@ -6,23 +6,24 @@ import { Button } from "@/components/ui/button";
 import { TableSkeletonPrInput } from "@/components/ui/skeletons/purchasereports/tableSkeletonPrInput";
 import { File } from "lucide-react";
 import { RemarkPrDialog } from "../workflow/remarkPrDialog";
-import { PurchaseReportItemsTable } from "./table/viewPurchaseReportDialogTable";
-import { useViewPurchaseReportDialog } from "./hooks/useViewPurchaseReportDialog";
-import { SignatureSection } from "./components/SignatureSection";
+import { SetMultiplePurchaseReportTable } from "./table/setMultiplePurchaseReportTable";
+import { useSetMultiplePurchaseReportDialog } from "./hooks/useSetMultiplePurchaseReportDialog";
+import { SetMultiplePoSignatureSection } from "./components/setMultiplePurchaseReportSignature";
+import { DrApproveDialog } from "../workflow/drApproveDialog";
 
-interface ViewPurchaseReportDialogProps {
+interface SetMultiplePurchaseReportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   prId: number | null;
   onSuccess?: () => void;
 }
 
-export function ViewPurchaseReportDialog({
+export function SetMultiplePurchaseReportDialogProps({
   open,
   onOpenChange,
   prId,
   onSuccess,
-}: ViewPurchaseReportDialogProps) {
+}: SetMultiplePurchaseReportDialogProps) {
   const {
     user,
     API_BASE_URL,
@@ -41,6 +42,7 @@ export function ViewPurchaseReportDialog({
     isIndeterminate,
     allSelected,
     canSelectItem,
+    canSelectItemMultiple,
     bulkAction,
     isExporting,
     isAdmin,
@@ -48,9 +50,40 @@ export function ViewPurchaseReportDialog({
     isTechnicalReviewer,
     hasBothRoles,
     truncate,
+    setReport,
+    approveDialogOpen,
+    setApproveDialogOpen,
+    approveTargetId,
+    approveItemPoMutation,
     downloadPaginatedPDF,
-  } = useViewPurchaseReportDialog(prId, open);
+    openApproveDialog,
+    setApproveTargetId,
+    approveItemPoById,
+    approveBulkItemPoByIndices, // ✅ Add this
+    bulkApproveIndices, // ✅ Add this
+    openBulkApproveDialog, // ✅ Add this
+  } = useSetMultiplePurchaseReportDialog(prId, open);
 
+  // ✅ Single item approve handler
+  const handleApprovePoClick = (itemIndex: number) => {
+    if (!report?.item_pos) return;
+
+    const itemPo = report.item_pos.find((po) => po.item_index === itemIndex);
+
+    if (itemPo?.id) {
+      openApproveDialog(itemPo.id);
+    }
+  };
+
+  // ✅ Bulk approve handler - use the new helper
+  const handleBulkApprovePoClick = (itemIndices: number[]) => {
+    openBulkApproveDialog(itemIndices);
+  };
+
+  const openDocumentApproveDialog = () => {
+    setApproveTargetId(null); // null means document-level
+    setApproveDialogOpen(true);
+  };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[90%] overflow-auto">
@@ -65,7 +98,7 @@ export function ViewPurchaseReportDialog({
             </div>
 
             <p className="mt-3 text-lg text-center font-semibold mb-2">
-              PURCHASE REQUISITION SLIP
+              PURCHASE REQUISITION SLIP (SET MULTIPLE PO)
             </p>
 
             {loading ? (
@@ -76,14 +109,14 @@ export function ViewPurchaseReportDialog({
                   {/* Header Info */}
                   <div className="grid grid-cols-1 gap-4">
                     <div className="flex flex-row justify-between w-full">
-                      <div className="mt-6 w-1/2">
+                      <div className="mt-6">
                         <p>
                           <strong>Purpose:</strong> {report.pr_purpose}
                         </p>
                       </div>
 
                       <div className="-mt-24">
-                        <div className="flex flex-col gap-4 mt-12">
+                        <div className="flex flex-col items-start gap-4 mt-12">
                           <p className="mr-[43px]">
                             <strong>Series No:</strong> {report.series_no}
                           </p>
@@ -109,7 +142,7 @@ export function ViewPurchaseReportDialog({
 
                   {/* Items Table */}
                   <div className="overflow-hidden rounded-lg border text-card-foreground shadow">
-                    <PurchaseReportItemsTable
+                    <SetMultiplePurchaseReportTable
                       report={report}
                       user={user}
                       isExporting={isExporting}
@@ -121,30 +154,35 @@ export function ViewPurchaseReportDialog({
                       onBulkAction={bulkAction}
                       onItemAction={handleItemAction}
                       onHodTrAction={handleHodTrAction}
-                      canSelectItem={canSelectItem}
+                      canSelectItem={canSelectItemMultiple}
                       isAdmin={isAdmin}
                       isHod={isHod}
                       isTechnicalReviewer={isTechnicalReviewer}
                       hasBothRoles={hasBothRoles}
+                      onReportUpdate={(updatedReport) =>
+                        setReport(updatedReport)
+                      }
+                      onApprovePoClick={handleApprovePoClick} // ✅ Pass the handler
+                      onBulkApprovePoClick={handleBulkApprovePoClick} // ✅ Pass the handler
                     />
                   </div>
 
                   {/* Signature Sections */}
                   <div id="signature-section" className="grid grid-cols-1 h-48">
                     <div className="flex flex-row justify-between w-full gap-8">
-                      <SignatureSection
+                      <SetMultiplePoSignatureSection
                         title="Created By"
                         user={report.user}
                         date={report.created_at}
                         API_BASE_URL={API_BASE_URL}
                       />
-                      <SignatureSection
+                      <SetMultiplePoSignatureSection
                         title="Approved By"
                         user={report.hod_user_id}
                         date={report.hod_signed_at}
                         API_BASE_URL={API_BASE_URL}
                       />
-                      <SignatureSection
+                      <SetMultiplePoSignatureSection
                         title="Reviewed By"
                         user={report.tr_user_id}
                         date={report.tr_signed_at}
@@ -207,34 +245,21 @@ export function ViewPurchaseReportDialog({
           </DialogFooter>
         </div>
       </DialogContent>
-
-      {/* Remark Dialog */}
-      <RemarkPrDialog
-        open={openModal}
-        onClose={() => setOpenModal(false)}
-        action={actionType}
-        onConfirm={async (remark) => {
-          if (!report) return;
-
-          const pendingCount =
-            report.item_status?.filter(
-              (s: string) => s === "pending" || s === "pending_tr",
-            ).length ?? 0;
-
-          const asRole: "technical_reviewer" | "hod" | "both" | undefined =
-            pendingCount === 1
-              ? user?.role?.includes("hod")
-                ? "hod"
-                : user?.role?.includes("technical_reviewer")
-                  ? "technical_reviewer"
-                  : user?.role?.includes("admin")
-                    ? "both"
-                    : undefined
-              : undefined;
-
-          await confirmItemAction(remark, asRole);
-
-          if (onSuccess) onSuccess();
+      <DrApproveDialog
+        open={approveDialogOpen}
+        onClose={() => {
+          setApproveDialogOpen(false);
+          setApproveTargetId(null);
+        }}
+        onConfirm={({ date, status }) => {
+          // ✅ Check if we're in bulk mode first
+          if (bulkApproveIndices.length > 0) {
+            // Bulk approval: approve all selected indices with the same date
+            approveBulkItemPoByIndices(bulkApproveIndices, date, status);
+          } else if (approveTargetId !== null) {
+            // Single item approval: approve one item by its database ID
+            approveItemPoById(approveTargetId, date, status);
+          }
         }}
       />
     </Dialog>

@@ -6,23 +6,23 @@ import { Button } from "@/components/ui/button";
 import { TableSkeletonPrInput } from "@/components/ui/skeletons/purchasereports/tableSkeletonPrInput";
 import { File } from "lucide-react";
 import { RemarkPrDialog } from "../workflow/remarkPrDialog";
-import { PurchaseReportItemsTable } from "./table/viewPurchaseReportDialogTable";
-import { useViewPurchaseReportDialog } from "./hooks/useViewPurchaseReportDialog";
-import { SignatureSection } from "./components/SignatureSection";
+import { SetMultiplePurchaseReportTable } from "./table/setMultiplePurchaseReportTable";
+import { useSetMultiplePurchaseReportDialog } from "./hooks/useSetMultiplePurchaseReportDialog";
+import { SetMultiplePoSignatureSection } from "./components/setMultiplePurchaseReportSignature";
 
-interface ViewPurchaseReportDialogProps {
+interface SetMultiplePurchaseReportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   prId: number | null;
   onSuccess?: () => void;
 }
 
-export function ViewPurchaseReportDialog({
+export function SetMultiplePurchaseReportDialogProps({
   open,
   onOpenChange,
   prId,
   onSuccess,
-}: ViewPurchaseReportDialogProps) {
+}: SetMultiplePurchaseReportDialogProps) {
   const {
     user,
     API_BASE_URL,
@@ -49,7 +49,7 @@ export function ViewPurchaseReportDialog({
     hasBothRoles,
     truncate,
     downloadPaginatedPDF,
-  } = useViewPurchaseReportDialog(prId, open);
+  } = useSetMultiplePurchaseReportDialog(prId, open);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -65,7 +65,7 @@ export function ViewPurchaseReportDialog({
             </div>
 
             <p className="mt-3 text-lg text-center font-semibold mb-2">
-              PURCHASE REQUISITION SLIP
+              PURCHASE REQUISITION SLIP (SET MULTIPLE PO)
             </p>
 
             {loading ? (
@@ -76,21 +76,21 @@ export function ViewPurchaseReportDialog({
                   {/* Header Info */}
                   <div className="grid grid-cols-1 gap-4">
                     <div className="flex flex-row justify-between w-full">
-                      <div className="mt-6 w-1/2">
+                      <div className="mt-6">
                         <p>
                           <strong>Purpose:</strong> {report.pr_purpose}
                         </p>
                       </div>
 
                       <div className="-mt-24">
-                        <div className="flex flex-col gap-4 mt-12">
-                          <p className="mr-[43px]">
+                        <div className="flex flex-col items-start gap-4 mt-12">
+                          <p>
                             <strong>Series No:</strong> {report.series_no}
                           </p>
-                          <p className="mr-[43px]">
+                          <p>
                             <strong>SAP PR:</strong> {report.sap_id || "—"}
                           </p>
-                          <p className="mr-[43px]">
+                          <p>
                             <strong>Date:</strong> {report.date_submitted}
                           </p>
                         </div>
@@ -109,7 +109,7 @@ export function ViewPurchaseReportDialog({
 
                   {/* Items Table */}
                   <div className="overflow-hidden rounded-lg border text-card-foreground shadow">
-                    <PurchaseReportItemsTable
+                    <SetMultiplePurchaseReportTable
                       report={report}
                       user={user}
                       isExporting={isExporting}
@@ -131,20 +131,20 @@ export function ViewPurchaseReportDialog({
 
                   {/* Signature Sections */}
                   <div id="signature-section" className="grid grid-cols-1 h-48">
-                    <div className="flex flex-row justify-between w-full gap-8">
-                      <SignatureSection
+                   <div className="flex flex-row justify-between w-full gap-8">
+                      <SetMultiplePoSignatureSection
                         title="Created By"
                         user={report.user}
                         date={report.created_at}
                         API_BASE_URL={API_BASE_URL}
                       />
-                      <SignatureSection
+                      <SetMultiplePoSignatureSection
                         title="Approved By"
                         user={report.hod_user_id}
                         date={report.hod_signed_at}
                         API_BASE_URL={API_BASE_URL}
                       />
-                      <SignatureSection
+                      <SetMultiplePoSignatureSection
                         title="Reviewed By"
                         user={report.tr_user_id}
                         date={report.tr_signed_at}

@@ -64,7 +64,8 @@ export const StatusFilterDropdown: React.FC<Props> = ({
 
   const getOptions = () => {
     const canSeeAllStatuses =
-      user?.role?.includes("hod") && user?.role?.includes("purchasing");
+      user?.role?.includes("admin") ||
+      (user?.role?.includes("hod") && user?.role?.includes("purchasing"));
 
     if (canSeeAllStatuses) {
       return [
@@ -79,6 +80,7 @@ export const StatusFilterDropdown: React.FC<Props> = ({
         { value: "returned", label: "Returned" },
         { value: "closed", label: "Closed" },
         { value: "on_hold_return", label: "On hold For Edit" },
+        { value: "partial_po", label: "Partial PO" },
         { value: "drafted", label: "Drafted" },
       ];
     } else if (user?.role?.includes("hod")) {
@@ -90,6 +92,7 @@ export const StatusFilterDropdown: React.FC<Props> = ({
         { value: "Rejected", label: "Rejected" },
         { value: "returned", label: "Returned" },
         { value: "on_hold_return", label: "On Hold For Edit" },
+        { value: "partial_po", label: "Partial PO" },
         { value: "drafted", label: "Drafted" },
       ];
     } else if (user?.role?.includes("tr")) {
@@ -111,6 +114,7 @@ export const StatusFilterDropdown: React.FC<Props> = ({
         { value: "returned", label: "Returned" },
         { value: "closed", label: "Closed" },
         { value: "on_hold_return", label: "On Hold For Edit" },
+        { value: "partial_po", label: "Partial PO" },
         { value: "drafted", label: "Drafted" },
       ];
     } else {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Table,
   TableBody,
@@ -40,21 +40,34 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import type { PurchaseReport } from "@/features/purchasereports/types";
 import { Tag } from "@/features/tags/types";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
+import { ChevronsUpDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Props {
   items: PurchaseReport;
   uoms: { id: number; description: string }[];
   tags: Tag[];
-  user: any; // for bulk dropdown logic
-  report?: any; // for bulk dropdown logic
+  user: any;
+  report?: any;
   bulkAction: (action: "approve" | "remove", indices: number[]) => void;
-
   onChange: (
     index: number,
     field: "quantity" | "unit" | "item_description" | "tag",
     value: string,
   ) => void;
-
   onApproveEdit: (index: number) => void;
   onRemoveRow: (index: number) => void;
 }
@@ -76,8 +89,7 @@ export function EditPurchaseReportDialogTable({
     setSelectedItems([]);
   }, [items]);
 
-  // const isIndeterminate =
-  //   selectedItems.length > 0 && selectedItems.length < totalRows;
+
 
   const isSelectableStatus = (status?: string) =>
     status === "return" || status === "returned";
@@ -121,16 +133,13 @@ export function EditPurchaseReportDialogTable({
     <Table className="border-separate border-spacing-0 w-full [&_td]:p-3 [&_th]:p-3">
       <TableHeader>
         <TableRow>
-          {/* ✅ Select All + Dropdown */}
           <TableHead className="border-b w-12 print:hidden">
             <div className="flex items-center justify-start">
               <Checkbox
                 checked={
                   allSelected ? true : isIndeterminate ? "indeterminate" : false
                 }
-                onCheckedChange={(checked) =>
-                  toggleAll(checked === true)
-                }
+                onCheckedChange={(checked) => toggleAll(checked === true)}
               />
 
               <DropdownMenu>
@@ -159,29 +168,6 @@ export function EditPurchaseReportDialogTable({
                     <X className="mr-2 h-4 w-4" />
                     Remove Selected
                   </DropdownMenuItem>
-                  {/* <DropdownMenuItem
-                    onClick={() => bulkAction("approve")}
-                    disabled={
-                      selectedItems.length === 0 || // No items selected
-                      !(user?.role === "user" || user?.role === "admin") || // Only user or admin
-                      report?.status !== "return : returned" // Status must be "return : returned"
-                    }
-                  >
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Approve Selected
-                  </DropdownMenuItem>
-
-                  <DropdownMenuItem
-                    onClick={() => bulkAction("remove")}
-                    disabled={
-                      selectedItems.length === 0 || // No items selected
-                      !(user?.role === "user" || user?.role === "admin") || // Only user or admin
-                      report?.status !== "return : returned" // Status must be "return : returned"
-                    }
-                  >
-                    <X className="mr-2 h-4 w-4" />
-                    Reject Selected
-                  </DropdownMenuItem> */}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -213,7 +199,6 @@ export function EditPurchaseReportDialogTable({
 
           return (
             <TableRow key={idx}>
-              {/* ✅ Row Checkbox */}
               <TableCell className="text-start">
                 <Checkbox
                   checked={selectedItems.includes(idx)}
@@ -276,21 +261,47 @@ export function EditPurchaseReportDialogTable({
               </TableCell>
 
               <TableCell>
-                <Select
-                  value={tagId}
-                  onValueChange={(val) => onChange(idx, "tag", val)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select tag" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {uniqueTags.map((tag) => (
-                      <SelectItem key={tag.id} value={String(tag.id)}>
-                        {tag.description ?? "Unnamed tag"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between"
+                    >
+                      {currentTag?.description ?? "Select tag..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search tag..." />
+                      <CommandList>
+                        <CommandEmpty>No tag found.</CommandEmpty>
+                        <CommandGroup>
+                          {tags.map((tag) => (
+                            <CommandItem
+                              key={tag.id}
+                              value={tag.description ?? ""}
+                              onSelect={() =>
+                                onChange(idx, "tag", String(tag.id))
+                              }
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  String(currentTag?.id) === String(tag.id)
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {tag.description}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </TableCell>
 
               <TableCell className="text-center">

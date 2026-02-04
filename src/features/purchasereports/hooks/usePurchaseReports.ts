@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Uom } from "@/features/uom/types";
 import { uomService } from "@/features/uom/uomService";
-import { format } from "date-fns";
+import { format, set } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
 export function usePurchaseReports() {
@@ -21,6 +21,9 @@ export function usePurchaseReports() {
   const queryClient = useQueryClient();
 
   // UI State
+  const [sapDialogOpen, setSapDialogOpen] = useState(false);
+  const [sapTargetId, setSapTargetId] = useState<number | null>(null);
+
   const [poDialogOpen, setPoDialogOpen] = useState(false);
   const [poTargetId, setPoTargetId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
@@ -35,8 +38,13 @@ export function usePurchaseReports() {
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const debouncedStatusTerm = useDebounce(statusTerm, 300); // debounce for smoother UX
   const debouncedPrStatusTerm = useDebounce(prStatusTerm, 300); // ✅ NEW
+
   const [open, setOpen] = useState(false);
   const [viewId, setViewId] = useState<number | null>(null);
+
+  const [openMultiple, setOpenMultiple] = useState(false);
+  const [viewIdMultiple, setViewIdMultiple] = useState<number | null>(null);
+
   const [editOpen, setEditOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
@@ -106,36 +114,50 @@ export function usePurchaseReports() {
 
   const updatePoMutation = useMutation({
     mutationFn: ({ id, po_no }: { id: number; po_no: string }) =>
-      purchaseReportService.updatePoNo(id, po_no),
+      purchaseReportService.updateDocumentPoNo(id, po_no),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["purchaseReports"] });
     },
     onError: () => toast.error("Failed to update PO number"),
   });
 
+  const updateSapMutation = useMutation({
+    mutationFn: ({ id, sap_id }: { id: number; sap_id: string }) =>
+      purchaseReportService.updateSapId(id, sap_id),
+
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["purchaseReports"] });
+      toast.success("SAP ID updated successfully 🎉");
+    },
+
+    onError: () => toast.error("Failed to update SAP ID"),
+  });
+
   const approvePoMutation = useMutation({
     mutationFn: ({
       id,
       date,
-
       status,
     }: {
       id: number;
       date: string;
-      status: string;
-    }) => purchaseReportService.poApproveDate(id, { date, status }),
+      status: "approved" | "canceled";
+    }) =>
+      purchaseReportService.approveDocumentPoDate(id, {
+        date,
+        status,
+      }),
 
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["purchaseReports"] });
-      toast.success("PO approved successfully 🎉");
+      toast.success("PO approval updated 🎉");
     },
 
     onError: (error: any) => {
-      // Try to extract a readable error message
       const errorMessage =
-        error?.response?.data?.error || // Axios-style error
-        error?.message || // JS Error object
-        "Failed to approve PO"; // Fallback
+        error?.response?.data?.error ||
+        error?.message ||
+        "Failed to update PO approval";
 
       toast.error(errorMessage);
     },
@@ -145,6 +167,11 @@ export function usePurchaseReports() {
   const handleView = (id: number) => {
     setViewId(id);
     setOpen(true);
+  };
+
+  const handleViewMultiple = (id: number) => {
+    setViewIdMultiple(id);
+    setOpenMultiple(true);
   };
 
   const navigate = useNavigate();
@@ -224,6 +251,11 @@ export function usePurchaseReports() {
     });
   };
 
+  const handleSetSap = (id: number) => {
+    setSapTargetId(id);
+    setSapDialogOpen(true);
+  };
+
   const handleSetPo = (id: number) => {
     setPoTargetId(id);
     setPoDialogOpen(true);
@@ -296,6 +328,15 @@ export function usePurchaseReports() {
     setPoDialogOpen,
     poTargetId,
     handleSetPo,
+    handleSetSap,
+    sapDialogOpen,
+    setSapDialogOpen,
+    sapTargetId,
+    handleViewMultiple,
+    openMultiple,
+    setOpenMultiple,
+    viewIdMultiple,
+    updateSapId: updateSapMutation.mutate,
     setApproveTargetId,
     setApproveDialogOpen,
     approveDialogOpen,

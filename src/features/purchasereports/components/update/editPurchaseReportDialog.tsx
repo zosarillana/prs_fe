@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { TableSkeletonPrInput } from "@/components/ui/skeletons/purchasereports/tableSkeletonPrInput";
 import { useEditPurchaseReport } from "../../hooks/useEditPurcasheReport";
 import { useUoms } from "@/features/users/hooks/useUom";
+import { useTags } from "@/features/users/hooks/useTags"; // ✅ Import useTags
 import { EditPurchaseReportDialogTable } from "./table/editPurchaseReportDialogTable";
 import { useEditPurchaseReportDialog } from "./hooks/usePurchaseReortDialog";
 
@@ -25,6 +26,7 @@ interface Props {
 export function EditPurchaseReportDialog({ open, onOpenChange, prId }: Props) {
   const { report, loading } = useEditPurchaseReport(prId, open);
   const { uoms } = useUoms();
+  const { tags, loading: tagsLoading } = useTags(); // ✅ Fetch tags
 
   const {
     items,
@@ -64,7 +66,7 @@ export function EditPurchaseReportDialog({ open, onOpenChange, prId }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        {loading ? (
+        {loading || tagsLoading ? ( // ✅ Also check tagsLoading
           <TableSkeletonPrInput rows={3} />
         ) : items ? (
           <div className="space-y-4 text-sm">
@@ -92,10 +94,10 @@ export function EditPurchaseReportDialog({ open, onOpenChange, prId }: Props) {
               <EditPurchaseReportDialogTable
                 items={items}
                 uoms={uoms}
-                tags={items.tag}
-                user={user} // ✅ required
-                report={report} // optional, needed for disabling dropdown
-                bulkAction={bulkAction} // ✅ required
+                tags={tags} // ✅ Pass fetched tags
+                user={user}
+                report={report}
+                bulkAction={bulkAction}
                 onChange={handleChange}
                 onApproveEdit={handleApproveEdit}
                 onRemoveRow={handleRemoveRow}

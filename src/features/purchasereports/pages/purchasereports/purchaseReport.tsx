@@ -17,6 +17,8 @@ import { TagFilterDropdown } from "../../filters/dropdowns/tagFilterDropdown";
 import { TablePagination } from "../../filters/pagination/tablePagination";
 import { PurchaseReportTable } from "./tables/purchaseReportTable";
 import { Button } from "@/components/ui/button";
+import { SetSapDialog } from "../../components/workflow/setSapDialog";
+import { SetMultiplePurchaseReportDialogProps } from "../../components/multiplePo/setMultiplePurchaseReportDialog";
 export default function PurchaseReport() {
   const {
     user,
@@ -30,16 +32,24 @@ export default function PurchaseReport() {
     open,
     setOpen,
     viewId,
+    openMultiple,
+    setOpenMultiple,
+    viewIdMultiple,
     searchTerm,
     setSearchTerm,
     handleView,
+    handleViewMultiple,
     handleEdit,
     editOpen,
     setEditOpen,
     editId,
     handleDelete,
     refetch,
+    handleSetSap,
+    sapDialogOpen,
+    setSapDialogOpen,
     handleSetPo,
+    sapTargetId,
     poDialogOpen,
     setPoDialogOpen,
     poTargetId,
@@ -177,9 +187,11 @@ export default function PurchaseReport() {
           approvedPo={approvedPo}
           statusMap={STATUS_MAP}
           handleView={handleView}
+          handleViewMultiple={handleViewMultiple}
           handleEdit={handleEdit}
           handleDelete={handleDelete}
           handleSetPo={handleSetPo}
+          handleSetSap={handleSetSap}
           handleCopyToNew={handleCopyToNew}
           handleViewDraft={handleViewDraft}
           cancelPoMutation={cancelPoMutation}
@@ -214,6 +226,12 @@ export default function PurchaseReport() {
         prId={viewId}
         onSuccess={refetch}
       />
+      <SetMultiplePurchaseReportDialogProps
+        open={openMultiple}
+        onOpenChange={setOpenMultiple}
+        prId={viewIdMultiple}
+        onSuccess={refetch}
+      />
       <EditPurchaseReportDialog
         open={editOpen}
         onOpenChange={setEditOpen}
@@ -223,6 +241,12 @@ export default function PurchaseReport() {
         open={poDialogOpen}
         onOpenChange={setPoDialogOpen}
         reportId={poTargetId}
+        onSuccess={refetch}
+      />
+      <SetSapDialog
+        open={sapDialogOpen}
+        onOpenChange={setSapDialogOpen}
+        reportId={sapTargetId}
         onSuccess={refetch}
       />
       <DrApproveDialog

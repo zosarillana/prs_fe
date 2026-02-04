@@ -1,94 +1,62 @@
 import { useEffect, useState } from "react";
-import { PurchaseReport } from "../../types";
-import { purchaseReportService } from "../../purchaseReportService";
-import { toast } from "sonner";
-// import { useAuthStore } from "@/store/auth/authStore";
-import { authRoles } from "@/store/auth/authRoles"; // adjust path
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
+import { authRoles } from "@/store/auth/authRoles";
+
+// Import modularized hooks and utilities
+import { useBulkSelection } from "./actionhooks/useBulkSelection";
+import { useGetPurchaseReport } from "./actionhooks/useGetPurchaseReport";
+import { confirmItemAction } from "./actions/itemActionHandlers";
+import { canSelectItem } from "./actions/itemPermission";
+import { isItemProcessed, isDropdownDisabled } from "./actions/permission";
+import { exportStandardPdf } from "./pdf/exportStandardPdf";
+import { exportPaginatedPdf } from "./pdf/exportPaginatedPdf";
+import { exportSimplePdf } from "./pdf/exportSimplePdf";
+import { bulkUpdateItems } from "./actions/bulkActions";
 
 export function useViewPurchaseReport(
   prId: number | null,
   open: boolean,
   onSuccess?: () => void
 ) {
-  const [report, setReport] = useState<PurchaseReport | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Auth & User
+  const { user, isAdmin, isHod, isTechnicalReviewer, hasBothRoles } = authRoles();
+
+  // Report data management
+  const { report, setReport, loading, fetchReport } = useGetPurchaseReport(prId, open);
+
+  // Modal state
   const [openModal, setOpenModal] = useState(false);
   const [actionType, setActionType] = useState<
     "approve" | "reject" | "approve_to_review" | "return"
   >("approve");
   const [currentItemIndex, setCurrentItemIndex] = useState<number>(0);
-  // const user = useAuthStore((state) => state.user);
-  const { user, isAdmin, isHod, isTechnicalReviewer, hasBothRoles } =
-    authRoles();
+
+  // PDF export state
   const [isExporting, setIsExporting] = useState(false);
 
-  const [selectedItems, setSelectedItems] = useState<number[]>([]);
-
-  const toggleItem = (idx: number, checked: boolean) => {
-    setSelectedItems((prev) =>
-      checked ? [...prev, idx] : prev.filter((i) => i !== idx)
-    );
-  };
-
+  // Calculate selectable indexes based on permissions
   const selectableIndexes = (report?.item_status ?? [])
     .map((status, idx) => {
       const itemTag = report?.tag?.[idx];
       const itemDepartment = itemTag?.department as unknown as string;
+      const tagDescription = itemTag?.description ?? "";
 
-      // ❌ Skip items with _tr tags
-      const hasTrTag = itemTag?.description?.endsWith("_tr");
-      if (hasTrTag) {
+      // Skip _tr items that aren't pending_tr
+      if (tagDescription.endsWith("_tr") && status !== "pending_tr") {
         return null;
       }
 
-      const isAdmin = user?.role?.includes("admin");
-      const isHOD = user?.role?.includes("hod");
-      const isPurchasing = user?.role?.includes("purchasing");
-      const isTechnicalReviewer = user?.role?.includes("technical_reviewer");
+      if (!user) return null;
 
-      // ✅ If item is office_items, bypass department checks
       const isOfficeItems = itemDepartment === "office_items";
 
-      // Check if user has HOD role (with or without purchasing, but not admin)
-      const isHODRole = isHOD && !isAdmin;
-
-      // Check if user has Technical Reviewer role (but not admin)
-      const isTRRole = isTechnicalReviewer && !isAdmin;
-
-      // For HOD role: check if item's department matches user's department (skip for office_items)
-      const hodCanAccess =
-        !isHODRole ||
-        isOfficeItems ||
-        (itemDepartment && user?.department?.includes(itemDepartment));
-
-      // For Technical Reviewer role: check if item's department matches user's department (skip for office_items)
-      const trCanAccess =
-        !isTRRole ||
-        isOfficeItems ||
-        (itemDepartment && user?.department?.includes(itemDepartment));
-
-      // Combined department access check (admins and office_items bypass this)
-      const canAccessItem = hodCanAccess && trCanAccess;
-
-      // If user cannot access this item due to department mismatch, skip it
-      if (!canAccessItem) {
-        return null;
-      }
-
-      // ✅ Admin or Technical Reviewer can select technical review items
-      if (status === "pending_tr" && (isTechnicalReviewer || isAdmin)) {
-        return idx;
-      }
-
-      // ✅ Admin or HOD can select normal approval items
-      if (status === "pending" && (isHOD || isAdmin)) {
-        return idx;
-      }
-
-      // ✅ Admin, HOD, or Technical Reviewer can select returned items
-      if (status === "returned" && (isAdmin || isHOD || isTechnicalReviewer)) {
+      if (
+        canSelectItem({
+          user,
+          status,
+          itemDepartment,
+          tagDescription,
+        })
+      ) {
         return idx;
       }
 
@@ -96,693 +64,83 @@ export function useViewPurchaseReport(
     })
     .filter((idx): idx is number => idx !== null);
 
-  const allSelected =
-    selectableIndexes.length > 0 &&
-    selectedItems.length === selectableIndexes.length;
+  // Bulk selection management
+  const {
+    selectedItems,
+    setSelectedItems,
+    toggleItem,
+    toggleAll,
+    allSelected,
+    isIndeterminate,
+  } = useBulkSelection(selectableIndexes);
 
-  const isIndeterminate =
-    selectedItems.length > 0 && selectedItems.length < selectableIndexes.length;
+  // Clear selections when modal closes
+  useEffect(() => {
+    if (!open) {
+      setSelectedItems([]);
+    }
+  }, [open, setSelectedItems]);
 
-  const toggleAll = (checked: boolean) => {
-    setSelectedItems(checked ? selectableIndexes : []);
-  };
+  // Helper to check if an item can be selected
+  const canSelectItemWrapper = (idx: number) => {
+    if (!report || !user) return false;
 
-  const canSelectItem = (idx: number) => {
-    const status = report?.item_status?.[idx];
-    const itemTag = report?.tag?.[idx];
+    const status = report.item_status?.[idx];
+    const itemTag = report.tag?.[idx];
     const itemDepartment = itemTag?.department as unknown as string;
+    const tagDescription = itemTag?.description ?? "";
 
     if (!status) return false;
 
-    // ❌ Items with _tr tags are NOT selectable
-    const hasTrTag = itemTag?.description?.endsWith("_tr");
-    if (hasTrTag) {
+    // _tr items that aren't pending_tr are not selectable
+    if (tagDescription.endsWith("_tr") && status !== "pending_tr") {
       return false;
     }
 
-    // ✅ Items with pending_tr status are NOT selectable
-    if (status === "pending_tr") return false;
-
-    const isAdmin = user?.role?.includes("admin");
-    const isHOD = user?.role?.includes("hod");
-    const isPurchasing = user?.role?.includes("purchasing");
-    const isTechnicalReviewer = user?.role?.includes("technical_reviewer");
-
-    // ✅ If item is office_items, bypass department checks
     const isOfficeItems = itemDepartment === "office_items";
 
-    // Check if user has HOD role (with or without purchasing, but not admin)
-    const isHODRole = isHOD && !isAdmin;
-
-    // Check if user has Technical Reviewer role (but not admin)
-    const isTRRole = isTechnicalReviewer && !isAdmin;
-
-    // For HOD role: check if item's department matches user's department (skip for office_items)
-    const hodCanAccess =
-      !isHODRole ||
-      isOfficeItems ||
-      (itemDepartment && user?.department?.includes(itemDepartment));
-
-    // For Technical Reviewer role: check if item's department matches user's department (skip for office_items)
-    const trCanAccess =
-      !isTRRole ||
-      isOfficeItems ||
-      (itemDepartment && user?.department?.includes(itemDepartment));
-
-    // Combined department access check (admins and office_items bypass this)
-    const canAccessItem = hodCanAccess && trCanAccess;
-
-    // If user cannot access this item due to department mismatch, return false
-    if (!canAccessItem) {
-      return false;
-    }
-
-    // ✅ Admin or HOD can select items waiting for HOD approval
-    if (status === "pending" && (isHOD || isAdmin)) {
-      return true;
-    }
-
-    // ✅ Admin, HOD, or Technical Reviewer can select returned items
-    if (status === "returned" && (isAdmin || isHOD || isTechnicalReviewer)) {
-      return true;
-    }
-
-    return false;
+    return canSelectItem({
+      user,
+      status,
+      itemDepartment,
+      tagDescription,
+    });
   };
 
+  // Bulk action handler
   const bulkAction = async (
     action: "approve" | "reject",
     remark: string = ""
   ) => {
     if (!report || selectedItems.length === 0 || !user?.id) return;
 
-    toast.promise(
-      Promise.all(
-        selectedItems.map(async (idx) => {
-          const status = report.item_status?.[idx];
-          const tagDescription = report.tag?.[idx]?.description ?? "";
-
-          const isAdmin = user?.role?.includes("admin");
-          const isHod = user?.role?.includes("hod");
-          const isTechnicalReviewer =
-            user?.role?.includes("technical_reviewer");
-
-          // ✅ Skip already processed items
-          if (status === "approved" || status === "rejected") return;
-
-          // ✅ Determine effective role
-          let effectiveRole: "technical_reviewer" | "hod" | "both" | undefined;
-
-          if (isAdmin) {
-            // ✅ Admin can act as TR for pending_tr items, otherwise as HOD
-            if (status === "pending_tr" && tagDescription.endsWith("_tr")) {
-              effectiveRole = "technical_reviewer";
-            } else if (status === "pending" && tagDescription.endsWith("_tr")) {
-              effectiveRole = "hod"; // Admin approving to review (setting to pending_tr)
-            } else {
-              effectiveRole = "hod"; // Normal HOD approval
-            }
-          } else if (isHod && isTechnicalReviewer) {
-            // ✅ User with both roles
-            if (status === "pending_tr") {
-              effectiveRole = "technical_reviewer";
-            } else {
-              effectiveRole = "hod";
-            }
-          } else if (isHod) {
-            effectiveRole = "hod";
-          } else if (isTechnicalReviewer) {
-            effectiveRole = "technical_reviewer";
-          }
-
-          // ✅ Determine status to set
-          let newStatus: "approved" | "rejected" | "pending_tr";
-
-          if (action === "approve") {
-            if (status === "pending_tr" && (isTechnicalReviewer || isAdmin)) {
-              // ✅ TR or Admin approving a pending_tr item
-              newStatus = "approved";
-            } else if (
-              tagDescription.endsWith("_tr") &&
-              status === "pending" &&
-              (isHod || isAdmin)
-            ) {
-              // ✅ HOD or Admin forwarding _tr item to TR
-              newStatus = "pending_tr";
-            } else {
-              // ✅ Normal approval
-              newStatus = "approved";
-            }
-          } else {
-            newStatus = "rejected";
-          }
-
-          // ✅ Send to backend
-          await purchaseReportService.updateItemStatus(
-            report.id,
-            idx,
-            newStatus,
-            remark,
-            effectiveRole,
-            user.id
-          );
-        })
-      ),
-      {
-        loading: "Processing selected items...",
-        success: async () => {
-          await fetchReport();
-          setSelectedItems([]);
-          return `Bulk ${action} completed successfully`;
-        },
-        error: "One or more updates failed",
-      }
-    );
+    await bulkUpdateItems({
+      report,
+      user,
+      selectedItems,
+      action,
+      remark,
+      fetchReport,
+      setSelectedItems,
+    });
   };
 
-  useEffect(() => {
-    if (open && prId) {
-      setLoading(true);
-      purchaseReportService
-        .getById(prId)
-        .then(setReport)
-        .catch((err) => {
-          console.error("Failed to fetch Purchase Request", err);
-          setReport(null);
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setReport(null);
-    }
-  }, [prId, open]);
-
-  const fetchReport = async () => {
-    if (!prId) return;
-    setLoading(true);
-    try {
-      const data = await purchaseReportService.getById(prId);
-      setReport(data);
-    } catch (err) {
-      console.error("Failed to refetch Purchase Request", err);
-      toast.error("Failed to fetch updated report");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Enhanced PDF export with better image handling
+  // PDF Export Functions
   const downloadPDF = async (ref: React.RefObject<HTMLElement | null>) => {
-    if (!ref.current) return;
-
-    try {
-      setIsExporting(true); // ⬅️ hide column
-      await new Promise((r) => setTimeout(r, 50)); // allow a repaint
-
-      // ⬇️ keep all your existing signature-image logic unchanged
-      const signatureImages = ref.current.querySelectorAll(
-        'img[alt*="signature"]'
-      ) as NodeListOf<HTMLImageElement>;
-
-      const imagePromises = Array.from(signatureImages).map(async (img) => {
-        // … your existing conversion code …
-      });
-
-      await Promise.all(imagePromises);
-      await new Promise((r) => setTimeout(r, 1000));
-
-      const canvas = await html2canvas(ref.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        allowTaint: false,
-        imageTimeout: 0,
-        removeContainer: true,
-        ignoreElements: (el) =>
-          el.tagName === "SCRIPT" || el.tagName === "NOSCRIPT",
-        onclone: (doc) => {
-          doc.querySelectorAll("img").forEach((img: HTMLImageElement) => {
-            img.style.maxWidth = "none";
-            img.style.maxHeight = "none";
-            img.style.objectFit = "contain";
-          });
-        },
-      });
-
-      const imgData = canvas.toDataURL("image/png", 0.95);
-      const pdf = new jsPDF("p", "mm", "a4");
-      const margin = 10;
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const contentWidth = pageWidth - margin * 2;
-      const contentHeight = pageHeight - margin * 2;
-      const imgProps = pdf.getImageProperties(imgData);
-      const imgHeight = (imgProps.height * contentWidth) / imgProps.width;
-
-      if (imgHeight > contentHeight) {
-        const totalPages = Math.ceil(imgHeight / contentHeight);
-        for (let page = 0; page < totalPages; page++) {
-          if (page > 0) pdf.addPage();
-          const yOffset = -(page * contentHeight);
-          pdf.addImage(
-            imgData,
-            "PNG",
-            margin,
-            margin + yOffset,
-            contentWidth,
-            imgHeight
-          );
-        }
-      } else {
-        pdf.addImage(imgData, "PNG", margin, margin, contentWidth, imgHeight);
-      }
-
-      // ✅ Updated file name
-      const seriesNo = report?.series_no ?? "Unknown";
-      pdf.save(`PR - ${seriesNo}.pdf`);
-
-      toast.success("PDF downloaded successfully!");
-    } catch (error) {
-      console.error("Failed to generate PDF:", error);
-      toast.error("Failed to generate PDF. Please try again.");
-    } finally {
-      setIsExporting(false); // ⬅️ restore column
-    }
+    await exportStandardPdf({ ref, report, setIsExporting });
   };
 
-  // Alternative simpler method - sometimes less is more
-  const downloadPDFSimple = async (
-    ref: React.RefObject<HTMLElement | null>
-  ) => {
-    if (!ref.current) return;
-
-    try {
-      setIsExporting(true);
-      await new Promise((r) => setTimeout(r, 50));
-
-      // Wait for images
-      const images = ref.current.querySelectorAll(
-        "img"
-      ) as NodeListOf<HTMLImageElement>;
-      const imagePromises = Array.from(images).map(
-        (img) =>
-          new Promise<void>((resolve) => {
-            if (img.complete) resolve();
-            else {
-              img.onload = () => resolve();
-              img.onerror = () => resolve();
-              setTimeout(() => resolve(), 5000);
-            }
-          })
-      );
-
-      await Promise.all(imagePromises);
-
-      const canvas = await html2canvas(ref.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        allowTaint: false,
-        imageTimeout: 0,
-        removeContainer: true,
-        onclone: (clonedDoc) => {
-          // Fix image sizing
-          clonedDoc.querySelectorAll("img").forEach((img) => {
-            const htmlImg = img as HTMLImageElement;
-            htmlImg.style.maxWidth = "none";
-            htmlImg.style.maxHeight = "none";
-            htmlImg.style.objectFit = "contain";
-          });
-
-          // ✅ Preserve spacing and layout
-          clonedDoc.querySelectorAll("table").forEach((table) => {
-            const htmlTable = table as HTMLElement;
-            htmlTable.style.borderCollapse = "separate";
-            htmlTable.style.borderSpacing = "0";
-          });
-
-          // ✅ Fix ALL elements inside table cells
-          clonedDoc.querySelectorAll("td, th").forEach((cell) => {
-            const htmlCell = cell as HTMLElement;
-            const computed = window.getComputedStyle(htmlCell);
-
-            // ✅ Add vertical padding of 12px to tbody cells only
-            if (htmlCell.closest("tbody")) {
-              htmlCell.style.paddingTop = "6px";
-              htmlCell.style.paddingBottom = "20px";
-              // Preserve horizontal padding from computed styles
-              htmlCell.style.paddingLeft = computed.paddingLeft;
-              htmlCell.style.paddingRight = computed.paddingRight;
-            } else {
-              htmlCell.style.padding = computed.padding;
-            }
-
-            htmlCell.style.border = computed.border;
-            htmlCell.style.verticalAlign = "middle";
-
-            // ✅ CRITICAL: Remove ALL margins from elements inside cells
-            htmlCell.querySelectorAll("*").forEach((child) => {
-              const htmlChild = child as HTMLElement;
-              htmlChild.style.margin = "0 !important";
-              htmlChild.style.marginTop = "0";
-              htmlChild.style.marginBottom = "0";
-              htmlChild.style.marginLeft = "0";
-              htmlChild.style.marginRight = "0";
-            });
-
-            // ✅ Also fix the cell's direct children (p, div, etc)
-            Array.from(htmlCell.children).forEach((child) => {
-              const htmlChild = child as HTMLElement;
-              htmlChild.style.margin = "0";
-            });
-          });
-
-          // ✅ Preserve spacing for non-table elements
-          clonedDoc.querySelectorAll("*").forEach((el) => {
-            const htmlEl = el as HTMLElement;
-
-            // Skip table cells and their contents
-            if (htmlEl.closest("td") || htmlEl.closest("th")) {
-              return;
-            }
-
-            const computed = window.getComputedStyle(htmlEl);
-            if (computed.margin !== "0px") {
-              htmlEl.style.margin = computed.margin;
-            }
-            if (computed.padding !== "0px") {
-              htmlEl.style.padding = computed.padding;
-            }
-          });
-        },
-      });
-
-      const imgData = canvas.toDataURL("image/png", 0.95);
-      const pdf = new jsPDF("p", "mm", "a4");
-
-      const margin = 10;
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const contentWidth = pageWidth - margin * 2;
-      const imgProps = pdf.getImageProperties(imgData);
-      const imgHeight = (imgProps.height * contentWidth) / imgProps.width;
-
-      pdf.addImage(imgData, "PNG", margin, margin, contentWidth, imgHeight);
-
-      const seriesNo = report?.series_no ?? "Unknown";
-      pdf.save(`PR - ${seriesNo}.pdf`);
-
-      toast.success("PDF downloaded successfully!");
-    } catch (error) {
-      console.error("Failed to generate PDF:", error);
-      toast.error("Failed to generate PDF. Please try again.");
-    } finally {
-      setIsExporting(false);
-    }
+  const downloadPDFSimple = async (ref: React.RefObject<HTMLElement | null>) => {
+    await exportSimplePdf({ ref, report, setIsExporting });
   };
 
   const downloadPaginatedPDF = async (
     ref: React.RefObject<HTMLDivElement | null>
   ) => {
-    if (!ref.current) return;
-
-    setIsExporting(true);
-    await new Promise((r) => setTimeout(r, 80));
-
-    try {
-      const rows = Array.from(
-        ref.current.querySelectorAll("tbody tr")
-      ) as HTMLElement[];
-
-      const signatures = ref.current.querySelector(
-        "#signature-section"
-      ) as HTMLElement;
-
-      const headerSection = ref.current.querySelector(
-        ".flex.flex-col.items-center.mb-5"
-      )?.parentElement as HTMLElement;
-
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const contentWidth = pageWidth - 20;
-      const margin = 10;
-
-      // Available height for content (excluding margins and page number space)
-      const availableHeight = pageHeight - margin * 2 - 15; // 15mm for page number
-
-      // ✅ MEASURE HEADER HEIGHT FIRST
-      const tempContainer = document.createElement("div");
-      tempContainer.style.width = "800px";
-      tempContainer.style.padding = "20px";
-      tempContainer.style.position = "absolute";
-      tempContainer.style.left = "-9999px";
-      tempContainer.style.background = "white";
-
-      if (headerSection) {
-        const headerClone = document.createElement("div");
-
-        const logoSection = headerSection.querySelector(
-          ".flex.flex-col.items-center.mb-5"
-        );
-        if (logoSection) headerClone.appendChild(logoSection.cloneNode(true));
-
-        const title = headerSection.querySelector(
-          "p.mt-3.text-lg.text-center.font-semibold.mb-2"
-        );
-        if (title) headerClone.appendChild(title.cloneNode(true));
-
-        const infoSection = headerSection.querySelector(".space-y-4.text-sm");
-        if (infoSection) {
-          const infoClone = document.createElement("div");
-          infoClone.className = "space-y-4 text-sm mb-4";
-          const gridSection = infoSection.querySelector(
-            ".grid.grid-cols-1.gap-4"
-          );
-          if (gridSection) infoClone.appendChild(gridSection.cloneNode(true));
-          headerClone.appendChild(infoClone);
-        }
-
-        tempContainer.appendChild(headerClone);
-      }
-
-      // Add table header to measure
-      const headerClone = ref.current.querySelector("thead")?.cloneNode(true);
-      const tempTable = document.createElement("table");
-      tempTable.style.width = "100%";
-      if (headerClone) tempTable.appendChild(headerClone);
-      tempContainer.appendChild(tempTable);
-
-      document.body.appendChild(tempContainer);
-      await new Promise((r) => setTimeout(r, 10));
-
-      const headerCanvas = await html2canvas(tempContainer, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#fff",
-      });
-
-      const headerHeightPx = headerCanvas.height;
-      const headerHeightMm =
-        (headerHeightPx / headerCanvas.width) * contentWidth;
-
-      document.body.removeChild(tempContainer);
-
-      // ✅ MEASURE EACH ROW HEIGHT
-      const rowHeights: number[] = [];
-      for (const row of rows) {
-        const rowContainer = document.createElement("div");
-        rowContainer.style.width = "800px";
-        rowContainer.style.position = "absolute";
-        rowContainer.style.left = "-9999px";
-
-        const table = document.createElement("table");
-        table.style.width = "100%";
-        table.appendChild(row.cloneNode(true));
-        rowContainer.appendChild(table);
-
-        document.body.appendChild(rowContainer);
-        await new Promise((r) => setTimeout(r, 5));
-
-        const rowCanvas = await html2canvas(rowContainer, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: "#fff",
-        });
-
-        const rowHeightMm = (rowCanvas.height / rowCanvas.width) * contentWidth;
-        rowHeights.push(rowHeightMm);
-
-        document.body.removeChild(rowContainer);
-      }
-
-      // ✅ MEASURE SIGNATURE HEIGHT
-      let signatureHeightMm = 0;
-      if (signatures) {
-        const sigContainer = document.createElement("div");
-        sigContainer.style.width = "800px";
-        sigContainer.style.position = "absolute";
-        sigContainer.style.left = "-9999px";
-        sigContainer.appendChild(signatures.cloneNode(true));
-
-        document.body.appendChild(sigContainer);
-        await new Promise((r) => setTimeout(r, 10));
-
-        const sigCanvas = await html2canvas(sigContainer, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: "#fff",
-        });
-
-        signatureHeightMm =
-          (sigCanvas.height / sigCanvas.width) * contentWidth + 10; // +10mm margin
-        document.body.removeChild(sigContainer);
-      }
-
-      // ✅ DISTRIBUTE ROWS ACROSS PAGES BASED ON HEIGHT
-      const pages: number[][] = [];
-      let currentPage: number[] = [];
-      let currentHeight = headerHeightMm;
-
-      for (let i = 0; i < rows.length; i++) {
-        const isLastRow = i === rows.length - 1;
-        const rowHeight = rowHeights[i];
-        const requiredHeight = isLastRow
-          ? currentHeight + rowHeight + signatureHeightMm
-          : currentHeight + rowHeight;
-
-        if (requiredHeight > availableHeight && currentPage.length > 0) {
-          // Start new page
-          pages.push([...currentPage]);
-          currentPage = [i];
-          currentHeight = headerHeightMm + rowHeight;
-        } else {
-          currentPage.push(i);
-          currentHeight += rowHeight;
-        }
-      }
-
-      if (currentPage.length > 0) {
-        pages.push(currentPage);
-      }
-
-      // ✅ GENERATE PDF PAGES
-      const totalPages = pages.length;
-
-      for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
-        if (pageIdx > 0) pdf.addPage();
-
-        const pageContainer = document.createElement("div");
-        pageContainer.style.width = "800px";
-        pageContainer.style.padding = "20px";
-        pageContainer.style.background = "white";
-
-        // Add header
-        if (headerSection) {
-          const headerClone = document.createElement("div");
-
-          const logoSection = headerSection.querySelector(
-            ".flex.flex-col.items-center.mb-5"
-          );
-          if (logoSection) headerClone.appendChild(logoSection.cloneNode(true));
-
-          const title = headerSection.querySelector(
-            "p.mt-3.text-lg.text-center.font-semibold.mb-2"
-          );
-          if (title) headerClone.appendChild(title.cloneNode(true));
-
-          const infoSection = headerSection.querySelector(".space-y-4.text-sm");
-          if (infoSection) {
-            const infoClone = document.createElement("div");
-            infoClone.className = "space-y-4 text-sm mb-4";
-            const gridSection = infoSection.querySelector(
-              ".grid.grid-cols-1.gap-4"
-            );
-            if (gridSection) infoClone.appendChild(gridSection.cloneNode(true));
-            headerClone.appendChild(infoClone);
-          }
-
-          pageContainer.appendChild(headerClone);
-        }
-
-        // Add table with rows for this page
-        const tableHeader = ref.current.querySelector("thead")?.cloneNode(true);
-        const newTable = document.createElement("table");
-        newTable.style.width = "100%";
-        newTable.style.borderCollapse = "collapse";
-
-        if (tableHeader) newTable.appendChild(tableHeader);
-
-        const newBody = document.createElement("tbody");
-        pages[pageIdx].forEach((rowIdx) => {
-          newBody.appendChild(rows[rowIdx].cloneNode(true));
-        });
-
-        newTable.appendChild(newBody);
-        pageContainer.appendChild(newTable);
-
-        // Add signatures on last page
-        if (pageIdx === totalPages - 1 && signatures) {
-          const signatureClone = signatures.cloneNode(true) as HTMLElement;
-          signatureClone.style.marginTop = "40px";
-          pageContainer.appendChild(signatureClone);
-        }
-
-        document.body.appendChild(pageContainer);
-
-        // Wait for images
-        const images = pageContainer.querySelectorAll("img");
-        await Promise.all(
-          Array.from(images).map(
-            (img) =>
-              new Promise<void>((resolve) => {
-                if (img.complete) resolve();
-                else {
-                  img.onload = () => resolve();
-                  img.onerror = () => resolve();
-                  setTimeout(() => resolve(), 3000);
-                }
-              })
-          )
-        );
-
-        const canvas = await html2canvas(pageContainer, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: "#fff",
-          allowTaint: false,
-          imageTimeout: 0,
-        });
-
-        const imgData = canvas.toDataURL("image/png");
-        const imgProps = pdf.getImageProperties(imgData);
-        const imgHeight = (imgProps.height * contentWidth) / imgProps.width;
-
-        pdf.addImage(imgData, "PNG", margin, margin, contentWidth, imgHeight);
-
-        // ✅ Add page number at TOP RIGHT
-        pdf.setFontSize(10);
-        pdf.setTextColor(100, 100, 100);
-        pdf.text(
-          `Page ${pageIdx + 1} of ${totalPages}`,
-          pageWidth - margin,
-          margin + 5,
-          { align: "right" }
-        );
-
-        document.body.removeChild(pageContainer);
-      }
-
-      const seriesNo = report?.series_no ?? "Unknown";
-      pdf.save(`PR - ${seriesNo}.pdf`);
-      toast.success("PDF downloaded!");
-    } catch (error) {
-      console.error(error);
-      toast.error("PDF generation failed");
-    }
-
-    setIsExporting(false);
+    await exportPaginatedPdf({ ref, report, setIsExporting });
   };
 
-  // --- existing action handlers ---
+  // Item action handlers
   const handleItemAction = (
     index: number,
     action: "approve" | "reject" | "return"
@@ -792,187 +150,36 @@ export function useViewPurchaseReport(
     setOpenModal(true);
   };
 
-  // ✅ NEW: Opens modal for "Approve to Review" action with remark support
   const handleHodTrAction = (index: number) => {
     setCurrentItemIndex(index);
     setActionType("approve_to_review");
     setOpenModal(true);
   };
 
-  const confirmItemAction = async (
-    newRemark: string,
-    asRole?: "technical_reviewer" | "hod" | "both"
-  ) => {
+  const confirmItemActionWrapper = async (newRemark: string) => {
     if (!report) return;
 
-    const currentStatus = report.item_status?.[currentItemIndex];
-    const tagDescription = report.tag?.[currentItemIndex]?.description ?? "";
-    const isAdmin = user?.role?.includes("admin");
-    const isHod = user?.role?.includes("hod");
-    const isTechnicalReviewer = user?.role?.includes("technical_reviewer");
-    const hasBothRoles = isHod && isTechnicalReviewer;
-
-    const oldRemark = report.remarks?.[currentItemIndex] ?? "";
-    const combinedRemark =
-      newRemark.trim() === ""
-        ? oldRemark
-        : oldRemark
-        ? `${oldRemark}, ${newRemark}`
-        : newRemark;
-
-    /**
-     * ✅ Determine effective role logic
-     */
-    const isTrItem = tagDescription.endsWith("_tr");
-
-    let effectiveRole: "hod" | "technical_reviewer";
-    effectiveRole = isTrItem ? "technical_reviewer" : "hod";
-
-    // ✅ Handle "approve_to_review" separately
-    if (actionType === "approve_to_review") {
-      toast.promise(
-        purchaseReportService.updateItemStatus(
-          report.id,
-          currentItemIndex,
-          "pending_tr",
-          combinedRemark,
-          "hod",
-          user?.id
-        ),
-        {
-          loading: "Updating item...",
-          success: async (updated) => {
-            setReport(updated);
-            setOpenModal(false);
-            await fetchReport();
-            onSuccess?.();
-            return `Item ${
-              currentItemIndex + 1
-            } approved for technical review successfully`;
-          },
-          error: "Failed to update item status. Please try again.",
-        }
-      );
-      return;
-    }
-
-    // ✅ MAP actionType → backend status (THIS WAS MISSING)
-    let newStatus: "approved" | "rejected" | "return";
-
-    switch (actionType) {
-      case "approve":
-        newStatus = "approved";
-        break;
-      case "return":
-        newStatus = "return"; // 🆕 new process
-        break;
-      case "reject":
-      default:
-        newStatus = "rejected";
-        break;
-    }
-
-    // ✅ Normal approve / reject / return flow
-    toast.promise(
-      purchaseReportService.updateItemStatus(
-        report.id,
-        currentItemIndex,
-        newStatus,
-        combinedRemark,
-        effectiveRole,
-        user?.id
-      ),
-      {
-        loading: "Updating item...",
-        success: async (updated) => {
-          setReport(updated);
-          setOpenModal(false);
-          await fetchReport();
-          onSuccess?.();
-
-          return `Item ${currentItemIndex + 1} ${
-            actionType === "approve"
-              ? "approved"
-              : actionType === "return"
-              ? "returned"
-              : "rejected"
-          } successfully`;
-        },
-        error: "Failed to update item status. Please try again.",
-      }
-    );
+    await confirmItemAction({
+      report,
+      user,
+      index: currentItemIndex,
+      actionType,
+      newRemark,
+      setReport,
+      setOpenModal,
+      fetchReport,
+      onSuccess,
+    });
   };
 
-  const isItemProcessed = (idx: number) => {
-    const status = report?.item_status?.[idx];
-    return (
-      status === "approved" ||
-      status === "rejected" ||
-      status === "approved_tr" ||
-      status === "rejected_tr"
-    );
+  // Helper wrappers
+  const isItemProcessedWrapper = (idx: number) => {
+    return isItemProcessed(report, idx);
   };
 
-  const isDropdownDisabled = (idx: number) => {
-    const userRole = user?.role ?? [];
-    const itemStatus = report?.item_status?.[idx];
-    const itemTag = report?.tag?.[idx];
-    const itemTagDescription = itemTag?.description;
-
-    // 🧩 Convert Department → string (defensive)
-    const itemDepartment =
-      typeof itemTag?.department === "string"
-        ? itemTag.department
-        : (itemTag?.department as unknown as string) ?? "";
-
-    // ✅ If already processed, always disable
-    if (isItemProcessed(idx)) return true;
-
-    // ✅ Basic role eligibility check
-    const isAdmin = userRole.includes("admin");
-    const isHod = userRole.includes("hod");
-    const isTechnicalReviewer = userRole.includes("technical_reviewer");
-
-    if (!isHod && !isTechnicalReviewer && !isAdmin) return true;
-
-    // ✅ Department mismatch check (skip for admin and office_items)
-    const userDepartments = (user?.department as unknown as string[]) ?? [];
-    const isOfficeItems = itemDepartment === "office_items";
-    const departmentMismatch =
-      !isAdmin &&
-      !isOfficeItems &&
-      itemDepartment &&
-      !userDepartments.includes(itemDepartment);
-
-    if (departmentMismatch) return true;
-
-    // ✅ Technical Reviewer logic
-    if (isTechnicalReviewer && !isAdmin) {
-      return (
-        !itemTagDescription?.endsWith("_tr") || itemStatus !== "pending_tr"
-      );
-    }
-
-    // ✅ HOD logic
-    if (isHod && !isAdmin) {
-      return itemTagDescription?.endsWith("_tr") || itemStatus !== "pending";
-    }
-
-    // ✅ Admin logic
-    if (isAdmin) {
-      return itemStatus !== "pending" && itemStatus !== "pending_tr";
-    }
-
-    // ✅ Default: disabled
-    return true;
+  const isDropdownDisabledWrapper = (idx: number) => {
+    return isDropdownDisabled(report, user, idx);
   };
-
-  useEffect(() => {
-    // whenever the dialog closes, remove all selected items
-    if (!open) {
-      setSelectedItems([]);
-    }
-  }, [open]);
 
   const tagDescription =
     Array.isArray(report?.tag) && report?.tag[0]?.description
@@ -980,33 +187,46 @@ export function useViewPurchaseReport(
       : "";
 
   return {
+    // Report data
     report,
     loading,
+    tagDescription,
+
+    // Modal state
     openModal,
     setOpenModal,
     actionType,
+
+    // Item actions
     handleItemAction,
     handleHodTrAction,
-    confirmItemAction,
-    isItemProcessed,
-    isDropdownDisabled,
-    fetchReport,
-    downloadPDF,
-    downloadPDFSimple,
-    downloadPaginatedPDF,
+    confirmItemAction: confirmItemActionWrapper,
+    isItemProcessed: isItemProcessedWrapper,
+    isDropdownDisabled: isDropdownDisabledWrapper,
+
+    // Bulk selection
     selectedItems,
     toggleItem,
     toggleAll,
     allSelected,
     isIndeterminate,
-    canSelectItem,
+    canSelectItem: canSelectItemWrapper,
     bulkAction,
+
+    // PDF export
+    downloadPDF,
+    downloadPDFSimple,
+    downloadPaginatedPDF,
     isExporting,
+
+    // User/auth info
     isAdmin,
     isHod,
     isTechnicalReviewer,
     hasBothRoles,
     user,
-    tagDescription,
+
+    // Utilities
+    fetchReport,
   };
 }
