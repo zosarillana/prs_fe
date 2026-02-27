@@ -49,6 +49,7 @@ import { format } from "date-fns";
 import { useReportGetHook } from "../../hooks/useReportGetHook";
 import { purchaseReportService } from "../../purchaseReportService";
 import { Progress } from "@/components/ui/progress";
+import { PurchasingUserDropdown } from "../../filters/dropdowns/purchasingFilterDropdown";
 
 export default function Reports() {
   const printRef = useRef<HTMLDivElement>(null);
@@ -71,6 +72,8 @@ export default function Reports() {
     setToDate,
     refetch,
     handleClearFilters,
+    purchaserName,
+    setPurchaserName,
   } = useReportGetHook();
 
   /** Helper: Compute difference in days between two dates */
@@ -114,8 +117,7 @@ export default function Reports() {
       };
 
       // Call the appropriate service method based on user role
-      const allData =
-        await purchaseReportService.getTableReports(allDataParams);
+      const allData = await purchaseReportService.getTable(allDataParams);
 
       if (!allData?.items || allData.items.length === 0) {
         toast.error("No data to print");
@@ -252,13 +254,13 @@ export default function Reports() {
             { baseline: "middle" },
           );
 
-          // 🎯 Show total items being printed in "X/X" format
-          const totalItems = allData.totalItems ?? allData.items.length;
+          const downloadedCount = allData.items.length;
+          const totalCount = allData.totalItems ?? downloadedCount;
 
           pdf.setFont("helvetica", "normal");
           pdf.setFontSize(10);
           pdf.text(
-            `Total Records: ${totalItems}/${totalItems} | PDF Page ${currentPage}/${totalPages} | ${new Date().toLocaleDateString()}`,
+            `Total Records: ${downloadedCount}/${totalCount} | PDF Page ${currentPage}/${totalPages} | ${new Date().toLocaleDateString()}`,
             pageWidth - margin,
             margin + logoHeight / 2,
             { align: "right", baseline: "middle" },
@@ -307,89 +309,98 @@ export default function Reports() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold mb-6">Reports (By Days and Date)</h1>
 
-        <div className="flex items-center gap-3">
-          {/* From Date */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="justify-start w-[150px]"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {fromDate ? format(fromDate, "MMM d, yyyy") : "From date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={fromDate || undefined}
-                onSelect={(date) => setFromDate(date ?? null)}
+        <div className="flex items-center gap-2 grid gird-col-1">
+          <div className="flex items-center gap-2">
+            {/* From Date */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start w-[150px]"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {fromDate ? format(fromDate, "MMM d, yyyy") : "From date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={fromDate || undefined}
+                  onSelect={(date) => setFromDate(date ?? null)}
+                />
+              </PopoverContent>
+            </Popover>
+
+            {/* To Date */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start w-[150px]"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {toDate ? format(toDate, "MMM d, yyyy") : "To date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={toDate || undefined}
+                  onSelect={(date) => setToDate(date ?? null)}
+                />
+              </PopoverContent>
+            </Popover>
+
+            <Button
+              onClick={() => refetch()}
+              variant="outline"
+              size="sm"
+              className="ml-2"
+            >
+              Apply
+            </Button>
+            <Button
+              onClick={() => handleClearFilters()}
+              variant="outline"
+              size="sm"
+              className="ml-2"
+            >
+              Clear Filters
+            </Button>
+
+            <div className="relative w-64">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search requests..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1); // ✅ Add this line to reset to page 1 when searching
+                }}
               />
-            </PopoverContent>
-          </Popover>
+            </div>
 
-          {/* To Date */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="justify-start w-[150px]"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {toDate ? format(toDate, "MMM d, yyyy") : "To date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={toDate || undefined}
-                onSelect={(date) => setToDate(date ?? null)}
-              />
-            </PopoverContent>
-          </Popover>
-
-          <Button
-            onClick={() => refetch()}
-            variant="outline"
-            size="sm"
-            className="ml-2"
-          >
-            Apply
-          </Button>
-          <Button
-            onClick={() => handleClearFilters()}
-            variant="outline"
-            size="sm"
-            className="ml-2"
-          >
-            Clear Filters
-          </Button>
-
-          <div className="relative w-64">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search requests..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPage(1); // ✅ Add this line to reset to page 1 when searching
-              }}
+            <Button
+              onClick={handlePrint}
+              variant="outline"
+              size="sm"
+              disabled={isGeneratingPDF}
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              {isGeneratingPDF ? "Generating PDF..." : "Print PDF"}
+            </Button>
+          </div>
+          <div className="grid col-span-1 justify-end">
+            <PurchasingUserDropdown
+              purchaserName={purchaserName}
+              setPurchaserName={setPurchaserName}
+              setPage={setPage}
             />
           </div>
-
-          <Button
-            onClick={handlePrint}
-            variant="outline"
-            size="sm"
-            disabled={isGeneratingPDF}
-          >
-            <Printer className="h-4 w-4 mr-2" />
-            {isGeneratingPDF ? "Generating PDF..." : "Print PDF"}
-          </Button>
         </div>
       </div>
 
@@ -416,7 +427,7 @@ export default function Reports() {
           <TableBody>
             {fetching && (
               <TableRow>
-                <TableCell colSpan={13} className="py-0 px-0">
+                <TableCell colSpan={14} className="py-0 px-0">
                   <div className="w-full">
                     <Progress indeterminate className="w-full" />
                   </div>

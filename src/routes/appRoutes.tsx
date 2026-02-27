@@ -19,6 +19,7 @@ import ProgressReport from "@/features/purchasereports/pages/progressreport/prog
 import PriceMonitoring from "@/features/pricemonitoring/pages/priceMonitoring";
 import Items from "@/features/pricemonitoring/pages/item";
 import Vendors from "@/features/pricemonitoring/pages/vendor";
+import VendorPayment from "@/features/vendor-payment/pages/vendorPayment";
 
 export const appRoutes = [
   {
@@ -91,6 +92,11 @@ export const appRoutes = [
     path: "/vendors",
     element: <Vendors />,
     moduleId: 14,
+  },
+  {
+    path: "/vendor-payments",
+    element: <VendorPayment />,
+    moduleId: 15,
   },
   {
     path: "/progress-reports",

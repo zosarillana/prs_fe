@@ -272,7 +272,9 @@ export default function Dashboard() {
 
         {/* Department Total */}
         {!canSeeAll &&
-          roles.some((r) => ["admin", "user", "hod"].includes(r)) && (
+          roles.some((r) =>
+            ["admin", "user", "hod", "ovs", "treasury"].includes(r),
+          ) && (
             <>
               {isLoading ? (
                 <CardSkeleton />
@@ -286,28 +288,33 @@ export default function Dashboard() {
                 />
               )}
 
-              {isLoading ? (
-                <CardSkeleton />
-              ) : (
-                <StatCard
-                  title="On Hold For Edit"
-                  value={data?.on_hold_return ?? 0}
-                  description="Returned for modifications"
-                  link="/purchase-reports?prStatusTerm=on_hold_return"
-                  configKey="on_hold_return"
-                />
-              )}
+              {/* On Hold For Edit & Drafted */}
+              {!roles.some((r) => ["treasury"].includes(r)) && (
+                <>
+                  {isLoading ? (
+                    <CardSkeleton />
+                  ) : (
+                    <StatCard
+                      title="On Hold For Edit"
+                      value={data?.on_hold_return ?? 0}
+                      description="Returned for modifications"
+                      link="/purchase-reports?prStatusTerm=on_hold_return"
+                      configKey="on_hold_return"
+                    />
+                  )}
 
-              {isLoading ? (
-                <CardSkeleton />
-              ) : (
-                <StatCard
-                  title="Drafted"
-                  value={data?.drafted ?? 0}
-                  description="Draft purchase reports"
-                  link="/purchase-reports?prStatusTerm=drafted"
-                  configKey="drafted"
-                />
+                  {isLoading ? (
+                    <CardSkeleton />
+                  ) : (
+                    <StatCard
+                      title="Drafted"
+                      value={data?.drafted ?? 0}
+                      description="Draft purchase reports"
+                      link="/purchase-reports?prStatusTerm=drafted"
+                      configKey="drafted"
+                    />
+                  )}
+                </>
               )}
             </>
           )}
@@ -344,7 +351,7 @@ export default function Dashboard() {
         {/* For Purchase Order Creation */}
         {(canSeeAll ||
           roles.some((r) =>
-            ["admin", "purchasing", "hod", "user"].includes(r),
+            ["admin", "purchasing", "hod", "user", "treasury"].includes(r),
           )) &&
           (isLoading ? (
             <CardSkeleton />
@@ -360,7 +367,7 @@ export default function Dashboard() {
 
         {/* For Partial Purchase Order Creation */}
         {(canSeeAll ||
-          roles.some((r) => ["admin", "purchasing"].includes(r))) &&
+          roles.some((r) => ["admin", "purchasing", "treasury"].includes(r))) &&
           (isLoading ? (
             <CardSkeleton />
           ) : (
@@ -390,7 +397,7 @@ export default function Dashboard() {
 
         {/* Approved POs */}
         {(canSeeAll ||
-          roles.some((r) => ["admin", "purchasing"].includes(r))) &&
+          roles.some((r) => ["admin", "purchasing", "treasury"].includes(r))) &&
           (isLoading ? (
             <CardSkeleton />
           ) : (
@@ -403,30 +410,50 @@ export default function Dashboard() {
             />
           ))}
 
-        {/* Returned */}
-        {isLoading ? (
-          <CardSkeleton />
-        ) : (
-          <StatCard
-            title="Returned PR"
-            value={data?.returned ?? 0}
-            description="Returned for revision"
-            link="/purchase-reports?prStatusTerm=returned"
-            configKey="returned"
-          />
-        )}
+        {/* Approved POs */}
+        {(canSeeAll ||
+          roles.some((r) => ["admin", "purchasing", "hod", "treasury"].includes(r))) &&
+          (isLoading ? (
+            <CardSkeleton />
+          ) : (
+            <StatCard
+              title="Total Vendor Payment"
+              value={data?.total_vendor_payments ?? 0}
+              description="Total of Vendor Payments"
+              link="/vendor-payments"
+              configKey="vendor_payments"
+            />
+          ))}
 
-        {/* Rejected */}
-        {isLoading ? (
-          <CardSkeleton />
-        ) : (
-          <StatCard
-            title="Rejected PR"
-            value={data?.rejected ?? 0}
-            description="Rejected reports"
-            link="/purchase-reports?prStatusTerm=Rejected"
-            configKey="rejected"
-          />
+        {/* Returned & Rejected */}
+        {!roles.some((r) => ["treasury"].includes(r)) && (
+          <>
+            {/* Returned */}
+            {isLoading ? (
+              <CardSkeleton />
+            ) : (
+              <StatCard
+                title="Returned PR"
+                value={data?.returned ?? 0}
+                description="Returned for revision"
+                link="/purchase-reports?prStatusTerm=returned"
+                configKey="returned"
+              />
+            )}
+
+            {/* Rejected */}
+            {isLoading ? (
+              <CardSkeleton />
+            ) : (
+              <StatCard
+                title="Rejected PR"
+                value={data?.rejected ?? 0}
+                description="Rejected reports"
+                link="/purchase-reports?prStatusTerm=Rejected"
+                configKey="rejected"
+              />
+            )}
+          </>
         )}
       </div>
 

@@ -5,7 +5,7 @@ import type { PurchaseReport } from "../types";
 import type { PaginatedResponse } from "@/types/paginator";
 import { format } from "date-fns";
 import { useDebounce } from "@/hooks/useDebounce";
-import React from "react";
+import React, { useState } from "react";
 
 export function useReportGetHook() {
   const user = useAuthStore((state) => state.user);
@@ -20,18 +20,20 @@ export function useReportGetHook() {
   const [ownDepartment, setOwnDepartment] = React.useState(false);
   const [fromDate, setFromDate] = React.useState<Date | null>(null);
   const [toDate, setToDate] = React.useState<Date | null>(null);
+  const [purchaserName, setPurchaserName] = useState(""); // ✅ NEW STATE
 
   // Debounce inputs for smoother UX
   const debouncedSearch = useDebounce(searchTerm, 400);
   const debouncedStatus = useDebounce(statusTerm, 300);
   const debouncedPrStatus = useDebounce(prStatusTerm, 300);
+  const debouncedPurchaserName = useDebounce(purchaserName, 300);
 
   // 🔍 Query - Using "purchaseReports" key to match the main hook
   const { data, isLoading, isFetching, refetch } = useQuery<
     PaginatedResponse<PurchaseReport>
   >({
     queryKey: [
-      "purchaseReports", // ✅ Changed from "reportGetHook" to match usePurchaseReports
+      "reportTableData", // ✅ Changed — unique key, no more cache collision
       page,
       pageSize,
       debouncedSearch,
@@ -39,6 +41,8 @@ export function useReportGetHook() {
       debouncedPrStatus,
       completedTr,
       ownDepartment,
+      purchaserName,
+      debouncedPurchaserName, // ✅ not raw purchaserName
       fromDate ? format(fromDate, "yyyy-MM-dd") : undefined,
       toDate ? format(toDate, "yyyy-MM-dd") : undefined,
     ],
@@ -51,17 +55,20 @@ export function useReportGetHook() {
         prStatusTerm: debouncedPrStatus,
         completedTr,
         ownDepartment,
+        purchaserName: debouncedPurchaserName,
         fromDate: fromDate ? format(fromDate, "yyyy-MM-dd") : undefined,
         toDate: toDate ? format(toDate, "yyyy-MM-dd") : undefined,
       };
 
-      // ✅ Choose endpoint based on user role
-      if (user?.role?.includes("purchasing")) {
-        console.log("🟢 Using getTableReports (no role filters)");
-        return purchaseReportService.getTableReports(params);
-      }
+      console.log("📤 Sending API Params:");
+      console.table(params);
 
-      console.log("🟡 Using getTable (with role filters)");
+      // if (user?.role?.includes("purchasing")) {
+      //   console.log("🟢 Endpoint: getTableReports");
+      //   return purchaseReportService.getTableReports(params);
+      // }
+
+      console.log("🟡 Endpoint: getTable");
       return purchaseReportService.getTable(params);
     },
     placeholderData: keepPreviousData,
@@ -70,10 +77,11 @@ export function useReportGetHook() {
     gcTime: 1000 * 60 * 30,
   });
 
-   const handleClearFilters = () => {
+  const handleClearFilters = () => {
     setSearchTerm("");
     setStatusTerm("");
     setPrStatusTerm("");
+    setPurchaserName("");
     setCompletedTr(false);
     setOwnDepartment(false);
     setFromDate(null);
@@ -81,7 +89,6 @@ export function useReportGetHook() {
     setPage(1); // Reset to first page when clearing filters
   };
 
-  
   return {
     data,
     loading: isLoading,
@@ -100,6 +107,8 @@ export function useReportGetHook() {
     setPrStatusTerm,
     completedTr,
     setCompletedTr,
+    purchaserName,
+    setPurchaserName,
     ownDepartment,
     setOwnDepartment,
     fromDate,
@@ -107,6 +116,6 @@ export function useReportGetHook() {
     toDate,
     setToDate,
     user,
-    handleClearFilters
+    handleClearFilters,
   };
 }

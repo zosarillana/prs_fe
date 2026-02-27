@@ -65,7 +65,7 @@ interface Props {
   bulkAction: (action: "approve" | "remove", indices: number[]) => void;
   onChange: (
     index: number,
-    field: "quantity" | "unit" | "item_description" | "tag",
+    field: "quantity" | "unit" | "item_description" | "remarks" | "tag",
     value: string,
   ) => void;
   onApproveEdit: (index: number) => void;
@@ -318,7 +318,17 @@ export function EditPurchaseReportDialogTable({
                 </span>
               </TableCell>
 
-              <TableCell>{items.remarks?.[idx] ?? "none"}</TableCell>
+              {/* <TableCell>{items.remarks?.[idx] ?? "none"}</TableCell> */}
+              <TableCell> {isReturned ? (
+                  <Input
+                    value={items.remarks?.[idx] ?? ""}
+                    onChange={(e) =>
+                      onChange(idx, "remarks", e.target.value)
+                    }
+                  />
+                ) : (
+                  items.remarks?.[idx]
+                )}</TableCell>
 
               <TableCell className="text-right">
                 <DropdownMenu>

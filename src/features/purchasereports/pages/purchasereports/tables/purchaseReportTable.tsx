@@ -408,6 +408,20 @@ export function PurchaseReportTable({
                                 </DropdownMenuItem>
                               )}
 
+                            {/* Temporary SAP PR */}
+                            {item.sap_id !== null && (
+                              <DropdownMenuItem
+                                title="This is only temporary"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSetSap(item.id);
+                                }}
+                              >
+                                <FileDigit className="mr-2 h-4 w-4" /> Edit SAP
+                                - PR
+                              </DropdownMenuItem>
+                            )}
+
                             {/* Set PO Number */}
                             {item.sap_id !== null &&
                               item.pr_status === "for_approval" &&

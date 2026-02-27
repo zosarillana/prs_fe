@@ -176,6 +176,7 @@ export function RegisterDialog({ open, onOpenChange }: RegisterDialogProps) {
                 </SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="ovs">Overseeing</SelectItem>
+                <SelectItem value="treasury">Treasury</SelectItem>
                 <SelectItem value="purchasing">Purchasing</SelectItem>
               </SelectContent>
             </Select>

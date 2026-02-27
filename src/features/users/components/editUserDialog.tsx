@@ -36,6 +36,7 @@ const ROLE_OPTIONS = [
   { value: "hod", label: "Head of Department" },
   { value: "technical_reviewer", label: "Technical Reviewer" },
   { value: "admin", label: "Admin" },
+  { value: "treasury", label: "Treasury" },
   { value: "ovs", label: "Overseeing" },
   { value: "purchasing", label: "Purchasing" },
 ];

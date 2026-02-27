@@ -8,6 +8,7 @@ import {
   ListTodo,
   ListTree,
   Receipt,
+  ReceiptCent,
   RulerDimensionLine,
   TagIcon,
   User2Icon,
@@ -136,6 +137,24 @@ export default function SidebarNav({ can }: SidebarNavProps) {
         </li>
       )}
 
+      {can(15) && (
+        <li>
+          <NavLink
+            to="/vendor-payments"
+            className={({ isActive }) =>
+              `flex items-center px-3 py-2 rounded-md transition-colors ${
+                isActive
+                  ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+              }`
+            }
+          >
+            <ReceiptCent className="w-5 h-5 mr-3" />
+            <p>Vendor Payment</p>
+          </NavLink>
+        </li>
+      )}
+      
       {can(12) && (
         <li>
           <Collapsible defaultOpen={location.pathname.startsWith("/reports")}>

@@ -13,9 +13,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { HashIcon, MoreVertical } from "lucide-react";
+import { CalendarRange, HashIcon, MoreVertical } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { Calendar } from "@/components/ui/calendar";
 
 interface ProgressReportTableProps {
   data: any;
@@ -82,7 +81,6 @@ export const ProgressReportTable = ({
             </TableCell>
 
             <TableCell>{item.pr_created}</TableCell>
-            <TableCell>{item.pr_created}</TableCell>
             <TableCell>{item.pr_purpose}</TableCell>
             <TableCell>
               {item.department
@@ -100,17 +98,19 @@ export const ProgressReportTable = ({
             <TableCell>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <Button variant="ghost" size="icon">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
+
                 <DropdownMenuContent align="start">
-                  <DropdownMenuItem onClick={() => onOpenCalendar(item.id)}>
-                    <Calendar className="mr-2 h-4 w-4" />
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenCalendar(item.id);
+                    }}
+                  >
+                    <CalendarRange className="mr-2 h-4 w-4" />
                     Progress Status
                   </DropdownMenuItem>
                 </DropdownMenuContent>

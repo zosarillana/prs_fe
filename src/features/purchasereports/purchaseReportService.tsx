@@ -15,6 +15,7 @@ export const purchaseReportService = {
     fromDate?: string;
     toDate?: string;
     sortBy?: string;
+    purchaserName?: string;
     tagDescription?: string;
     sortOrder?: "asc" | "desc";
     pageNumber?: number;
@@ -38,6 +39,7 @@ export const purchaseReportService = {
     sortOrder?: "asc" | "desc";
     pageNumber?: number;
     pageSize?: number;
+    purchaserName?: string;
   }): Promise<PaginatedResponse<any>> => {
     const res = await api.get("api/purchase-reports-table", { params });
     return res.data;
@@ -62,6 +64,7 @@ export const purchaseReportService = {
     sortOrder?: "asc" | "desc";
     pageNumber?: number;
     pageSize?: number;
+    purchaserName?: string;
   }): Promise<PaginatedResponse<any>> => {
     const res = await api.get("api/purchase-reports/table-reports", { params });
     return res.data;

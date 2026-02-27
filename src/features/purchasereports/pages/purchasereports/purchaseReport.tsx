@@ -159,7 +159,9 @@ export default function PurchaseReport() {
             {!(
               user?.role?.includes("hod") ||
               user?.role?.includes("technical_reviewer") ||
-              user?.role?.includes("purchasing")
+              user?.role?.includes("purchasing") || 
+              user?.role?.includes("treasury") || 
+              user?.role?.includes("ovs") 
             ) && (
               <Button asChild className="w-full sm:w-auto">
                 <Link to="/purchase-reports/create">

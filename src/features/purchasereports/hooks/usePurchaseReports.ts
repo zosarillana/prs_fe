@@ -27,6 +27,7 @@ export function usePurchaseReports() {
   const [poDialogOpen, setPoDialogOpen] = useState(false);
   const [poTargetId, setPoTargetId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
+
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusTerm, setStatusTerm] = useState(""); // ✅ NEW STATE

@@ -25,4 +25,5 @@ export interface SummaryCounts {
   rejected?: number;
   on_hold_return?: number;
   drafted?: number;
+  total_vendor_payments?: number;
 }
