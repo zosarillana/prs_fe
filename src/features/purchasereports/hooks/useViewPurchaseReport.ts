@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { PurchaseReport } from "../types";
 import { purchaseReportService } from "../purchaseReportService";
 import { toast } from "sonner";
-import { useAuthStore } from "@/store/auth/authStore";
+// import { useAuthStore } from "@/store/auth/authStore";
+import { authRoles } from "@/store/auth/authRoles"; // adjust path
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -14,9 +15,13 @@ export function useViewPurchaseReport(
   const [report, setReport] = useState<PurchaseReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [openModal, setOpenModal] = useState(false);
-  const [actionType, setActionType] = useState<"approve" | "reject">("approve");
+  const [actionType, setActionType] = useState<
+    "approve" | "reject" | "approve_to_review"
+  >("approve");
   const [currentItemIndex, setCurrentItemIndex] = useState<number>(0);
-  const user = useAuthStore((state) => state.user);
+  // const user = useAuthStore((state) => state.user);
+  const { user, isAdmin, isHod, isTechnicalReviewer, hasBothRoles } =
+    authRoles();
   const [isExporting, setIsExporting] = useState(false);
 
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
@@ -29,20 +34,61 @@ export function useViewPurchaseReport(
 
   const selectableIndexes = (report?.item_status ?? [])
     .map((status, idx) => {
+      const itemTag = report?.tag?.[idx];
+      const itemDepartment = itemTag?.department as unknown as string;
+
+      // ❌ Skip items with _tr tags
+      const hasTrTag = itemTag?.description?.endsWith("_tr");
+      if (hasTrTag) {
+        return null;
+      }
+
+      const isAdmin = user?.role?.includes("admin");
+      const isHOD = user?.role?.includes("hod");
+      const isPurchasing = user?.role?.includes("purchasing");
+      const isTechnicalReviewer = user?.role?.includes("technical_reviewer");
+
+      // ✅ If item is office_items, bypass department checks
+      const isOfficeItems = itemDepartment === "office_items";
+
+      // Check if user has HOD role (with or without purchasing, but not admin)
+      const isHODRole = isHOD && !isAdmin;
+
+      // Check if user has Technical Reviewer role (but not admin)
+      const isTRRole = isTechnicalReviewer && !isAdmin;
+
+      // For HOD role: check if item's department matches user's department (skip for office_items)
+      const hodCanAccess =
+        !isHODRole ||
+        isOfficeItems ||
+        (itemDepartment && user?.department?.includes(itemDepartment));
+
+      // For Technical Reviewer role: check if item's department matches user's department (skip for office_items)
+      const trCanAccess =
+        !isTRRole ||
+        isOfficeItems ||
+        (itemDepartment && user?.department?.includes(itemDepartment));
+
+      // Combined department access check (admins and office_items bypass this)
+      const canAccessItem = hodCanAccess && trCanAccess;
+
+      // If user cannot access this item due to department mismatch, skip it
+      if (!canAccessItem) {
+        return null;
+      }
+
       // ✅ Admin or Technical Reviewer can select technical review items
-      if (
-        status === "pending_tr" &&
-        (user?.role?.includes("technical_reviewer") ||
-          user?.role?.includes("admin"))
-      ) {
+      if (status === "pending_tr" && (isTechnicalReviewer || isAdmin)) {
         return idx;
       }
 
       // ✅ Admin or HOD can select normal approval items
-      if (
-        status === "pending" &&
-        (user?.role?.includes("hod") || user?.role?.includes("admin"))
-      ) {
+      if (status === "pending" && (isHOD || isAdmin)) {
+        return idx;
+      }
+
+      // ✅ Admin, HOD, or Technical Reviewer can select returned items
+      if (status === "returned" && (isAdmin || isHOD || isTechnicalReviewer)) {
         return idx;
       }
 
@@ -63,23 +109,61 @@ export function useViewPurchaseReport(
 
   const canSelectItem = (idx: number) => {
     const status = report?.item_status?.[idx];
+    const itemTag = report?.tag?.[idx];
+    const itemDepartment = itemTag?.department as unknown as string;
 
     if (!status) return false;
 
-    // ✅ Admin can also select items waiting for technical review
-    if (
-      status === "pending_tr" &&
-      (user?.role?.includes("technical_reviewer") ||
-        user?.role?.includes("admin"))
-    ) {
+    // ❌ Items with _tr tags are NOT selectable
+    const hasTrTag = itemTag?.description?.endsWith("_tr");
+    if (hasTrTag) {
+      return false;
+    }
+
+    // ✅ Items with pending_tr status are NOT selectable
+    if (status === "pending_tr") return false;
+
+    const isAdmin = user?.role?.includes("admin");
+    const isHOD = user?.role?.includes("hod");
+    const isPurchasing = user?.role?.includes("purchasing");
+    const isTechnicalReviewer = user?.role?.includes("technical_reviewer");
+
+    // ✅ If item is office_items, bypass department checks
+    const isOfficeItems = itemDepartment === "office_items";
+
+    // Check if user has HOD role (with or without purchasing, but not admin)
+    const isHODRole = isHOD && !isAdmin;
+
+    // Check if user has Technical Reviewer role (but not admin)
+    const isTRRole = isTechnicalReviewer && !isAdmin;
+
+    // For HOD role: check if item's department matches user's department (skip for office_items)
+    const hodCanAccess =
+      !isHODRole ||
+      isOfficeItems ||
+      (itemDepartment && user?.department?.includes(itemDepartment));
+
+    // For Technical Reviewer role: check if item's department matches user's department (skip for office_items)
+    const trCanAccess =
+      !isTRRole ||
+      isOfficeItems ||
+      (itemDepartment && user?.department?.includes(itemDepartment));
+
+    // Combined department access check (admins and office_items bypass this)
+    const canAccessItem = hodCanAccess && trCanAccess;
+
+    // If user cannot access this item due to department mismatch, return false
+    if (!canAccessItem) {
+      return false;
+    }
+
+    // ✅ Admin or HOD can select items waiting for HOD approval
+    if (status === "pending" && (isHOD || isAdmin)) {
       return true;
     }
 
-    // ✅ Admin can also select items waiting for HOD approval
-    if (
-      status === "pending" &&
-      (user?.role?.includes("hod") || user?.role?.includes("admin"))
-    ) {
+    // ✅ Admin, HOD, or Technical Reviewer can select returned items
+    if (status === "returned" && (isAdmin || isHOD || isTechnicalReviewer)) {
       return true;
     }
 
@@ -96,65 +180,72 @@ export function useViewPurchaseReport(
       Promise.all(
         selectedItems.map(async (idx) => {
           const status = report.item_status?.[idx];
-          const tag = report.tag?.[idx] ?? "";
+          const tagDescription = report.tag?.[idx]?.description ?? "";
 
-          // ✅ Skip if already processed (approved/rejected)
+          const isAdmin = user?.role?.includes("admin");
+          const isHod = user?.role?.includes("hod");
+          const isTechnicalReviewer =
+            user?.role?.includes("technical_reviewer");
+
+          // ✅ Skip already processed items
           if (status === "approved" || status === "rejected") return;
 
+          // ✅ Determine effective role
+          let effectiveRole: "technical_reviewer" | "hod" | "both" | undefined;
+
+          if (isAdmin) {
+            // ✅ Admin can act as TR for pending_tr items, otherwise as HOD
+            if (status === "pending_tr" && tagDescription.endsWith("_tr")) {
+              effectiveRole = "technical_reviewer";
+            } else if (status === "pending" && tagDescription.endsWith("_tr")) {
+              effectiveRole = "hod"; // Admin approving to review (setting to pending_tr)
+            } else {
+              effectiveRole = "hod"; // Normal HOD approval
+            }
+          } else if (isHod && isTechnicalReviewer) {
+            // ✅ User with both roles
+            if (status === "pending_tr") {
+              effectiveRole = "technical_reviewer";
+            } else {
+              effectiveRole = "hod";
+            }
+          } else if (isHod) {
+            effectiveRole = "hod";
+          } else if (isTechnicalReviewer) {
+            effectiveRole = "technical_reviewer";
+          }
+
+          // ✅ Determine status to set
+          let newStatus: "approved" | "rejected" | "pending_tr";
+
           if (action === "approve") {
-            // --- Technical reviewer final approval ---
-            if (
-              user?.role?.includes("technical_reviewer") &&
-              status === "pending_tr"
+            if (status === "pending_tr" && (isTechnicalReviewer || isAdmin)) {
+              // ✅ TR or Admin approving a pending_tr item
+              newStatus = "approved";
+            } else if (
+              tagDescription.endsWith("_tr") &&
+              status === "pending" &&
+              (isHod || isAdmin)
             ) {
-              await purchaseReportService.updateItemStatus(
-                report.id,
-                idx,
-                "approved",
-                remark,
-                "technical_reviewer",
-                user.id
-              );
-            }
-
-            // --- HOD/Admin first approval for a _tr item ---
-            else if (tag.endsWith("_tr")) {
-              // ✅ Always store HOD id even if status is already pending_tr
-              const newStatus =
-                status === "pending_tr" ? "pending_tr" : "pending_tr";
-
-              await purchaseReportService.updateItemStatus(
-                report.id,
-                idx,
-                newStatus,
-                remark,
-                "hod",
-                user.id
-              );
-            }
-
-            // --- Normal approval (no technical review) ---
-            else {
-              await purchaseReportService.updateItemStatus(
-                report.id,
-                idx,
-                "approved",
-                remark,
-                user?.role?.includes("hod") ? "hod" : undefined,
-                user.id
-              );
+              // ✅ HOD or Admin forwarding _tr item to TR
+              newStatus = "pending_tr";
+            } else {
+              // ✅ Normal approval
+              newStatus = "approved";
             }
           } else {
-            // --- Rejection flow ---
-            await purchaseReportService.updateItemStatus(
-              report.id,
-              idx,
-              "rejected",
-              remark,
-              user?.role?.includes("hod") ? "hod" : undefined,
-              user.id
-            );
+            newStatus = "rejected";
           }
+
+          // ✅ Send to backend
+          await purchaseReportService.updateItemStatus(
+            report.id,
+            idx,
+            newStatus,
+            remark,
+            effectiveRole,
+            user.id
+          );
         })
       ),
       {
@@ -211,6 +302,7 @@ export function useViewPurchaseReport(
       const signatureImages = ref.current.querySelectorAll(
         'img[alt*="signature"]'
       ) as NodeListOf<HTMLImageElement>;
+
       const imagePromises = Array.from(signatureImages).map(async (img) => {
         // … your existing conversion code …
       });
@@ -264,7 +356,10 @@ export function useViewPurchaseReport(
         pdf.addImage(imgData, "PNG", margin, margin, contentWidth, imgHeight);
       }
 
-      pdf.save(`Purchase_Requisition_${prId}.pdf`);
+      // ✅ Updated file name
+      const seriesNo = report?.series_no ?? "Unknown";
+      pdf.save(`PR - ${seriesNo}.pdf`);
+
       toast.success("PDF downloaded successfully!");
     } catch (error) {
       console.error("Failed to generate PDF:", error);
@@ -281,34 +376,107 @@ export function useViewPurchaseReport(
     if (!ref.current) return;
 
     try {
-      // Just ensure all images are loaded before capturing
+      setIsExporting(true);
+      await new Promise((r) => setTimeout(r, 50));
+
+      // Wait for images
       const images = ref.current.querySelectorAll(
         "img"
       ) as NodeListOf<HTMLImageElement>;
+      const imagePromises = Array.from(images).map(
+        (img) =>
+          new Promise<void>((resolve) => {
+            if (img.complete) resolve();
+            else {
+              img.onload = () => resolve();
+              img.onerror = () => resolve();
+              setTimeout(() => resolve(), 5000);
+            }
+          })
+      );
 
-      const imageLoadPromises = Array.from(images).map((img) => {
-        return new Promise<void>((resolve) => {
-          if (img.complete) {
-            resolve();
-          } else {
-            img.onload = () => resolve();
-            img.onerror = () => resolve(); // Continue even if image fails
-            // Timeout after 5 seconds
-            setTimeout(() => resolve(), 5000);
-          }
-        });
-      });
+      await Promise.all(imagePromises);
 
-      await Promise.all(imageLoadPromises);
-
-      // Simple html2canvas with minimal options
       const canvas = await html2canvas(ref.current, {
-        scale: 1.5,
+        scale: 2,
         useCORS: true,
         backgroundColor: "#ffffff",
+        allowTaint: false,
+        imageTimeout: 0,
+        removeContainer: true,
+        onclone: (clonedDoc) => {
+          // Fix image sizing
+          clonedDoc.querySelectorAll("img").forEach((img) => {
+            const htmlImg = img as HTMLImageElement;
+            htmlImg.style.maxWidth = "none";
+            htmlImg.style.maxHeight = "none";
+            htmlImg.style.objectFit = "contain";
+          });
+
+          // ✅ Preserve spacing and layout
+          clonedDoc.querySelectorAll("table").forEach((table) => {
+            const htmlTable = table as HTMLElement;
+            htmlTable.style.borderCollapse = "separate";
+            htmlTable.style.borderSpacing = "0";
+          });
+
+          // ✅ Fix ALL elements inside table cells
+          clonedDoc.querySelectorAll("td, th").forEach((cell) => {
+            const htmlCell = cell as HTMLElement;
+            const computed = window.getComputedStyle(htmlCell);
+
+            // ✅ Add vertical padding of 12px to tbody cells only
+            if (htmlCell.closest("tbody")) {
+              htmlCell.style.paddingTop = "6px";
+              htmlCell.style.paddingBottom = "20px";
+              // Preserve horizontal padding from computed styles
+              htmlCell.style.paddingLeft = computed.paddingLeft;
+              htmlCell.style.paddingRight = computed.paddingRight;
+            } else {
+              htmlCell.style.padding = computed.padding;
+            }
+
+            htmlCell.style.border = computed.border;
+            htmlCell.style.verticalAlign = "middle";
+
+            // ✅ CRITICAL: Remove ALL margins from elements inside cells
+            htmlCell.querySelectorAll("*").forEach((child) => {
+              const htmlChild = child as HTMLElement;
+              htmlChild.style.margin = "0 !important";
+              htmlChild.style.marginTop = "0";
+              htmlChild.style.marginBottom = "0";
+              htmlChild.style.marginLeft = "0";
+              htmlChild.style.marginRight = "0";
+            });
+
+            // ✅ Also fix the cell's direct children (p, div, etc)
+            Array.from(htmlCell.children).forEach((child) => {
+              const htmlChild = child as HTMLElement;
+              htmlChild.style.margin = "0";
+            });
+          });
+
+          // ✅ Preserve spacing for non-table elements
+          clonedDoc.querySelectorAll("*").forEach((el) => {
+            const htmlEl = el as HTMLElement;
+
+            // Skip table cells and their contents
+            if (htmlEl.closest("td") || htmlEl.closest("th")) {
+              return;
+            }
+
+            const computed = window.getComputedStyle(htmlEl);
+            if (computed.margin !== "0px") {
+              htmlEl.style.margin = computed.margin;
+            }
+            if (computed.padding !== "0px") {
+              htmlEl.style.padding = computed.padding;
+            }
+          });
+        },
       });
 
-      const imgData = canvas.toDataURL("image/png");
+      const imgData = canvas.toDataURL("image/png", 0.95);
       const pdf = new jsPDF("p", "mm", "a4");
 
       const margin = 10;
@@ -318,12 +486,300 @@ export function useViewPurchaseReport(
       const imgHeight = (imgProps.height * contentWidth) / imgProps.width;
 
       pdf.addImage(imgData, "PNG", margin, margin, contentWidth, imgHeight);
-      pdf.save(`Purchase_Requisition_${prId}.pdf`);
+
+      const seriesNo = report?.series_no ?? "Unknown";
+      pdf.save(`PR - ${seriesNo}.pdf`);
+
       toast.success("PDF downloaded successfully!");
     } catch (error) {
       console.error("Failed to generate PDF:", error);
       toast.error("Failed to generate PDF. Please try again.");
+    } finally {
+      setIsExporting(false);
     }
+  };
+
+  const downloadPaginatedPDF = async (
+    ref: React.RefObject<HTMLDivElement | null>
+  ) => {
+    if (!ref.current) return;
+
+    setIsExporting(true);
+    await new Promise((r) => setTimeout(r, 80));
+
+    try {
+      const rows = Array.from(
+        ref.current.querySelectorAll("tbody tr")
+      ) as HTMLElement[];
+
+      const signatures = ref.current.querySelector(
+        "#signature-section"
+      ) as HTMLElement;
+
+      const headerSection = ref.current.querySelector(
+        ".flex.flex-col.items-center.mb-5"
+      )?.parentElement as HTMLElement;
+
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const contentWidth = pageWidth - 20;
+      const margin = 10;
+
+      // Available height for content (excluding margins and page number space)
+      const availableHeight = pageHeight - margin * 2 - 15; // 15mm for page number
+
+      // ✅ MEASURE HEADER HEIGHT FIRST
+      const tempContainer = document.createElement("div");
+      tempContainer.style.width = "800px";
+      tempContainer.style.padding = "20px";
+      tempContainer.style.position = "absolute";
+      tempContainer.style.left = "-9999px";
+      tempContainer.style.background = "white";
+
+      if (headerSection) {
+        const headerClone = document.createElement("div");
+
+        const logoSection = headerSection.querySelector(
+          ".flex.flex-col.items-center.mb-5"
+        );
+        if (logoSection) headerClone.appendChild(logoSection.cloneNode(true));
+
+        const title = headerSection.querySelector(
+          "p.mt-3.text-lg.text-center.font-semibold.mb-2"
+        );
+        if (title) headerClone.appendChild(title.cloneNode(true));
+
+        const infoSection = headerSection.querySelector(".space-y-4.text-sm");
+        if (infoSection) {
+          const infoClone = document.createElement("div");
+          infoClone.className = "space-y-4 text-sm mb-4";
+          const gridSection = infoSection.querySelector(
+            ".grid.grid-cols-1.gap-4"
+          );
+          if (gridSection) infoClone.appendChild(gridSection.cloneNode(true));
+          headerClone.appendChild(infoClone);
+        }
+
+        tempContainer.appendChild(headerClone);
+      }
+
+      // Add table header to measure
+      const headerClone = ref.current.querySelector("thead")?.cloneNode(true);
+      const tempTable = document.createElement("table");
+      tempTable.style.width = "100%";
+      if (headerClone) tempTable.appendChild(headerClone);
+      tempContainer.appendChild(tempTable);
+
+      document.body.appendChild(tempContainer);
+      await new Promise((r) => setTimeout(r, 10));
+
+      const headerCanvas = await html2canvas(tempContainer, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#fff",
+      });
+
+      const headerHeightPx = headerCanvas.height;
+      const headerHeightMm =
+        (headerHeightPx / headerCanvas.width) * contentWidth;
+
+      document.body.removeChild(tempContainer);
+
+      // ✅ MEASURE EACH ROW HEIGHT
+      const rowHeights: number[] = [];
+      for (const row of rows) {
+        const rowContainer = document.createElement("div");
+        rowContainer.style.width = "800px";
+        rowContainer.style.position = "absolute";
+        rowContainer.style.left = "-9999px";
+
+        const table = document.createElement("table");
+        table.style.width = "100%";
+        table.appendChild(row.cloneNode(true));
+        rowContainer.appendChild(table);
+
+        document.body.appendChild(rowContainer);
+        await new Promise((r) => setTimeout(r, 5));
+
+        const rowCanvas = await html2canvas(rowContainer, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#fff",
+        });
+
+        const rowHeightMm = (rowCanvas.height / rowCanvas.width) * contentWidth;
+        rowHeights.push(rowHeightMm);
+
+        document.body.removeChild(rowContainer);
+      }
+
+      // ✅ MEASURE SIGNATURE HEIGHT
+      let signatureHeightMm = 0;
+      if (signatures) {
+        const sigContainer = document.createElement("div");
+        sigContainer.style.width = "800px";
+        sigContainer.style.position = "absolute";
+        sigContainer.style.left = "-9999px";
+        sigContainer.appendChild(signatures.cloneNode(true));
+
+        document.body.appendChild(sigContainer);
+        await new Promise((r) => setTimeout(r, 10));
+
+        const sigCanvas = await html2canvas(sigContainer, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#fff",
+        });
+
+        signatureHeightMm =
+          (sigCanvas.height / sigCanvas.width) * contentWidth + 10; // +10mm margin
+        document.body.removeChild(sigContainer);
+      }
+
+      // ✅ DISTRIBUTE ROWS ACROSS PAGES BASED ON HEIGHT
+      const pages: number[][] = [];
+      let currentPage: number[] = [];
+      let currentHeight = headerHeightMm;
+
+      for (let i = 0; i < rows.length; i++) {
+        const isLastRow = i === rows.length - 1;
+        const rowHeight = rowHeights[i];
+        const requiredHeight = isLastRow
+          ? currentHeight + rowHeight + signatureHeightMm
+          : currentHeight + rowHeight;
+
+        if (requiredHeight > availableHeight && currentPage.length > 0) {
+          // Start new page
+          pages.push([...currentPage]);
+          currentPage = [i];
+          currentHeight = headerHeightMm + rowHeight;
+        } else {
+          currentPage.push(i);
+          currentHeight += rowHeight;
+        }
+      }
+
+      if (currentPage.length > 0) {
+        pages.push(currentPage);
+      }
+
+      // ✅ GENERATE PDF PAGES
+      const totalPages = pages.length;
+
+      for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+        if (pageIdx > 0) pdf.addPage();
+
+        const pageContainer = document.createElement("div");
+        pageContainer.style.width = "800px";
+        pageContainer.style.padding = "20px";
+        pageContainer.style.background = "white";
+
+        // Add header
+        if (headerSection) {
+          const headerClone = document.createElement("div");
+
+          const logoSection = headerSection.querySelector(
+            ".flex.flex-col.items-center.mb-5"
+          );
+          if (logoSection) headerClone.appendChild(logoSection.cloneNode(true));
+
+          const title = headerSection.querySelector(
+            "p.mt-3.text-lg.text-center.font-semibold.mb-2"
+          );
+          if (title) headerClone.appendChild(title.cloneNode(true));
+
+          const infoSection = headerSection.querySelector(".space-y-4.text-sm");
+          if (infoSection) {
+            const infoClone = document.createElement("div");
+            infoClone.className = "space-y-4 text-sm mb-4";
+            const gridSection = infoSection.querySelector(
+              ".grid.grid-cols-1.gap-4"
+            );
+            if (gridSection) infoClone.appendChild(gridSection.cloneNode(true));
+            headerClone.appendChild(infoClone);
+          }
+
+          pageContainer.appendChild(headerClone);
+        }
+
+        // Add table with rows for this page
+        const tableHeader = ref.current.querySelector("thead")?.cloneNode(true);
+        const newTable = document.createElement("table");
+        newTable.style.width = "100%";
+        newTable.style.borderCollapse = "collapse";
+
+        if (tableHeader) newTable.appendChild(tableHeader);
+
+        const newBody = document.createElement("tbody");
+        pages[pageIdx].forEach((rowIdx) => {
+          newBody.appendChild(rows[rowIdx].cloneNode(true));
+        });
+
+        newTable.appendChild(newBody);
+        pageContainer.appendChild(newTable);
+
+        // Add signatures on last page
+        if (pageIdx === totalPages - 1 && signatures) {
+          const signatureClone = signatures.cloneNode(true) as HTMLElement;
+          signatureClone.style.marginTop = "40px";
+          pageContainer.appendChild(signatureClone);
+        }
+
+        document.body.appendChild(pageContainer);
+
+        // Wait for images
+        const images = pageContainer.querySelectorAll("img");
+        await Promise.all(
+          Array.from(images).map(
+            (img) =>
+              new Promise<void>((resolve) => {
+                if (img.complete) resolve();
+                else {
+                  img.onload = () => resolve();
+                  img.onerror = () => resolve();
+                  setTimeout(() => resolve(), 3000);
+                }
+              })
+          )
+        );
+
+        const canvas = await html2canvas(pageContainer, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#fff",
+          allowTaint: false,
+          imageTimeout: 0,
+        });
+
+        const imgData = canvas.toDataURL("image/png");
+        const imgProps = pdf.getImageProperties(imgData);
+        const imgHeight = (imgProps.height * contentWidth) / imgProps.width;
+
+        pdf.addImage(imgData, "PNG", margin, margin, contentWidth, imgHeight);
+
+        // ✅ Add page number at TOP RIGHT
+        pdf.setFontSize(10);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(
+          `Page ${pageIdx + 1} of ${totalPages}`,
+          pageWidth - margin,
+          margin + 5,
+          { align: "right" }
+        );
+
+        document.body.removeChild(pageContainer);
+      }
+
+      const seriesNo = report?.series_no ?? "Unknown";
+      pdf.save(`PR - ${seriesNo}.pdf`);
+      toast.success("PDF downloaded!");
+    } catch (error) {
+      console.error(error);
+      toast.error("PDF generation failed");
+    }
+
+    setIsExporting(false);
   };
 
   // --- existing action handlers ---
@@ -332,52 +788,102 @@ export function useViewPurchaseReport(
     setActionType(action);
     setOpenModal(true);
   };
+
+  // ✅ NEW: Opens modal for "Approve to Review" action with remark support
+  const handleHodTrAction = (index: number) => {
+    setCurrentItemIndex(index);
+    setActionType("approve_to_review");
+    setOpenModal(true);
+  };
+
   const confirmItemAction = async (
-    remark: string,
+    newRemark: string,
     asRole?: "technical_reviewer" | "hod" | "both"
   ) => {
     if (!report) return;
 
-    // Count all still-pending items (including pending_pr)
-    const pendingCount =
-      report.item_status?.filter(
-        (s: string) =>
-          s === "pending" || s === "pending_tr" || s === "pending_pr"
-      ).length ?? 0;
-
     const currentStatus = report.item_status?.[currentItemIndex];
+    const tagDescription = report.tag?.[currentItemIndex]?.description ?? "";
+    const isAdmin = user?.role?.includes("admin");
     const isHod = user?.role?.includes("hod");
+    const isTechnicalReviewer = user?.role?.includes("technical_reviewer");
+    const hasBothRoles = isHod && isTechnicalReviewer;
+
+    const oldRemark = report.remarks?.[currentItemIndex] ?? "";
+    const combinedRemark =
+      newRemark.trim() === ""
+        ? oldRemark
+        : oldRemark
+        ? `${oldRemark}, ${newRemark}`
+        : newRemark;
 
     /**
-     * ✅ Determine effectiveRole:
-     * - If this is the last item (pendingCount === 1):
-     *      ➡️ Use asRole (if supplied).
-     * - OR if the user is HOD and the item is still pending / pending_pr:
-     *      ➡️ Force HOD to be stored.
+     * ✅ Determine effective role logic:
+     * - If user has BOTH roles → choose based on current status
+     * - If Admin → act as TECHNICAL_REVIEWER if tag ends with "_tr", else as HOD
+     * - Otherwise follow normal role detection
      */
-    const effectiveRole =
-      pendingCount === 1
-        ? asRole
-        : isHod &&
-          (currentStatus === "pending" || currentStatus === "pending_pr")
-        ? "hod"
-        : undefined;
+    const effectiveRole = hasBothRoles
+      ? currentStatus === "pending_tr" || currentStatus === "pending_pr"
+        ? "technical_reviewer"
+        : "both"
+      : isAdmin
+      ? tagDescription.endsWith("_tr")
+        ? "technical_reviewer"
+        : "hod"
+      : isHod
+      ? "hod"
+      : isTechnicalReviewer
+      ? "technical_reviewer"
+      : undefined;
 
+    // ✅ Handle "approve_to_review" separately
+    if (actionType === "approve_to_review") {
+      toast.promise(
+        purchaseReportService.updateItemStatus(
+          report.id,
+          currentItemIndex,
+          "pending_tr",
+          combinedRemark,
+          "hod",
+          user?.id
+        ),
+        {
+          loading: "Updating item...",
+          success: async (updated) => {
+            setReport(updated);
+            setOpenModal(false);
+            await fetchReport();
+            onSuccess?.();
+            return `Item ${
+              currentItemIndex + 1
+            } approved for technical review successfully`;
+          },
+          error: "Failed to update item status. Please try again.",
+        }
+      );
+      return;
+    }
+
+    // ✅ Support "returned" items as well
+    const newStatus = actionType === "approve" ? "approved" : "rejected";
+
+    // ✅ Normal approve/reject flow
     toast.promise(
       purchaseReportService.updateItemStatus(
         report.id,
         currentItemIndex,
-        actionType === "approve" ? "approved" : "rejected",
-        remark,
+        newStatus,
+        combinedRemark,
         effectiveRole,
         user?.id
       ),
       {
         loading: "Updating item...",
-        success: (updated) => {
+        success: async (updated) => {
           setReport(updated);
           setOpenModal(false);
-          fetchReport();
+          await fetchReport();
           onSuccess?.();
           return `Item ${currentItemIndex + 1} ${
             actionType === "approve" ? "approved" : "rejected"
@@ -398,60 +904,57 @@ export function useViewPurchaseReport(
     );
   };
 
-  const handleHodTrAction = async (idx: number) => {
-    if (!report || !user?.id) return;
-
-    try {
-      // ✅ Use updateItemStatus to also record HOD role & user id
-      await purchaseReportService.updateItemStatus(
-        report.id,
-        idx,
-        "pending_tr", // keep status as pending_tr
-        "", // no remark needed
-        "hod", // ✅ force HOD role to be stored
-        user.id // ✅ store current HOD user id
-      );
-
-      await fetchReport();
-      toast.success(`Item ${idx + 1} marked as pending_tr successfully`);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to update item status.");
-    }
-  };
-
   const isDropdownDisabled = (idx: number) => {
     const userRole = user?.role ?? [];
     const itemStatus = report?.item_status?.[idx];
     const itemTag = report?.tag?.[idx];
+    const itemTagDescription = itemTag?.description;
 
-    if (isItemProcessed(idx)) {
-      return true;
+    // 🧩 Convert Department → string (defensive)
+    const itemDepartment =
+      typeof itemTag?.department === "string"
+        ? itemTag.department
+        : (itemTag?.department as unknown as string) ?? "";
+
+    // ✅ If already processed, always disable
+    if (isItemProcessed(idx)) return true;
+
+    // ✅ Basic role eligibility check
+    const isAdmin = userRole.includes("admin");
+    const isHod = userRole.includes("hod");
+    const isTechnicalReviewer = userRole.includes("technical_reviewer");
+
+    if (!isHod && !isTechnicalReviewer && !isAdmin) return true;
+
+    // ✅ Department mismatch check (skip for admin and office_items)
+    const userDepartments = (user?.department as unknown as string[]) ?? [];
+    const isOfficeItems = itemDepartment === "office_items";
+    const departmentMismatch =
+      !isAdmin &&
+      !isOfficeItems &&
+      itemDepartment &&
+      !userDepartments.includes(itemDepartment);
+
+    if (departmentMismatch) return true;
+
+    // ✅ Technical Reviewer logic
+    if (isTechnicalReviewer && !isAdmin) {
+      return (
+        !itemTagDescription?.endsWith("_tr") || itemStatus !== "pending_tr"
+      );
     }
 
-    if (
-      !userRole.includes("hod") &&
-      !userRole.includes("technical_reviewer") &&
-      !userRole.includes("admin")
-    ) {
-      return true;
+    // ✅ HOD logic
+    if (isHod && !isAdmin) {
+      return itemTagDescription?.endsWith("_tr") || itemStatus !== "pending";
     }
 
-    if (
-      userRole.includes("technical_reviewer") &&
-      !userRole.includes("admin")
-    ) {
-      return !itemTag?.endsWith("_tr") || itemStatus !== "pending_tr";
-    }
-
-    if (userRole.includes("hod") && !userRole.includes("admin")) {
-      return itemTag?.endsWith("_tr") || itemStatus !== "pending";
-    }
-
-    if (userRole.includes("admin")) {
+    // ✅ Admin logic
+    if (isAdmin) {
       return itemStatus !== "pending" && itemStatus !== "pending_tr";
     }
 
+    // ✅ Default: disabled
     return true;
   };
 
@@ -461,6 +964,11 @@ export function useViewPurchaseReport(
       setSelectedItems([]);
     }
   }, [open]);
+
+  const tagDescription =
+    Array.isArray(report?.tag) && report?.tag[0]?.description
+      ? report.tag[0].description
+      : "";
 
   return {
     report,
@@ -476,6 +984,7 @@ export function useViewPurchaseReport(
     fetchReport,
     downloadPDF,
     downloadPDFSimple,
+    downloadPaginatedPDF,
     selectedItems,
     toggleItem,
     toggleAll,
@@ -484,5 +993,11 @@ export function useViewPurchaseReport(
     canSelectItem,
     bulkAction,
     isExporting,
+    isAdmin,
+    isHod,
+    isTechnicalReviewer,
+    hasBothRoles,
+    user,
+    tagDescription,
   };
 }

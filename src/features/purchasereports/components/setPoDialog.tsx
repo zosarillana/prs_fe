@@ -35,10 +35,14 @@ export function SetPoDialog({
   const handleSave = () => {
     if (!reportId || !poNo) return;
 
+    // Remove commas and spaces before converting
+    // const cleanedPo = Number(poNo.replace(/[,\s]/g, ""));
+    const cleanedPo = poNo.trim(); // keep commas AND spaces
+    
     toast.promise(
       new Promise<void>((resolve, reject) => {
         updatePo(
-          { id: reportId, po_no: Number(poNo) },
+          { id: reportId, po_no: cleanedPo },
           {
             onSuccess: () => {
               onOpenChange(false);
@@ -64,19 +68,29 @@ export function SetPoDialog({
         <DialogHeader>
           <DialogTitle>Set PO Number</DialogTitle>
         </DialogHeader>
+
         <div className="py-4">
           <Input
-            type="number"
+            type="text"
+            inputMode="decimal"
             placeholder="Enter PO number"
             value={poNo}
-            onChange={(e) => setPoNo(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+
+              // Allow digits, commas, and spaces
+              if (/^[\d,\s]*$/.test(value)) {
+                setPoNo(value);
+              }
+            }}
           />
         </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!poNo}>
+          <Button onClick={handleSave} disabled={!poNo.trim()}>
             Save
           </Button>
         </DialogFooter>

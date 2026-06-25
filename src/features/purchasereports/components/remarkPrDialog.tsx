@@ -14,10 +14,15 @@ interface RemarkPrDialogProps {
   open: boolean;
   onClose: () => void;
   onConfirm: (remark: string) => void;
-  action: "approve" | "reject";
+  action: "approve" | "reject" | "approve_to_review";
 }
 
-export function RemarkPrDialog({ open, onClose, onConfirm, action }: RemarkPrDialogProps) {
+export function RemarkPrDialog({
+  open,
+  onClose,
+  onConfirm,
+  action,
+}: RemarkPrDialogProps) {
   const [remark, setRemark] = useState("");
 
   const handleConfirm = () => {
@@ -26,21 +31,71 @@ export function RemarkPrDialog({ open, onClose, onConfirm, action }: RemarkPrDia
     onClose();
   };
 
+  // ✅ Helper function to get the title based on action
+  const getTitle = () => {
+    switch (action) {
+      case "approve":
+        return "Approve Item";
+      case "reject":
+        return "Reject Item";
+      case "approve_to_review":
+        return "Approve To Review";
+      default:
+        return "Item Action";
+    }
+  };
+
+  // ✅ Helper function to get the description based on action
+  const getDescription = () => {
+    switch (action) {
+      case "approve":
+        return "Please provide a remark before you approve this item.";
+      case "reject":
+        return "Please provide a remark before you reject this item.";
+      case "approve_to_review":
+        return "Add optional notes for the technical reviewer before sending this item for review.";
+      default:
+        return "Please provide a remark.";
+    }
+  };
+
+  // ✅ Helper function to get the button text based on action
+  const getButtonText = () => {
+    switch (action) {
+      case "approve":
+        return "Approve";
+      case "reject":
+        return "Reject";
+      case "approve_to_review":
+        return "Send to Review";
+      default:
+        return "Confirm";
+    }
+  };
+
+  // ✅ Helper function to get the placeholder text
+  const getPlaceholder = () => {
+    switch (action) {
+      case "approve_to_review":
+        return "Add any notes for the technical reviewer...";
+      case "reject":
+        return "Please provide a reason for rejection...";
+      default:
+        return "Enter your remark...";
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {action === "approve" ? "Approve Item" : "Reject Item"}
-          </DialogTitle>
-          <DialogDescription>
-            Please provide a remark before you {action} this item.
-          </DialogDescription>
+          <DialogTitle>{getTitle()}</DialogTitle>
+          <DialogDescription>{getDescription()}</DialogDescription>
         </DialogHeader>
 
         <div className="py-4">
           <Textarea
-            placeholder="Enter your remark..."
+            placeholder={getPlaceholder()}
             value={remark}
             onChange={(e) => setRemark(e.target.value)}
           />
@@ -50,8 +105,11 @@ export function RemarkPrDialog({ open, onClose, onConfirm, action }: RemarkPrDia
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm}>
-            {action === "approve" ? "Approve" : "Reject"}
+          <Button
+            onClick={handleConfirm}
+            disabled={action === "reject" && !remark.trim()}
+          >
+            {getButtonText()}
           </Button>
         </DialogFooter>
       </DialogContent>

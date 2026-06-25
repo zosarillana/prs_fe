@@ -25,10 +25,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  ArrowLeftCircle,
+  BadgeCheckIcon,
+  CalendarIcon,
   CheckCircle,
+  CircleXIcon,
+  Copy,
   Edit,
   Eye,
+  File,
   FileDigit,
+  HashIcon,
   Loader,
   MoreVertical,
   Plus,
@@ -51,15 +58,28 @@ import { EditPurchaseReportDialog } from "../components/editPurchaseReportDialog
 import { DrApproveDialog } from "../components/drApproveDialog";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 export default function PurchaseReport() {
   const [searchParams] = useSearchParams();
   const ownCreated = searchParams.get("ownCreated") === "true";
+  const ownDepartment = searchParams.get("ownDepartment") === "true";
+  const completedOwnDeptFromUrl = searchParams.get("ownDepartment") === "true";
   const completedTr = searchParams.get("completedTr") === "true";
+  const completedTrFromUrl = searchParams.get("completedTr") === "true";
   const forCeoApproval = searchParams.get("forCeoApproval") === "true";
+  const forPoApproval = searchParams.get("forPoApproval") === "true";
   const approvedPo = searchParams.get("approvedPo") === "true";
   // const completedHod = searchParams.get("completedHod") === "true";
   const statusFromUrl = searchParams.get("statusTerm") || "";
+  const prStatusFromUrl = searchParams.get("prStatusTerm") || "";
   const {
     user,
     data,
@@ -92,8 +112,20 @@ export default function PurchaseReport() {
     approveTargetId,
     // ✅ Add these to your hook if not already there
     statusTerm,
+    prStatusTerm, // ✅ get pr_status filter
+    setPrStatusTerm, // ✅ get pr_status setter
     setStatusTerm,
+    setCompletedTr,
+    setOwnDepartment,
     cancelPoMutation,
+    returnPoMutation,
+    handleCopyToNew,
+    handleViewDraft,
+    fromDate,
+    toDate,
+    setFromDate,
+    setToDate,
+    handleClearFilters,
   } = usePurchaseReports();
 
   const statusMap: Record<string, string> = {
@@ -102,29 +134,56 @@ export default function PurchaseReport() {
   };
 
   useEffect(() => {
+    setCompletedTr(completedTrFromUrl);
+  }, [completedTrFromUrl]);
+
+  useEffect(() => {
+    setOwnDepartment(completedOwnDeptFromUrl);
+  }, [completedOwnDeptFromUrl]);
+
+  // ✅ Handle statusTerm from URL
+  useEffect(() => {
     if (statusFromUrl && statusFromUrl !== statusTerm) {
       setStatusTerm(statusFromUrl);
     }
   }, [statusFromUrl, statusTerm, setStatusTerm]);
 
+  // ✅ NEW: Handle prStatusTerm from URL
+  useEffect(() => {
+    if (prStatusFromUrl && prStatusFromUrl !== prStatusTerm) {
+      setPrStatusTerm(prStatusFromUrl);
+    }
+  }, [prStatusFromUrl, prStatusTerm, setPrStatusTerm]);
+
   let heading: string;
 
-  if (statusTerm === "on_hold") {
-    heading = "For HOD Approval"; // ✅ override
-  } else if (statusTerm === "on_hold_tr") {
-    heading = "For TR Approval"; // ✅ override
+  if (prStatusTerm === "on_hold") {
+    heading = "For HOD Approval";
+  } else if (prStatusTerm === "on_hold_tr") {
+    heading = "For TR Approval";
+  } else if (prStatusTerm === "returned") {
+    heading = "Returned PR";
+  } else if (prStatusTerm === "rejected") {
+    heading = "Rejected PR";
+  } else if (statusTerm === "approved") {
+    heading = "Approved Purchase Orders";
   } else if (completedTr === true) {
     heading = "Completed TR";
-  } else if (statusTerm === "closed") {
-    heading = "Closed Pr";
-  } else if (statusTerm === "for_approval") {
-    heading = "For PO Creation";
+  } else if (ownDepartment === true) {
+    heading = "Department Total PRs";
+  } else if (prStatusTerm === "closed") {
+    // ✅ Check prStatusTerm for closed
+    heading = "Closed PRs";
+  } else if (statusTerm === "for_approval" || prStatusTerm === "for_approval") {
+    heading = "For Purchase Order Creation";
   } else if (forCeoApproval === true) {
-    heading = "For CEO Approval";
+    heading = "For PO Approval";
+  } else if (forPoApproval === true) {
+    heading = "For Purchase Order Creation";
   } else if (approvedPo === true) {
     heading = "Approved POs";
   } else if (user?.role?.includes("hod")) {
-    heading = "Approve PRs";
+    heading = "Purchase Requests";
   } else if (user?.role?.includes("technical_reviewer")) {
     heading = "Review Items";
   } else {
@@ -145,95 +204,187 @@ export default function PurchaseReport() {
       {/* header */}
       <div className="flex flex-row justify-between items-center mb-6">
         <h1 className="text-3xl font-bold mb-6">{heading}</h1>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-row gap-2 items-center">
+            {/* ✅ Status Filter Dropdown */}
+            <Select
+              value={
+                statusTerm === "For_approval"
+                  ? "for_approval_ceo"
+                  : prStatusTerm || statusTerm || "all"
+              }
+              onValueChange={(value) => {
+                if (value === "all") {
+                  setStatusTerm("");
+                  setPrStatusTerm("");
+                } else if (value === "on_hold") {
+                  setPrStatusTerm("on_hold");
+                  setStatusTerm("");
+                } else if (value === "on_hold_tr") {
+                  setPrStatusTerm("on_hold_tr");
+                  setStatusTerm("");
+                } else if (value === "for_approval") {
+                  setPrStatusTerm("for_approval");
+                  setStatusTerm("");
+                } else if (value === "closed") {
+                  setPrStatusTerm("closed");
+                  setStatusTerm("");
+                } else if (value === "for_approval_ceo") {
+                  setStatusTerm("For_approval");
+                  setPrStatusTerm("");
+                } else if (value === "canceled") {
+                  setPrStatusTerm("canceled");
+                  setStatusTerm("");
+                } else {
+                  setStatusTerm(value);
+                  setPrStatusTerm("");
+                }
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by Status" />
+              </SelectTrigger>
+              <SelectContent>
+                {(() => {
+                  // ✅ user must have BOTH roles to see all options
+                  const canSeeAllStatuses =
+                    user?.role?.includes("hod") &&
+                    user?.role?.includes("purchasing");
 
-        <div className="flex flex-row gap-2 items-center">
-          {/* ✅ Status Filter Dropdown */}
-          <Select
-            value={statusTerm || "all"}
-            onValueChange={(value) =>
-              setStatusTerm(value === "all" ? "" : value)
-            }
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by Status" />
-            </SelectTrigger>
-            <SelectContent>
-              {/* HOD can see all statuses */}
-              {user?.role?.includes("hod") ? (
-                <>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="on_hold_tr">For TR Approval</SelectItem>
-                  <SelectItem value="on_hold">For HOD Approval</SelectItem>
-                  <SelectItem value="for_approval">
-                    For Purchase Order Creation
-                  </SelectItem>
-                </>
-              ) : user?.role?.includes("tr") ? (
-                <>
-                  {/* TR sees only specific statuses */}
-                  <SelectItem value="on_hold_tr">For TR Approval</SelectItem>
-                  <SelectItem value="for_approval">
-                    For Purchase Order Creation
-                  </SelectItem>
-                </>
-              ) : user?.role?.includes("purchasing") ? (
-                <>
-                  {/* TR sees only specific statuses */}
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="for_approval">
-                    For Purchase Order Creation
-                  </SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </>
-              ) : (
-                <>
-                  {/* Default options for other roles */}
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="on_hold">For HOD Approval</SelectItem>
-                  <SelectItem value="on_hold_tr">For TR Approval</SelectItem>
-                  <SelectItem value="for_approval">
-                    For Purchase Order Creation
-                  </SelectItem>
+                  if (canSeeAllStatuses) {
+                    return (
+                      <>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="on_hold_tr">
+                          For TR Approval
+                        </SelectItem>
+                        <SelectItem value="on_hold">
+                          For HOD Approval
+                        </SelectItem>
+                        <SelectItem value="for_approval">
+                          For Purchase Order Creation
+                        </SelectItem>
+                        <SelectItem value="for_approval_ceo">
+                          For Approval
+                        </SelectItem>
+                        <SelectItem value="approved">Approved POs</SelectItem>
+                        <SelectItem value="canceled">Cancelled</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="returned">Returned</SelectItem>
+                        <SelectItem value="closed">Closed</SelectItem>
+                      </>
+                    );
+                  } else if (user?.role?.includes("hod")) {
+                    return (
+                      <>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="on_hold_tr">
+                          For TR Approval
+                        </SelectItem>
+                        <SelectItem value="on_hold">
+                          For HOD Approval
+                        </SelectItem>
+                        <SelectItem value="for_approval">
+                          For Purchase Order Creation
+                        </SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="returned">Returned</SelectItem>
+                      </>
+                    );
+                  } else if (user?.role?.includes("tr")) {
+                    return (
+                      <>
+                        <SelectItem value="on_hold_tr">
+                          For TR Approval
+                        </SelectItem>
+                        <SelectItem value="for_approval">
+                          For Purchase Order Creation
+                        </SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="returned">Returned</SelectItem>
+                      </>
+                    );
+                  } else if (user?.role?.includes("purchasing")) {
+                    return (
+                      <>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="for_approval">
+                          For Purchase Order Creation
+                        </SelectItem>
+                        <SelectItem value="for_approval_ceo">
+                          For Approval
+                        </SelectItem>
+                        <SelectItem value="canceled">Cancelled</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="returned">Returned</SelectItem>
+                        <SelectItem value="closed">Closed</SelectItem>
+                      </>
+                    );
+                  } else {
+                    // Default for other roles
+                    return (
+                      <>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="on_hold">
+                          For HOD Approval
+                        </SelectItem>
+                        <SelectItem value="on_hold_tr">
+                          For TR Approval
+                        </SelectItem>
+                        <SelectItem value="for_approval">
+                          For Purchase Order Creation
+                        </SelectItem>
+                        <SelectItem value="for_approval_ceo">
+                          For Approval
+                        </SelectItem>
+                        <SelectItem value="approved">Approved POs</SelectItem>
+                        <SelectItem value="canceled">Cancelled</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="returned">Returned</SelectItem>
+                        <SelectItem value="closed">Closed</SelectItem>
+                      </>
+                    );
+                  }
+                })()}
+              </SelectContent>
+            </Select>
 
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
-                </>
-              )}
-            </SelectContent>
-          </Select>
+            {/* Search Box */}
+            <div className="relative w-64">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search requests..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1); // ✅ Add this line to reset to page 1 when searching
+                }}
+              />
+            </div>
 
-          {/* Search Box */}
-          <div className="relative w-64">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search requests..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            {/* Create Button */}
+            {!(
+              user?.role?.includes("hod") ||
+              user?.role?.includes("technical_reviewer") ||
+              user?.role?.includes("purchasing")
+            ) && (
+              <Button asChild>
+                <Link to="/purchase-reports/create">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Purchase Request
+                </Link>
+              </Button>
+            )}
           </div>
-
-          {/* Create Button */}
-          {!(
-            user?.role?.includes("hod") ||
-            user?.role?.includes("technical_reviewer") ||
-            user?.role?.includes("purchasing")
-          ) && (
-            <Button asChild>
-              <Link to="/purchase-reports/create">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Purchase Request
-              </Link>
-            </Button>
-          )}
         </div>
       </div>
 
       {/* table */}
       <div className="overflow-hidden rounded-lg border text-card-foreground shadow">
-        <Table className="border-separate border-spacing-0 w-full">
+        <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-[140px] border-b">PR Number</TableHead>
@@ -244,84 +395,110 @@ export default function PurchaseReport() {
               <TableHead className="border-b">Status</TableHead>
               <TableHead className="border-b">PO Status</TableHead>
               <TableHead className="border-b">Date Needed</TableHead>
-              <TableHead className="border-b"># of Days On Hold</TableHead>
+              {(user?.role?.includes("user") ||
+                user?.role?.includes("admin") ||
+                user?.role?.includes("hod")) && (
+                <TableHead className="border-b">
+                  # of Days On Hold for PR
+                </TableHead>
+              )}
+              {(user?.role?.includes("purchasing") ||
+                user?.role?.includes("admin") ||
+                user?.role?.includes("user") ||
+                user?.role?.includes("hod")) && (
+                <TableHead className="border-b">
+                  # of Days On Hold for PO
+                </TableHead>
+              )}
+
               <TableHead className="w-[100px] border-b">Action</TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody className="cursor-pointer">
+            {/* ✅ Optional subtle progress bar that shows while fetching */}
             {fetching && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-6">
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader className="h-5 w-5 animate-spin text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                      Updating reports...
-                    </span>
+                <TableCell colSpan={11} className="py-0 px-0">
+                  <div className="w-full">
+                    <Progress indeterminate className="w-full" />
                   </div>
                 </TableCell>
               </TableRow>
             )}
 
-            {!fetching &&
-              data?.items
-                .filter((item) => {
-                  // Own Created filter for normal users
-                  if (user?.role?.includes("user") && ownCreated) {
-                    return item.user.id === user.id;
-                  }
+            {/* ✅ Keep rendering data rows regardless of fetching */}
+            {data?.items
+              ?.filter((item) => {
+                // Own Created filter for normal users
+                if (user?.role?.includes("user") && ownCreated) {
+                  return item.user.id === user.id;
+                }
 
-                  // Completed TR filter for admin / technical_reviewer
-                  if (completedTr) {
-                    return (
-                      item.tr_user_id != null // must have TR assigned
-                    );
-                  }
-                  if (forCeoApproval) {
-                    return item.po_status === "For_approval";
-                  }
-                  if (approvedPo) {
-                    return item.po_status === "approved";
-                  }
+                // Completed TR filter for admin / technical_reviewer
+                if (completedTr) {
+                  return (
+                    item.tr_user_id != null // must have TR assigned
+                  );
+                }
+                if (forCeoApproval) {
+                  return item.po_status === "For_approval";
+                }
+                if (approvedPo) {
+                  return item.po_status === "approved";
+                }
 
-                  return true; // default show all
-                })
-                .map((item) => (
-                  <TableRow key={item.id} onClick={() => handleView(item.id)}>
-                    <TableCell className="font-medium">
-                      {item.series_no}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {item.pr_created}
-                    </TableCell>
-                    <TableCell>{item.pr_purpose}</TableCell>
-                    <TableCell>
-                      {item.department
-                        .split("_")
-                        .map((word) =>
-                          word.toLowerCase() === "it"
-                            ? "IT"
-                            : word.charAt(0).toUpperCase() +
-                              word.slice(1).toLowerCase()
-                        )
-                        .join(" ")}
-                    </TableCell>
-                    <TableCell className="capitalize">
-                      {item.user.name}
-                    </TableCell>
-                    <TableCell className="capitalize">
-                      {item.pr_status === "on_hold"
-                        ? "For HOD Approval"
-                        : item.pr_status === "on_hold_tr"
-                        ? "For TR Approval"
-                        : statusMap[item.pr_status] || item.pr_status}
-                    </TableCell>
-                    <TableCell className="capitalize">
-                      {item.po_status === "For_approval"
-                        ? "For CEO Approval"
-                        : item.po_status ?? "n/a"}
-                    </TableCell>
-                    <TableCell>{item.date_needed}</TableCell>
+                return true; // default show all
+              })
+              .map((item) => (
+                <TableRow key={item.id} onClick={() => handleView(item.id)}>
+                  <TableCell
+                    className="flex gap-2 font-semi
+                  bold"
+                  >
+                    <HashIcon className="h-4 w-5 my-1" />
+                    <p className="my-1">{item.series_no}</p>
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {item.pr_created}
+                  </TableCell>
+                  <TableCell className="capitalize">
+                    {item.pr_purpose
+                      .toLowerCase()
+                      .replace(/^\w/, (c) => c.toUpperCase())}
+                  </TableCell>
+
+                  <TableCell>
+                    {item.department
+                      .split("_")
+                      .map((word) =>
+                        word.toLowerCase() === "it"
+                          ? "IT"
+                          : word.charAt(0).toUpperCase() +
+                            word.slice(1).toLowerCase()
+                      )
+                      .join(" ")}
+                  </TableCell>
+                  <TableCell className="capitalize">{item.user.name}</TableCell>
+                  <TableCell className="capitalize">
+                    {item.pr_status === "on_hold"
+                      ? "For HOD Approval"
+                      : item.pr_status === "on_hold_tr"
+                      ? "For TR Approval"
+                      : statusMap[item.pr_status] || item.pr_status}
+                  </TableCell>
+                  <TableCell className="capitalize">
+                    {item.po_status === "For_approval"
+                      ? "For Approval"
+                      : item.po_status === "canceled" ||
+                        item.po_status === "cancelled"
+                      ? "Cancelled"
+                      : item.po_status ?? "n/a"}
+                  </TableCell>
+                  <TableCell>{item.date_needed}</TableCell>
+                  {(user?.role?.includes("user") ||
+                    user?.role?.includes("admin") ||
+                    user?.role?.includes("hod")) && (
                     <TableCell>
                       {(() => {
                         const createdDate = new Date(item.pr_created);
@@ -339,176 +516,418 @@ export default function PurchaseReport() {
                         else if (trDate) latestDate = trDate;
                         else latestDate = new Date();
 
-                        const diffDays = Math.floor(
-                          (latestDate.getTime() - createdDate.getTime()) /
-                            (1000 * 60 * 60 * 24)
+                        // ✅ Clamp to avoid negative results
+                        const diffDays = Math.max(
+                          0,
+                          Math.floor(
+                            (latestDate.getTime() - createdDate.getTime()) /
+                              (1000 * 60 * 60 * 24)
+                          )
                         );
-                        return `${diffDays} days`;
+
+                        return `${diffDays} day${diffDays !== 1 ? "s" : ""}`;
                       })()}
                     </TableCell>
-
+                  )}
+                  {(user?.role?.includes("purchasing") ||
+                    user?.role?.includes("admin") ||
+                    user?.role?.includes("user") ||
+                    user?.role?.includes("hod")) && (
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
+                      {(() => {
+                        const hodDate = item.hod_signed_at
+                          ? new Date(item.hod_signed_at + "T00:00:00")
+                          : null;
+                        const trDate = item.tr_signed_at
+                          ? new Date(item.tr_signed_at + "T00:00:00")
+                          : null;
 
-                        <DropdownMenuContent
-                          align="start"
-                          className="w-34 animate-in fade-in-0 zoom-in-95"
+                        // Get latest approval date
+                        let latestApprovalDate;
+                        if (hodDate && trDate) {
+                          latestApprovalDate =
+                            hodDate > trDate ? hodDate : trDate;
+                        } else if (hodDate) {
+                          latestApprovalDate = hodDate;
+                        } else if (trDate) {
+                          latestApprovalDate = trDate;
+                        } else {
+                          return "0 days";
+                        }
+
+                        // If PO created → count until PO date
+                        // If not → count until TODAY
+                        const endDate = item.po_created_date
+                          ? new Date(item.po_created_date + "T00:00:00")
+                          : new Date(); // today
+
+                        let diffDays = Math.floor(
+                          (endDate.getTime() - latestApprovalDate.getTime()) /
+                            (1000 * 60 * 60 * 24)
+                        );
+
+                        if (diffDays < 0) diffDays = 0;
+
+                        return `${diffDays} day${diffDays !== 1 ? "s" : ""}`;
+                      })()}
+                    </TableCell>
+                  )}
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleView(item.id);
-                            }}
-                          >
-                            <Eye className="mr-2 h-4 w-4" /> View
-                          </DropdownMenuItem>
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
 
-                          {(user?.role?.includes("admin") ||
-                            user?.role?.includes("maker")) && (
-                            <>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEdit(item.id);
-                                }}
-                              >
-                                <Edit className="mr-2 h-4 w-4" /> Edit
-                              </DropdownMenuItem>
+                      <DropdownMenuContent
+                        align="start"
+                        className="w-34 animate-in fade-in-0 zoom-in-95"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {/* Always show View button */}
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleView(item.id);
+                          }}
+                        >
+                          <Eye className="mr-2 h-4 w-4" /> View
+                        </DropdownMenuItem>
 
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDelete(item);
-                                }}
-                              >
-                                <Trash className="mr-2 h-4 w-4 text-red-500" />
-                                <span className="text-red-500">Delete</span>
-                              </DropdownMenuItem>
-                            </>
-                          )}
-
-                          {user?.role?.includes("purchasing") && (
-                            <>
-                              {item.pr_status === "for_approval" && (
+                        {/* Only show other options if user is NOT both hod and purchasing */}
+                        {!(
+                          user?.role?.includes("hod") &&
+                          user?.role?.includes("purchasing")
+                        ) && (
+                          <>
+                            {user?.role?.includes("admin") && (
+                              <>
+                                {/* Edit */}
                                 <DropdownMenuItem
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleSetPo(item.id);
+                                    handleEdit(item.id);
                                   }}
                                 >
-                                  <FileDigit className="mr-2 h-4 w-4" /> Set PO
-                                  Number
+                                  <Edit className="mr-2 h-4 w-4" /> Edit
                                 </DropdownMenuItem>
-                              )}
-
-                              {item.po_status === "For_approval" && (
+                                {/* Drafted */}
+                                {item.pr_status == "drafted" && (
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleViewDraft(item.id);
+                                    }}
+                                  >
+                                    <File className="mr-2 h-4 w-4" /> View Draft
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setApproveTargetId(item.id);
-                                    setApproveDialogOpen(true);
+                                    handleCopyToNew(item.id);
                                   }}
                                 >
-                                  <CheckCircle className="mr-2 h-4 w-4" /> Date
-                                  Approve
+                                  <Copy className="mr-2 h-4 w-4" /> Copy To New
                                 </DropdownMenuItem>
+                              </>
+                            )}
+
+                            {user?.role?.includes("user") &&
+                              !user?.role?.includes("admin") && (
+                                <>
+                                  {/* Drafted */}
+                                  {item.pr_status === "drafted" && (
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleViewDraft(item.id);
+                                      }}
+                                    >
+                                      <File className="mr-2 h-4 w-4" /> View
+                                      Draft
+                                    </DropdownMenuItem>
+                                  )}
+
+                                  {/* Edit */}
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEdit(item.id);
+                                    }}
+                                  >
+                                    <Edit className="mr-2 h-4 w-4" /> Edit
+                                  </DropdownMenuItem>
+
+                                  {/* Copy To New */}
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCopyToNew(item.id);
+                                    }}
+                                  >
+                                    <Copy className="mr-2 h-4 w-4" /> Copy To
+                                    New
+                                  </DropdownMenuItem>
+
+                                  {/* Cancel PR Maker*/}
+                                  <DropdownMenuItem
+                                    disabled={
+                                      item.pr_status === "for_approval" ||
+                                      item.pr_status === "Closed"
+                                    }
+                                    onClick={(e) => {
+                                      if (item.pr_status === "for_approval")
+                                        return;
+                                      e.stopPropagation();
+                                      toast("Cancel PR?", {
+                                        description: `Are you sure you want to cancel PR for #${item.series_no}?`,
+                                        action: {
+                                          label: "Confirm",
+                                          onClick: () =>
+                                            cancelPoMutation(item.id),
+                                        },
+                                      });
+                                    }}
+                                  >
+                                    <X />
+                                    <span>Cancel PR</span>
+                                  </DropdownMenuItem>
+                                </>
                               )}
 
-                              {(item.pr_status === "for_approval" ||
-                                item.po_status === "for_approval") && (
+                            {(user?.role?.includes("purchasing") ||
+                              user?.role?.includes("admin")) && (
+                              <>
+                                {/* Set PO Number (only if PR is for approval) */}
+                                {item.pr_status === "for_approval" && (
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSetPo(item.id);
+                                    }}
+                                  >
+                                    <FileDigit className="mr-2 h-4 w-4" /> Set
+                                    PO Number
+                                  </DropdownMenuItem>
+                                )}
+                                {item.pr_status === "for_approval" && (
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toast("Return PR?", {
+                                        description: `Are you sure you want to return PR for #${item.series_no}?`,
+                                        action: {
+                                          label: "Confirm",
+                                          onClick: () =>
+                                            returnPoMutation(item.id),
+                                        },
+                                      });
+                                    }}
+                                  >
+                                    <ArrowLeftCircle className="mr-2 h-4 w-4 text-amber-500" />{" "}
+                                    <span className="text-amber-500">
+                                      Return PR
+                                    </span>
+                                  </DropdownMenuItem>
+                                )}
+                                {/* Date Approve + Return PR (only if PO is for approval) */}
+                                {item.po_status === "For_approval" && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setApproveTargetId(item.id);
+                                        setApproveDialogOpen(true);
+                                      }}
+                                    >
+                                      <CheckCircle className="mr-2 h-4 w-4" />{" "}
+                                      Date Approve
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                {/* Cancel PO ADMIN */}
+                                {(item.pr_status === "Closed" ||
+                                  item.po_status === "for_approval") && (
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toast("Cancel PO?", {
+                                        description: `Are you sure you want to cancel the PO for #${item.series_no}?`,
+                                        action: {
+                                          label: "Confirm",
+                                          onClick: () =>
+                                            cancelPoMutation(item.id),
+                                        },
+                                      });
+                                    }}
+                                  >
+                                    <X className="mr-2 h-4 w-4 text-red-500" />{" "}
+                                    <span className="text-red-500">
+                                      Cancel PO
+                                    </span>
+                                  </DropdownMenuItem>
+                                )}
+                              </>
+                            )}
+                            {/* Delete */}
+
+                            {user?.role?.includes("admin") && (
+                              <>
                                 <DropdownMenuItem
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    toast("Cancel PO?", {
-                                      description: `Are you sure you want to cancel the PO for #${item.series_no}?`,
-                                      action: {
-                                        label: "Confirm",
-                                        onClick: () =>
-                                          cancelPoMutation(item.id),
-                                      },
-                                    });
+                                    handleDelete(item);
                                   }}
                                 >
-                                  <X className="mr-2 h-4 w-4" /> Cancel PO
+                                  <Trash className="mr-2 h-4 w-4 text-red-500" />
+                                  <span className="text-red-500">Delete</span>
                                 </DropdownMenuItem>
-                              )}
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                                {/* Cancel PR ADMIN */}
+                                {(item.pr_status === "for_approval" ||
+                                  item.pr_status === "on_hold" ||
+                                  item.pr_status === "on_hold_tr") && (
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toast("Cancel PO?", {
+                                        description: `Are you sure you want to cancel PR for #${item.series_no}?`,
+                                        action: {
+                                          label: "Confirm",
+                                          onClick: () =>
+                                            cancelPoMutation(item.id),
+                                        },
+                                      });
+                                    }}
+                                  >
+                                    <CircleXIcon className="mr-2 h-4 w-4 text-red-500" />{" "}
+                                    <span className="text-red-500">
+                                      Cancel PR
+                                    </span>
+                                  </DropdownMenuItem>
+                                )}
+                              </>
+                            )}
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
 
         {/* pagination footer */}
-        <div className="flex items-center justify-end w-full border-t p-4">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => page > 1 && setPage(page - 1)}
-                  className={page === 1 ? "pointer-events-none opacity-50" : ""}
-                />
-              </PaginationItem>
+        <div className="flex items-center justify-between w-full border-t p-4">
+          {/* Left side: Showing X of Y */}
+          <div className="text-sm text-muted-foreground">
+            Showing {data?.items?.length ?? 0} of {data?.totalItems ?? 0}
+          </div>
 
-              {Array.from({ length: data?.totalPages ?? 0 }, (_, i) => (
-                <PaginationItem key={i}>
-                  <PaginationLink
-                    isActive={page === i + 1}
-                    onClick={() => setPage(i + 1)}
-                  >
-                    {i + 1}
-                  </PaginationLink>
+          {/* Right side: Pagination and page size */}
+          <div className="flex items-center gap-6">
+            <Pagination>
+              <PaginationContent>
+                {/* Previous Button */}
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => page > 1 && setPage(page - 1)}
+                    className={
+                      page === 1 ? "pointer-events-none opacity-50" : ""
+                    }
+                  />
                 </PaginationItem>
-              ))}
 
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() =>
-                    data && page < data.totalPages && setPage(page + 1)
-                  }
-                  className={
-                    data && page === data.totalPages
-                      ? "pointer-events-none opacity-50"
-                      : ""
-                  }
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+                {/* Dynamic Pagination with Ellipsis */}
+                {(() => {
+                  const total = data?.totalPages ?? 0;
+                  const visiblePages: (number | string)[] = [];
 
-          {/* page size selector */}
-          <div className="flex items-center gap-2 w-[200px]">
-            <span className="text-sm text-muted-foreground w-full">
-              Rows per page:
-            </span>
-            <Select
-              value={pageSize.toString()}
-              onValueChange={(value) => setPageSize(Number(value))}
-            >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Rows" />
-              </SelectTrigger>
-              <SelectContent>
-                {[5, 10, 20, 30, 50].map((size) => (
-                  <SelectItem key={size} value={size.toString()}>
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  if (total <= 7) {
+                    // If few pages, show all
+                    for (let i = 1; i <= total; i++) visiblePages.push(i);
+                  } else {
+                    const firstPage = 1;
+                    const lastPage = total;
+                    const startRange = Math.max(2, page - 1);
+                    const endRange = Math.min(total - 1, page + 1);
+
+                    visiblePages.push(firstPage);
+
+                    if (startRange > 2) visiblePages.push("...");
+
+                    for (let i = startRange; i <= endRange; i++)
+                      visiblePages.push(i);
+
+                    if (endRange < total - 1) visiblePages.push("...");
+
+                    visiblePages.push(lastPage);
+                  }
+
+                  return visiblePages.map((p, i) =>
+                    typeof p === "number" ? (
+                      <PaginationItem key={i}>
+                        <PaginationLink
+                          isActive={page === p}
+                          onClick={() => setPage(p)}
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={i}>
+                        <span className="px-2 text-muted-foreground">...</span>
+                      </PaginationItem>
+                    )
+                  );
+                })()}
+
+                {/* Next Button */}
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() =>
+                      data && page < data.totalPages && setPage(page + 1)
+                    }
+                    className={
+                      data && page === data.totalPages
+                        ? "pointer-events-none opacity-50"
+                        : ""
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+
+            {/* Page size selector */}
+            <div className="flex items-center gap-2 w-[200px]">
+              <span className="text-sm text-muted-foreground w-full">
+                Rows per page:
+              </span>
+              <Select
+                value={pageSize.toString()}
+                onValueChange={(value) => {
+                  setPageSize(Number(value));
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Rows" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[5, 10, 20, 30, 50].map((size) => (
+                    <SelectItem key={size} value={size.toString()}>
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </div>

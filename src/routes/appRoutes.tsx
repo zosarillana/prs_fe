@@ -14,6 +14,8 @@ import UomPage from "@/features/uom/pages/uom";
 import Department from "@/features/department/pages/department";
 import Tags from "@/features/tags/pages/tags";
 import NotFound from "@/features/misc/pages/notFound";
+import Reports from "@/features/purchasereports/pages/reports";
+import ProgressReport from "@/features/purchasereports/pages/progressReport";
 
 export const appRoutes = [
   {
@@ -66,6 +68,16 @@ export const appRoutes = [
     path: "/audit-logs",
     element: <AuditLogs />,
     moduleId: 9,
+  },
+  {
+    path: "/reports",
+    element: <Reports />,
+    moduleId: 10,
+  },
+  {
+    path: "/progress-reports",
+    element: <ProgressReport />,
+    moduleId: 11,
   },
   // free routes
   {

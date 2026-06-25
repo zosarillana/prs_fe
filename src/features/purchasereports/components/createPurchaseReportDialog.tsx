@@ -23,8 +23,8 @@ import {
 } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth/authStore";
-import { useCreatePurchaseReport } from "../hooks/useCreatePurchaseReport";
 import { purchaseReportService } from "../purchaseReportService";
+
 export function CreatePurchaseReportDialog({
   onSubmit,
 }: {
@@ -47,30 +47,22 @@ export function CreatePurchaseReportDialog({
   const [items, setItems] = React.useState<string>("1");
   const [purpose, setPurpose] = React.useState<string>("");
 
+  const [previewSeries, setPreviewSeries] = React.useState<string>("Loading...");
+
   // Date can be Date OR undefined
   const [date, setDate] = React.useState<Date | undefined>(
     isUser ? new Date() : undefined
   );
   const [dateNeeded, setDateNeeded] = React.useState<Date | undefined>();
 
-  const generateUniqueSeriesNo = async (): Promise<string> => {
-    // Fetch all existing series numbers
-    const res = await purchaseReportService.getAll({
-      pageNumber: 1,
-      pageSize: 9999,
-    });
-    const existingSeries = res.items.map((r) => Number(r.series_no));
-
-    // Start from 11000
-    let candidate = 11000;
-
-    // Increment until unique
-    while (existingSeries.includes(candidate)) {
-      candidate += 1;
+  // ✅ Fetch backend-generated next series number when dialog opens
+  React.useEffect(() => {
+    if (open) {
+      purchaseReportService.getNextSeriesNo().then((num) => {
+        setPreviewSeries(num.toString());
+      });
     }
-
-    return candidate.toString();
-  };
+  }, [open]);
 
   const handleCreate = async () => {
     const trimmedPurpose = purpose.trim();
@@ -93,8 +85,8 @@ export function CreatePurchaseReportDialog({
       return;
     }
 
-    // ✅ Generate unique series number
-    const series_no = await generateUniqueSeriesNo();
+    // ✅ Use backend-generated series number
+    const series_no = previewSeries;
 
     onSubmit({
       amount: itemCount,
@@ -144,6 +136,9 @@ export function CreatePurchaseReportDialog({
           {/* Department auto-filled */}
           <Input disabled placeholder="Department" value={user?.department} />
 
+          {/* Series No Preview */}
+          <Input disabled placeholder="Series No" value={previewSeries} />
+
           {/* Date Pickers */}
           <div className="flex flex-row gap-4">
             {/* Date Submitted */}
@@ -190,6 +185,10 @@ export function CreatePurchaseReportDialog({
                 <Calendar
                   mode="single"
                   selected={dateNeeded}
+                  disabled={(day) => {
+                    if (!date) return false;
+                    return day < date;
+                  }}
                   onSelect={(value) => setDateNeeded(value)}
                 />
               </PopoverContent>
