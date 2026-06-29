@@ -123,10 +123,10 @@ export function RealtimeListener() {
     // New Purchase Report (department isolated)
     if (isNewPR) {
       const reportData = event;
-      console.log(
-        "➕ Adding new purchase report to cache:",
-        reportData.series_no
-      );
+      // console.log(
+      //   "➕ Adding new purchase report to cache:",
+      //   reportData.series_no
+      // );
 
       queryClient.setQueryData<PurchaseReportsCache>(
         ["purchaseReports"],
@@ -158,13 +158,13 @@ export function RealtimeListener() {
             updated[event.pr_status] = (updated[event.pr_status] || 0) + 1;
           }
           updated.total_prs = (old.total_prs || 0) + 1;
-          console.log("📊 Updated dashboard summary:", updated);
+          // console.log("📊 Updated dashboard summary:", updated);
           return updated;
         }
       );
 
       // ✅ FIXED: Force refetch dashboard summary for new PR
-      console.log("🔄 Force refetching dashboard summary after new PR");
+      // console.log("🔄 Force refetching dashboard summary after new PR");
       queryClient.refetchQueries({ 
         queryKey: ["dashboardSummary"],
         type: "all"
@@ -177,11 +177,11 @@ export function RealtimeListener() {
     if (isApprovalUpdate) {
       const reportData = event;
 
-      console.log("🔄 Approval status update detected:", {
-        id: reportData.id,
-        old: reportData.old_pr_status,
-        new: reportData.pr_status,
-      });
+      // console.log("🔄 Approval status update detected:", {
+      //   id: reportData.id,
+      //   old: reportData.old_pr_status,
+      //   new: reportData.pr_status,
+      // });
 
       queryClient.setQueryData<PurchaseReportsCache>(
         ["purchaseReports"],
@@ -205,7 +205,7 @@ export function RealtimeListener() {
 
       // FIXED: Force refetch dashboard summary with type: "all"
       // This bypasses the refetchOnMount: false setting in Dashboard
-      console.log("🔄 Force refetching dashboard summary after approval update");
+      // console.log("🔄 Force refetching dashboard summary after approval update");
       queryClient.refetchQueries({ 
         queryKey: ["dashboardSummary"],
         type: "all" // Force refetch even with refetchOnMount: false
@@ -231,7 +231,7 @@ export function RealtimeListener() {
 
   // ---- Main Event Handler ----
   const handleEvent = async (event: PurchaseReportEvent) => {
-    console.log("📡 Realtime event received:", event);
+    // console.log("📡 Realtime event received:", event);
 
     // ✅ FIXED: Ring bell for ALL purchase report events
     // Check if it's a PR event (has series_no and id)
@@ -246,7 +246,7 @@ export function RealtimeListener() {
         event.event.includes("PurchaseReport")) ||
       (typeof event.event === "string" && event.event.includes("Department"))
     ) {
-      console.log("🔔 Ringing bell for event");
+      // console.log("🔔 Ringing bell for event");
       bellSound.current?.play().catch(() => {});
     }
 
@@ -268,9 +268,9 @@ export function RealtimeListener() {
         event.data?.pr_status;
 
       if (isApprovalNotification) {
-        console.log(
-          "✅ Approval notification received, force refetching summary and table"
-        );
+        // console.log(
+        //   "✅ Approval notification received, force refetching summary and table"
+        // );
         // FIXED: Use refetchQueries with type: "all"
         queryClient.refetchQueries({ 
           queryKey: ["dashboardSummary"],
@@ -288,7 +288,7 @@ export function RealtimeListener() {
     }
 
     if (!isEventRelevant(event)) {
-      console.log("👻 Ignoring irrelevant broadcast event for user");
+      // console.log("👻 Ignoring irrelevant broadcast event for user");
       return;
     }
 
@@ -300,7 +300,7 @@ export function RealtimeListener() {
   useEffect(() => {
     if (!user) return;
 
-    console.log("🔌 Realtime listener initialized for user:", user);
+    // console.log("🔌 Realtime listener initialized for user:", user);
 
     const channels: any[] = [];
 
@@ -312,7 +312,7 @@ export function RealtimeListener() {
       user.department.forEach((dept: string) => {
         const deptSlug = normalize(dept);
         const deptChannelName = `purchase-report-dept-${deptSlug}`;
-        console.log(`📢 Subscribing to department channel: ${deptChannelName}`);
+        // console.log(`📢 Subscribing to department channel: ${deptChannelName}`);
         channels.push(echo.channel(deptChannelName));
       });
     }
@@ -332,7 +332,7 @@ export function RealtimeListener() {
     });
 
     return () => {
-      console.log("🔌 Cleaning up realtime listener");
+      // console.log("🔌 Cleaning up realtime listener");
       channels.forEach((ch) => {
         ch.stopListening(".PurchaseReportCreated");
         ch.stopListening(".GlobalPurchaseReportCreated");

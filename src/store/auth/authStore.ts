@@ -75,7 +75,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         if (isHandlingAuthError) return;
 
         isHandlingAuthError = true;
-        console.log("🚨 Handling 401 error");
+        // console.log("🚨 Handling 401 error");
 
         // Clear auth and redirect
         get().clearAuth();
@@ -97,7 +97,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         if (state.initialized) return;
 
         authInitializationPromise = (async () => {
-          console.log("🚀 Starting auth initialization");
+          // console.log("🚀 Starting auth initialization");
           set({ loading: true });
 
           let token = state.token;
@@ -105,20 +105,20 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           try {
             // 1️⃣ No token? → try refresh first
             if (!token) {
-              console.log("🔄 No token, attempting refresh...");
+              // console.log("🔄 No token, attempting refresh...");
               const refreshed = await authService.refresh();
               token = refreshed.access_token;
               set({ token });
             }
 
             if (!token) {
-              console.log("❌ No token and refresh failed");
+              // console.log("❌ No token and refresh failed");
               set({ initialized: true, loading: false });
               return;
             }
 
             // 2️⃣ With token, fetch the user
-            console.log("🔑 Fetching /me");
+            // console.log("🔑 Fetching /me");
             const res = await authService.me();
             if (res?.user) {
               set({

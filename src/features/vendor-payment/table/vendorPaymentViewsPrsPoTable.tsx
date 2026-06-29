@@ -39,7 +39,8 @@ export function SetMultiplePurchaseReportTable({
         </TableHeader>
 
         <TableBody>
-          {report.item_description?.map((desc: string, idx: number) => {
+          {report.item_description?.map((desc: string | null, idx: number) => {
+            if (desc === null || desc === undefined) return null; // skip null entries
             const po = report.item_pos?.find((p: any) => p.item_index === idx);
             return (
               <TableRow key={idx}>
@@ -52,12 +53,14 @@ export function SetMultiplePurchaseReportTable({
                   {truncate(report.remarks?.[idx], 40)}
                 </TableCell>
                 <TableCell className="capitalize">
-                  {(report.item_status?.[idx] ?? "pending").replace(/_/g, " ")}
+                  {(report.item_status?.[idx] ?? "pending")
+                    .toString()
+                    .replace(/_/g, " ")}
                 </TableCell>
 
                 <TableCell>{po?.po_number ?? "—"}</TableCell>
                 <TableCell className="capitalize">
-                  {(po?.status ?? "—").replace(/_/g, " ")}
+                  {(po?.status ?? "—").toString().replace(/_/g, " ")}
                 </TableCell>
 
                 <TableCell>

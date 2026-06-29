@@ -85,27 +85,27 @@ export function useCreatePurchaseReport(initialDraft?: {
       return;
     }
 
-    console.log("🚀 =========================");
-    console.log("🚀 SUBMIT STARTED");
-    console.log("🚀 =========================");
-    console.log("📋 isDraft:", isDraft);
-    console.log("📋 Item count:", items.length);
-    console.log("📋 Report data:", reportData);
-    console.log("📦 All items:", JSON.stringify(items, null, 2));
+    // console.log("🚀 =========================");
+    // console.log("🚀 SUBMIT STARTED");
+    // console.log("🚀 =========================");
+    // console.log("📋 isDraft:", isDraft);
+    // console.log("📋 Item count:", items.length);
+    // console.log("📋 Report data:", reportData);
+    // console.log("📦 All items:", JSON.stringify(items, null, 2));
 
     // Check each item individually
     items.forEach((item, index) => {
-      console.log(`\n🔍 Item ${index + 1}:`, {
-        quantity: item.quantity,
-        unit: item.unit,
-        description: item.description,
-        tag: item.tag,
-        remarks: item.remarks,
-        hasTag: !!(item.tag && item.tag.trim()),
-        hasDescription: !!(item.description && item.description.trim()),
-        hasQuantity: !!(item.quantity && Number(item.quantity) > 0),
-        hasUnit: !!(item.unit && item.unit.trim()),
-      });
+      // console.log(`\n🔍 Item ${index + 1}:`, {
+      //   quantity: item.quantity,
+      //   unit: item.unit,
+      //   description: item.description,
+      //   tag: item.tag,
+      //   remarks: item.remarks,
+      //   hasTag: !!(item.tag && item.tag.trim()),
+      //   hasDescription: !!(item.description && item.description.trim()),
+      //   hasQuantity: !!(item.quantity && Number(item.quantity) > 0),
+      //   hasUnit: !!(item.unit && item.unit.trim()),
+      // });
     });
 
     // ✅ Validate tags are filled for ALL submissions (including drafts)
@@ -173,19 +173,19 @@ export function useCreatePurchaseReport(initialDraft?: {
       is_draft: isDraft,
     };
 
-    console.log("📤 =========================");
-    console.log("📤 PAYLOAD BEING SENT");
-    console.log("📤 =========================");
-    console.log("📤 Full payload:", payload);
-    console.log("📤 Array counts:", {
-      quantity: payload.quantity.length,
-      unit: payload.unit.length,
-      item_description: payload.item_description.length,
-      tag: payload.tag.length,
-      remarks: payload.remarks.length,
-    });
-    console.log("📤 Tags array:", payload.tag);
-    console.log("📤 is_draft:", payload.is_draft);
+    // console.log("📤 =========================");
+    // console.log("📤 PAYLOAD BEING SENT");
+    // console.log("📤 =========================");
+    // console.log("📤 Full payload:", payload);
+    // console.log("📤 Array counts:", {
+    //   quantity: payload.quantity.length,
+    //   unit: payload.unit.length,
+    //   item_description: payload.item_description.length,
+    //   tag: payload.tag.length,
+    //   remarks: payload.remarks.length,
+    // });
+    // console.log("📤 Tags array:", payload.tag);
+    // console.log("📤 is_draft:", payload.is_draft);
 
     try {
       toast.loading(
@@ -194,21 +194,21 @@ export function useCreatePurchaseReport(initialDraft?: {
 
       let result;
       if (editDraft && draftData?.id) {
-        console.log("🔄 Updating existing draft:", draftData.id);
+        // console.log("🔄 Updating existing draft:", draftData.id);
         result = await purchaseReportService.update(draftData.id, payload);
       } else {
-        console.log("🆕 Creating new purchase request");
+        // console.log("🆕 Creating new purchase request");
         result = await purchaseReportService.create(payload);
       }
 
-      console.log("✅ =========================");
-      console.log("✅ SERVER RESPONSE");
-      console.log("✅ =========================");
-      console.log("✅ Response:", result);
-      console.log("✅ Response item_status:", result.item_status);
-      console.log("✅ Response item_status count:", result.item_status?.length);
-      console.log("✅ Response tag count:", result.tag?.length);
-      console.log("✅ Response pr_status:", result.pr_status);
+      // console.log("✅ =========================");
+      // console.log("✅ SERVER RESPONSE");
+      // console.log("✅ =========================");
+      // console.log("✅ Response:", result);
+      // console.log("✅ Response item_status:", result.item_status);
+      // console.log("✅ Response item_status count:", result.item_status?.length);
+      // console.log("✅ Response tag count:", result.tag?.length);
+      // console.log("✅ Response pr_status:", result.pr_status);
 
       toast.dismiss();
       toast.success(

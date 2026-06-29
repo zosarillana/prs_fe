@@ -20,6 +20,7 @@ import PriceMonitoring from "@/features/pricemonitoring/pages/priceMonitoring";
 import Items from "@/features/pricemonitoring/pages/item";
 import Vendors from "@/features/pricemonitoring/pages/vendor";
 import VendorPayment from "@/features/vendor-payment/pages/vendorPayment";
+import AdminProtectedRoute from "./adminProtectedRoute";
 
 export const appRoutes = [
   {
@@ -103,11 +104,17 @@ export const appRoutes = [
     element: <ProgressReport />,
     moduleId: 11,
   },
-  // free routes
+
   {
     path: "/settings",
-    element: <Settings />,
+    element: (
+      <AdminProtectedRoute showUnauthorized>
+        <Settings />
+      </AdminProtectedRoute>
+    ),
   },
+
+  // free routes
   {
     path: "/purchase-reports/create",
     element: <CreatePurchaseReport />,

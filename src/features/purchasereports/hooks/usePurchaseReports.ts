@@ -86,7 +86,7 @@ export function usePurchaseReports() {
         toDate: toDate ? format(toDate, "yyyy-MM-dd") : undefined,
       };
 
-      console.log("🔍 API Params:", params);
+      // console.log("🔍 API Params:", params);
 
       return purchaseReportService.getTable(params);
     },
@@ -177,16 +177,16 @@ export function usePurchaseReports() {
 
   const navigate = useNavigate();
   const handleCopyToNew = async (id: number) => {
-    console.log("🔍 Copy clicked for ID:", id);
+    // console.log("🔍 Copy clicked for ID:", id);
 
     try {
-      console.log("📡 Fetching report data...");
+      // console.log("📡 Fetching report data...");
       const reportData = await purchaseReportService.getById(id);
-      console.log("✅ Report data fetched:", reportData);
+      // console.log("✅ Report data fetched:", reportData);
 
       // ✅ Fetch new series number from backend
       const newSeriesNo = await purchaseReportService.getNextSeriesNo();
-      console.log("✅ New series number:", newSeriesNo);
+      // console.log("✅ New series number:", newSeriesNo);
 
       // Merge with copied data but update identifiers
       const { id: reportId, ...rest } = reportData; // exclude id
@@ -204,25 +204,25 @@ export function usePurchaseReports() {
         purchaser_id: null,
       };
 
-      console.log("📋 Copied data prepared:", copiedData);
+      // console.log("📋 Copied data prepared:", copiedData);
 
       // Navigate to create page with copied data
       navigate("/purchase-reports/create", {
         state: { copyFrom: copiedData },
       });
     } catch (error) {
-      console.error("❌ Copy error:", error);
+      // console.error("❌ Copy error:", error);
       toast.error("Failed to copy report");
     }
   };
 
   const handleViewDraft = async (id: number) => {
-    console.log("📝 Viewing draft with ID:", id);
+    // console.log("📝 Viewing draft with ID:", id);
 
     try {
       // 1️⃣ Fetch the draft data by ID
       const draftData = await purchaseReportService.getById(id);
-      console.log("✅ Draft data fetched:", draftData);
+      // console.log("✅ Draft data fetched:", draftData);
 
       // 2️⃣ Navigate to the create/edit page with draft data
       navigate("/purchase-reports/create", {
@@ -232,7 +232,7 @@ export function usePurchaseReports() {
         },
       });
     } catch (error) {
-      console.error("❌ Failed to load draft:", error);
+      // console.error("❌ Failed to load draft:", error);
       toast.error("Failed to open draft for editing.");
     }
   };

@@ -62,7 +62,7 @@ export function ItemPriceDialog({
   // Prefill on edit
   useEffect(() => {
     if (itemPrice) {
-      console.log("itemPrice received:", itemPrice);
+      // console.log("itemPrice received:", itemPrice);
       // Extract IDs from nested objects if they exist
       const extractedItemId = itemPrice.item_id || itemPrice.item?.id || "";
       const extractedVendorId =
@@ -72,8 +72,8 @@ export function ItemPriceDialog({
       setVendorId(String(extractedVendorId));
       setUnitPrice(String(itemPrice.unit_price).replace(/,/g, "")); // Remove commas from formatted numbers
 
-      console.log("Extracted itemId:", extractedItemId);
-      console.log("Extracted vendorId:", extractedVendorId);
+      // console.log("Extracted itemId:", extractedItemId);
+      // console.log("Extracted vendorId:", extractedVendorId);
     } else {
       setItemId("");
       setVendorId("");
@@ -122,9 +122,9 @@ export function ItemPriceDialog({
         unit_price: Number(unitPrice),
       };
 
-      console.log("Submitting payload:", payload);
-      console.log("itemId state:", itemId);
-      console.log("vendorId state:", vendorId);
+      // console.log("Submitting payload:", payload);
+      // console.log("itemId state:", itemId);
+      // console.log("vendorId state:", vendorId);
 
       if (itemPrice) {
         await itemPriceService.update(itemPrice.id, payload);

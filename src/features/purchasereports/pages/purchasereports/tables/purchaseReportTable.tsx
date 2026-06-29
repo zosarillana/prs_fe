@@ -391,6 +391,20 @@ export function PurchaseReportTable({
                             </>
                           )}
 
+                        {/* Edit HOD */}
+                        {user?.role?.includes("hod") &&
+                          !user?.role?.includes("admin") &&
+                          !user?.role?.includes("purchasing") && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(item.id);
+                              }}
+                            >
+                              <Edit className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                          )}
+
                         {(user?.role?.includes("purchasing") ||
                           user?.role?.includes("admin")) && (
                           <>
@@ -423,34 +437,32 @@ export function PurchaseReportTable({
                             )}
 
                             {/* Set PO Number */}
-                            {item.sap_id !== null &&
-                              item.pr_status === "for_approval" &&
-                              item.po_status !== "po_partial" && (
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSetPo(item.id);
-                                  }}
-                                >
-                                  <FileDigit className="mr-2 h-4 w-4" />
-                                  Set PO Number
-                                </DropdownMenuItem>
-                              )}
+                            {item.sap_id !== null && !item.po_no && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSetPo(item.id);
+                                }}
+                              >
+                                <FileDigit className="mr-2 h-4 w-4" />
+                                Set PO Number
+                              </DropdownMenuItem>
+                            )}
 
                             {/* Edit PO Number */}
-                            {item.sap_id !== null &&
-                              item.pr_status === "Closed" && (
-                                <DropdownMenuItem
-                                  title="This is only temporary"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSetPo(item.id);
-                                  }}
-                                >
-                                  <FileDigit className="mr-2 h-4 w-4" /> Edit PO
-                                  Number
-                                </DropdownMenuItem>
-                              )}
+                            {/* {item.po_no !== null && (
+                              <DropdownMenuItem
+                                title="This is only temporary"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSetPo(item.id);
+                                }}
+                              >
+                                <FileDigit className="mr-2 h-4 w-4" /> Edit PO
+                                Number
+                              </DropdownMenuItem>
+                            )} */}
+
                             {/* Multiple PO */}
                             {item.sap_id !== null && (
                               <DropdownMenuItem
@@ -483,6 +495,7 @@ export function PurchaseReportTable({
                                 </span>
                               </DropdownMenuItem>
                             )}
+
                             {/* Date Approve (only if PO is for approval and not partial) */}
                             {item.po_status === "For_approval" &&
                               item.po_status !== "po_partial" && (

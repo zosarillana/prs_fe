@@ -186,7 +186,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (data) {
-      console.log("📊 Dashboard data updated:", data);
+      // console.log("📊 Dashboard data updated:", data);
     }
   }, [data]);
 

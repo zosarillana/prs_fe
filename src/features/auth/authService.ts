@@ -92,9 +92,23 @@ export const authService = {
     // console.log(`✅ /ME CALL #${meCallCounter} COMPLETED`);
     return res.data;
   },
-
   refresh: async (): Promise<{ access_token: string }> => {
-    const res = await api.post("/refresh", {}, { withCredentials: true });
+    // 🔑 Always refresh CSRF cookie first
+    await api.get("/sanctum/csrf-cookie", { withCredentials: true });
+
+    const xsrfToken = Cookies.get("XSRF-TOKEN");
+
+    const res = await api.post(
+      "/refresh",
+      {},
+      {
+        headers: {
+          "X-XSRF-TOKEN": xsrfToken,
+        },
+        withCredentials: true,
+      },
+    );
+
     localStorage.setItem("auth_token", res.data.access_token);
     return res.data;
   },

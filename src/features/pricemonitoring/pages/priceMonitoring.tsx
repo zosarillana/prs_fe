@@ -222,7 +222,7 @@ export default function PriceMonitoring() {
                             item: row.item,
                             vendor: row.vendor,
                           });
-                          console.log("Editing row:", row); // Debug: Check what's in row
+                          // console.log("Editing row:", row); // Debug: Check what's in row
                           setModalOpen(true);
                         }}
                       >

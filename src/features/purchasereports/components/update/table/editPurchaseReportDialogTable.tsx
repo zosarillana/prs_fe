@@ -89,8 +89,6 @@ export function EditPurchaseReportDialogTable({
     setSelectedItems([]);
   }, [items]);
 
-
-
   const isSelectableStatus = (status?: string) =>
     status === "return" || status === "returned";
 
@@ -187,7 +185,10 @@ export function EditPurchaseReportDialogTable({
       <TableBody>
         {items.item_description?.map((_, idx) => {
           const status = items.item_status?.[idx] ?? "pending";
-          const isReturned = ["return", "returned"].includes(status);
+          const isPrivilegedRole =
+            user?.role?.includes("admin") || user?.role?.includes("hod");
+          const isReturned =
+            ["return", "returned"].includes(status) || isPrivilegedRole;
           const isRejected = status === "rejected" || status === "rejected_tr";
           const canEditRow = isReturned || isRejected;
 
@@ -291,7 +292,7 @@ export function EditPurchaseReportDialogTable({
                                   "mr-2 h-4 w-4",
                                   String(currentTag?.id) === String(tag.id)
                                     ? "opacity-100"
-                                    : "opacity-0"
+                                    : "opacity-0",
                                 )}
                               />
                               {tag.description}
@@ -319,16 +320,17 @@ export function EditPurchaseReportDialogTable({
               </TableCell>
 
               {/* <TableCell>{items.remarks?.[idx] ?? "none"}</TableCell> */}
-              <TableCell> {isReturned ? (
+              <TableCell>
+                {" "}
+                {isReturned ? (
                   <Input
                     value={items.remarks?.[idx] ?? ""}
-                    onChange={(e) =>
-                      onChange(idx, "remarks", e.target.value)
-                    }
+                    onChange={(e) => onChange(idx, "remarks", e.target.value)}
                   />
                 ) : (
                   items.remarks?.[idx]
-                )}</TableCell>
+                )}
+              </TableCell>
 
               <TableCell className="text-right">
                 <DropdownMenu>

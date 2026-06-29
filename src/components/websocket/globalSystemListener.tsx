@@ -38,14 +38,14 @@ export function GlobalSystemListener() {
   }, []);
 
   useEffect(() => {
-    console.log("Setting up silent global system listener");
+    // console.log("Setting up silent global system listener");
 
     // ✅ Global channels
     const globalChannel = echo.channel("purchase-report-global");
     const approvalChannel = echo.channel("purchase-report-approval-global");
 
     const handleGlobalEvent = async (event: any) => {
-      console.log("Global system event received (silent update):", event);
+      // console.log("Global system event received (silent update):", event);
 
       // 🔔 Play bell for user notifications
       if (
@@ -88,7 +88,7 @@ export function GlobalSystemListener() {
     approvalChannel.listen(".GlobalPurchaseReportApprovalUpdated", handleGlobalEvent);
 
     return () => {
-      console.log("Cleaning up silent global system listener");
+      // console.log("Cleaning up silent global system listener");
       globalChannel.stopListening(".GlobalPurchaseReportCreated");
       approvalChannel.stopListening(".GlobalPurchaseReportApprovalUpdated");
     };

@@ -7,8 +7,24 @@ export function useFlattenedPoOptions(purchaseReports: any[]) {
         (item: any) => item.status === "approved"
       ) || [];
 
-      // If root PR is approved, use all PO numbers
       if (pr.po_status === "approved") {
+        // 🔍 LOG: catch what's null
+        if (!pr.po_no) {
+          // console.warn("⚠️ Skipping PR with approved status but null po_no:", {
+          //   id: pr.id,
+          //   series_no: pr.series_no,
+          //   po_status: pr.po_status,
+          //   po_no: pr.po_no,
+          // });
+          return [];
+        }
+
+        // console.log("✅ PR with approved po_no:", {
+        //   id: pr.id,
+        //   po_no: pr.po_no,
+        //   series_no: pr.series_no,
+        // });
+
         return pr.po_no
           .split(" ")
           .filter(Boolean)
@@ -19,21 +35,39 @@ export function useFlattenedPoOptions(purchaseReports: any[]) {
             fullPr: pr,
           }));
       }
-  
-      // Otherwise, include only individual approved POs from item_pos
+
       if (approvedItemPos.length > 0) {
-        return approvedItemPos.map((item: any) => ({
-          po: item.po_number,
-          prId: pr.id,
-          seriesNo: pr.series_no,
-          fullPr: pr,
-        }));
+        // console.log("✅ PR with approved item_pos:", {
+        //   id: pr.id,
+        //   series_no: pr.series_no,
+        //   approvedCount: approvedItemPos.length,
+        // });
+
+        return approvedItemPos.map((item: any) => {
+          // 🔍 LOG: catch null po_number inside item_pos too
+          if (!item.po_number) {
+            // console.warn("⚠️ Skipping approved item_pos with null po_number:", {
+            //   prId: pr.id,
+            //   series_no: pr.series_no,
+            //   item,
+            // });
+            return null;
+          }
+
+          return {
+            po: item.po_number,
+            prId: pr.id,
+            seriesNo: pr.series_no,
+            fullPr: pr,
+          };
+        }).filter(Boolean);
       }
 
-      // Nothing approved, skip this PR
       return [];
     });
   }, [purchaseReports]);
+
+  // console.log("📦 useFlattenedPoOptions result count:", allPoOptions.length);
 
   return allPoOptions;
 }
