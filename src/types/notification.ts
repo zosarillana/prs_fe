@@ -1,6 +1,7 @@
 export interface NotificationData {
   title: string;
   report_id: number;
+  series_no: number;
   created_by: string;
   pr_status?: string;
   po_status?: string;

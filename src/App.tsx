@@ -1,11 +1,5 @@
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-  useLocation,
-} from "react-router-dom";
-import { useEffect, useState } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuthStore } from "@/store/auth/authStore";
 import { useThemeStore } from "@/store/theme/themeStore";
 import Layout from "@/components/layout/layout";
@@ -14,68 +8,91 @@ import { appRoutes } from "@/routes/appRoutes";
 import { userPrivilegesService } from "@/services/userPriviligesService";
 import type { UserPrivilege } from "@/types/userPriviliges";
 import { Toaster } from "sonner";
-import { GlobalEchoListener } from "@/components/websocket/globalEchoListener";
 import { useNotificationStore } from "./store/notification/notificationStore";
-import { GlobalSystemListener } from "./components/websocket/globalSystemListener";
 import NotFound from "@/features/misc/pages/notFound";
+import GuestRoute from "@/routes/guestRoute";
+import { RealtimeListener } from "./components/websocket/realTimeListener";
+import useIdleLogout from "@/hooks/useIdleLogout";
 
 function AppWrapper() {
   const { user, loading, initialized, initializeAuth } = useAuthStore();
   const fetchNotifications = useNotificationStore((s) => s.fetchNotifications);
-  const fetchCounts = useNotificationStore((s) => s.fetchCounts);
+  // const fetchCounts = useNotificationStore((s) => s.fetchCounts);
   const setTheme = useThemeStore((s) => s.setTheme);
   const location = useLocation();
 
-  const [allowedModuleIds, setAllowedModuleIds] = useState<Set<number>>(new Set());
+  const [allowedModuleIds, setAllowedModuleIds] = useState<Set<number>>(
+    new Set()
+  );
   const [privLoading, setPrivLoading] = useState(true);
+
+  const fetchedNotifications = useRef(false);
+  const fetchedPrivileges = useRef(false);
+  
+  // 🔑 Idle logout hook
+  useIdleLogout(60 * 60 * 1000); // 10 minutes, can customize
 
   const hideNavbar =
     ["/login", "/register"].includes(location.pathname) || !user;
 
-  // initialize auth
+  // 🔐 Initialize auth
   useEffect(() => {
     if (!initialized) initializeAuth();
   }, [initialized, initializeAuth]);
 
-  // fetch notifications + counts
+  // 🔔 Fetch notifications + counts once per session
   useEffect(() => {
-    if (user) {
-      (async () => {
-        await fetchNotifications();
-        await fetchCounts();
-      })();
-    }
-  }, [user]);
+    if (!user || fetchedNotifications.current) return;
+    fetchedNotifications.current = true;
 
-  // theme setup
+    (async () => {
+      await fetchNotifications();
+      // await fetchCounts();
+    })();
+    // }, [user, fetchNotifications, fetchCounts]);
+  }, [user, fetchNotifications]);
+
+  // 🎨 Theme setup
   useEffect(() => {
     const saved = localStorage.getItem("theme") as "light" | "dark" | null;
     setTheme(saved ?? "light");
   }, [setTheme]);
 
-  // 🔑 fetch user privileges to build allowedModuleIds
+  // 🔑 Fetch user privileges (only once)
   useEffect(() => {
-    if (!user) {
-      setAllowedModuleIds(new Set());
-      setPrivLoading(false);
-      return;
-    }
+    const loadPrivileges = async () => {
+      if (!user) {
+        setAllowedModuleIds(new Set());
+        setPrivLoading(false);
+        return;
+      }
 
-    (async () => {
+      if (fetchedPrivileges.current) return;
+      fetchedPrivileges.current = true;
+
       try {
         const data: UserPrivilege[] = await userPrivilegesService.getAll();
         const userPrivs = data.filter((p) => p.user_id === user.id);
-        const ids = new Set<number>(userPrivs.flatMap((p) => p.module_ids ?? []));
+        const ids = new Set<number>(
+          userPrivs.flatMap((p) => p.module_ids ?? [])
+        );
         setAllowedModuleIds(ids);
       } catch (err) {
         console.error("Failed to load privileges", err);
       } finally {
         setPrivLoading(false);
       }
-    })();
+    };
+
+    loadPrivileges();
   }, [user]);
 
-  // loading state
+  const can = useCallback(
+    (id?: number) => (id ? allowedModuleIds.has(id) : true),
+    [allowedModuleIds]
+  );
+
+  // 🌀 Loading states
   if (!initialized && loading) {
     return (
       <div className="min-h-screen flex items-center justify-center dark:bg-gray-900">
@@ -87,31 +104,36 @@ function AppWrapper() {
     );
   }
 
-  if (privLoading) return null; // or spinner while checking privileges
-
-  const can = (id?: number) => (id ? allowedModuleIds.has(id) : true);
+  if (privLoading) return null;
 
   const renderRoutes = () =>
     appRoutes.map(({ path, element, moduleId }) => (
       <Route
         key={path}
         path={path}
-        element={
-          moduleId && !can(moduleId) ? (
-            <NotFound /> // 🚫 404 if user lacks privilege
-          ) : (
-            element
-          )
-        }
+        element={moduleId && !can(moduleId) ? <NotFound /> : element}
       />
     ));
+
+  const rootRedirect = user ? (
+    <Navigate to="/dashboard" replace />
+  ) : (
+    <Navigate to="/login" replace />
+  );
 
   if (hideNavbar) {
     return (
       <div className="min-h-screen dark:bg-gray-900 dark:text-gray-200">
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={rootRedirect} />
+          <Route
+            path="/login"
+            element={
+              <GuestRoute>
+                <LoginPage />
+              </GuestRoute>
+            }
+          />
           {renderRoutes()}
           <Route path="*" element={<NotFound />} />
         </Routes>
@@ -122,7 +144,7 @@ function AppWrapper() {
   return (
     <Layout can={can}>
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={rootRedirect} />
         {renderRoutes()}
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -132,11 +154,11 @@ function AppWrapper() {
 
 export default function App() {
   return (
-    <Router>
+    <>
       <AppWrapper />
-      <GlobalEchoListener />
-      <GlobalSystemListener />
+      {/* ✅ Single unified listener (replaces all 3 old listeners) */}
+      <RealtimeListener />
       <Toaster position="top-right" />
-    </Router>
+    </>
   );
 }

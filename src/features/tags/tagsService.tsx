@@ -1,12 +1,48 @@
 import api from "@/lib/api";
 import type { Tag } from "./types";
 
+export interface TagFilters {
+  department_id?: number | number[];
+  description?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
+  limit?: number;
+}
+
 export const tagsService = {
   /**
-   * Get all tags (no pagination based on your controller)
+   * Get all tags with optional filters
    */
-  getAll: async (): Promise<Tag[]> => {
-    const res = await api.get("api/tags");
+  getAll: async (filters?: TagFilters): Promise<Tag[]> => {
+    const params = new URLSearchParams();
+
+    if (filters?.department_id !== undefined) {
+      const deptId = Array.isArray(filters.department_id)
+        ? filters.department_id.join(",")
+        : String(filters.department_id);
+      params.append("department_id", deptId);
+    }
+
+    if (filters?.description) {
+      params.append("description", filters.description);
+    }
+
+    if (filters?.sort_by) {
+      params.append("sort_by", filters.sort_by);
+    }
+
+    if (filters?.sort_order) {
+      params.append("sort_order", filters.sort_order);
+    }
+
+    if (filters?.limit) {
+      params.append("limit", String(filters.limit));
+    }
+
+    const queryString = params.toString();
+    const url = queryString ? `api/tags?${queryString}` : "api/tags";
+    
+    const res = await api.get(url);
     return res.data;
   },
 

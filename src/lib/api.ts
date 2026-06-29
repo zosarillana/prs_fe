@@ -1,38 +1,37 @@
-  import axios from "axios";
-  import Cookies from "js-cookie";
+import axios from "axios";
+import Cookies from "js-cookie";
 
-  const api = axios.create({
-    baseURL: "http://192.168.8.254:8000", // ✅ your backend LAN address
-    // baseURL: "http://192.168.100.52:8000", // ✅ your backend LAN address
-    withCredentials: true, // 🔑 required for Sanctum cookies
-    // baseURL: "http://localhost:8000",
-    // //baseURL: "http://localhost:8001",
-    // withCredentials: true,
-  });
+const api = axios.create({
+  baseURL: "http://192.168.8.254:8000", // ✅ local backend'
+  // baseURL: "http://192.168.30.11:8010", // ✅ updated Apache backend
+  // baseURL: "http://192.168.30.11:8000", // ✅ your backend LAN address
+  // baseURL: "http://192.168.100.52:8000", // ✅ your backend LAN address
+  withCredentials: true, // 🔑 required for Sanctum cookies
+  // baseURL: "http://localhost:8000",
+  // //baseURL: "http://localhost:8001",
+  // withCredentials: true,
+});
 
-  // Add a request interceptor to include the auth token
-  api.interceptors.request.use(
-    (config) => {
-      const token = localStorage.getItem("auth_token");
+// Add a request interceptor to include the auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("auth_token");
 
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-
-      // Also include CSRF token for stateful requests
-      const xsrfToken = Cookies.get("XSRF-TOKEN");
-      if (xsrfToken) {
-        config.headers["X-XSRF-TOKEN"] = xsrfToken;
-      }
-
-      return config;
-    },
-    (error) => {
-      return Promise.reject(error);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-  );
 
-  // 👈 REMOVE the response interceptor completely
-  // Let your components handle 401 errors individually
+    // Also include CSRF token for stateful requests
+    const xsrfToken = Cookies.get("XSRF-TOKEN");
+    if (xsrfToken) {
+      config.headers["X-XSRF-TOKEN"] = xsrfToken;
+    }
 
-  export default api;
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+export default api;

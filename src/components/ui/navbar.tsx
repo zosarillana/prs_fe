@@ -1,7 +1,17 @@
 import { useAuthStore } from "@/store/auth/authStore";
 import { useThemeStore } from "@/store/theme/themeStore";
 import { useNotificationStore } from "@/store/notification/notificationStore";
-import { Bell, Sun, Moon, CheckCircle, Clock, Maximize2, Minimize2 } from "lucide-react";
+import {
+  Bell,
+  Sun,
+  Moon,
+  CheckCircle,
+  Clock,
+  Maximize2,
+  Minimize2,
+  HelpCircle,
+  HelpCircleIcon,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -23,12 +33,8 @@ interface NavbarProps {
 export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
   const user = useAuthStore((state) => state.user);
   const { theme, toggleTheme } = useThemeStore();
-  const { 
-    unreadCount, 
-    notifications, 
-    markAsRead, 
-    markAllAsRead 
-  } = useNotificationStore();
+  const { unreadCount, notifications, markAsRead, markAllAsRead } =
+    useNotificationStore();
 
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -36,10 +42,11 @@ export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
     const date = new Date(dateString);
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
-    if (diffInSeconds < 60) return 'Just now';
+
+    if (diffInSeconds < 60) return "Just now";
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 86400)
+      return `${Math.floor(diffInSeconds / 3600)}h ago`;
     return `${Math.floor(diffInSeconds / 86400)}d ago`;
   };
 
@@ -53,11 +60,52 @@ export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
     setIsExpanded(!isExpanded);
   };
 
+  const roleFileMap: Record<string, string> = {
+    user: "PRS_Maker_User-Manual.pdf",
+    hod: "PRS_HOD_User-Manual.pdf",
+    purchasing: "PRS_Purchasing_User-Manual.pdf",
+    technical_reviewer: "PRS_TR_User-Manual.pdf",
+  };
+
+  const downloadFile = (fileName: string) => {
+    const url = `/prs/files/${fileName}`; // <-- FIXED FOR XAMPP
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+  };
+
+  const handleDownloadManuals = () => {
+    if (!user?.role) return;
+
+    const roles = user.role;
+
+    // RULE 1 (UPDATED):
+    // If user is admin → download PRS User Manual_Agri Exim Global, Inc-Full
+    if (roles.includes("admin")) {
+      downloadFile("PRS User Manual_Agri Exim Global, Inc-Full.pdf");
+      return;
+    }
+
+    // RULE 2:
+    if (roles.includes("hod") && roles.includes("purchasing")) {
+      const hodFile = roleFileMap["hod"];
+      if (hodFile) downloadFile(hodFile);
+      return;
+    }
+
+    // RULE 3:
+    roles.forEach((role: string) => {
+      const file = roleFileMap[role];
+      if (file) downloadFile(file);
+    });
+  };
+
   return (
     <nav
       className={`
         bg-white dark:bg-gray-900 dark:text-gray-200
-        shadow-sm px-6 py-2.5 border-b border-gray-300 dark:border-gray-700
+        shadow-sm px-6 py-3 border-b border-gray-300 dark:border-gray-700
         flex justify-between items-center sticky top-0 z-40
         transition-all duration-300 ease-in-out
         ${sidebarOpen ? "ml-64" : "ml-0"}
@@ -115,21 +163,21 @@ export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
                   <Bell className="w-5 h-5 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white transition-colors" />
                 </Button>
                 {unreadCount > 0 && (
-                  <Badge 
-                    variant="destructive" 
+                  <Badge
+                    variant="destructive"
                     className="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs min-w-[1.25rem] h-5 flex items-center justify-center rounded-full pointer-events-none"
                   >
-                    {unreadCount > 99 ? '99+' : unreadCount}
+                    {unreadCount > 99 ? "99+" : unreadCount}
                   </Badge>
                 )}
               </div>
             </DropdownMenuTrigger>
-            
-            <DropdownMenuContent 
+
+            <DropdownMenuContent
               className={`w-80 transition-all duration-300 ease-in-out ${
-                isExpanded ? 'h-[80vh] max-h-[80vh]' : 'max-h-96'
+                isExpanded ? "h-[80vh] max-h-[80vh]" : "max-h-96"
               }`}
-              align="end" 
+              align="end"
               side="bottom"
               sideOffset={8}
             >
@@ -167,25 +215,37 @@ export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
                   </Button>
                 )}
               </DropdownMenuLabel>
-              
+
               {notifications.length === 0 ? (
                 <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                   No notifications yet
                 </div>
               ) : (
-                <ScrollArea className={`${isExpanded ? 'h-[calc(80vh-4rem)]' : 'h-64'} transition-all duration-300`}>
-                  {(isExpanded ? notifications : notifications.slice(0, 10)).map((notification) => (
+                <ScrollArea
+                  className={`${
+                    isExpanded ? "h-[calc(80vh-4rem)]" : "h-64"
+                  } transition-all duration-300`}
+                >
+                  {(isExpanded
+                    ? notifications
+                    : notifications.slice(0, 10)
+                  ).map((notification) => (
                     <DropdownMenuItem
                       key={notification.id}
                       className="p-0 focus:bg-gray-50 dark:focus:bg-gray-800"
                     >
                       <div
                         className={`w-full p-3 cursor-pointer transition-colors ${
-                          !notification.read_at 
-                            ? 'bg-blue-50 dark:bg-blue-950/20 border-l-2 border-l-blue-500' 
-                            : ''
+                          !notification.read_at
+                            ? "bg-blue-50 dark:bg-blue-950/20 border-l-2 border-l-blue-500"
+                            : ""
                         }`}
-                        onClick={() => handleNotificationClick(notification.id, !!notification.read_at)}
+                        onClick={() =>
+                          handleNotificationClick(
+                            notification.id,
+                            !!notification.read_at
+                          )
+                        }
                       >
                         <div className="flex items-start gap-3">
                           <div className="flex-shrink-0 mt-0.5">
@@ -196,22 +256,34 @@ export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium ${isExpanded ? '' : 'truncate'} ${
-                              !notification.read_at ? 'text-gray-900 dark:text-gray-100' : 'text-gray-600 dark:text-gray-300'
-                            }`}>
+                            <p
+                              className={`text-sm font-medium ${
+                                isExpanded ? "" : "truncate"
+                              } ${
+                                !notification.read_at
+                                  ? "text-gray-900 dark:text-gray-100"
+                                  : "text-gray-600 dark:text-gray-300"
+                              }`}
+                            >
                               {notification.data.title}
                             </p>
                             <div className="flex items-center gap-2 mt-1 flex-wrap">
                               <p className="text-xs text-gray-500 dark:text-gray-400">
-                                Report #{notification.data.report_id}
+                                Report #{notification.data.series_no}
                               </p>
                               {notification.data.pr_status && (
-                                <Badge variant="outline" className="text-xs px-1 py-0">
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs px-1 py-0"
+                                >
                                   PR: {notification.data.pr_status}
                                 </Badge>
                               )}
                               {notification.data.po_status && (
-                                <Badge variant="outline" className="text-xs px-1 py-0">
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs px-1 py-0"
+                                >
                                   PO: {notification.data.po_status}
                                 </Badge>
                               )}
@@ -226,14 +298,14 @@ export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
                   ))}
                 </ScrollArea>
               )}
-              
+
               {!isExpanded && notifications.length > 10 && (
                 <>
                   <DropdownMenuSeparator />
                   <div className="p-2 text-center">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       className="text-xs"
                       onClick={(e) => {
                         e.preventDefault();
@@ -248,6 +320,13 @@ export default function Navbar({ sidebarOpen, toggleSidebar }: NavbarProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
+        <button
+          onClick={handleDownloadManuals}
+          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+          aria-label="Download manuals"
+        >
+          <HelpCircle className="w-4 h-4" />
+        </button>
       </div>
     </nav>
   );

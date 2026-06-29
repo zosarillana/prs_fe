@@ -6,12 +6,12 @@ export function GlobalDepartmentListener({ refreshDepartments }: { refreshDepart
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    console.log("Setting up global department listener");
+    // console.log("Setting up global department listener");
 
     const globalChannel = echo.channel("purchase-report-global");
 
     const handleDepartmentEvent = (event: any) => {
-      console.log("Global department event received:", event);
+      // console.log("Global department event received:", event);
 
       if (event.type === "global_notification") {
         // Refresh your department table
@@ -27,7 +27,7 @@ export function GlobalDepartmentListener({ refreshDepartments }: { refreshDepart
     globalChannel.listen(".GlobalDepartmentCreated", handleDepartmentEvent);
 
     return () => {
-      console.log("Cleaning up global department listener");
+      // console.log("Cleaning up global department listener");
       globalChannel.stopListening(".GlobalDepartmentCreated");
     };
   }, [queryClient, refreshDepartments]);

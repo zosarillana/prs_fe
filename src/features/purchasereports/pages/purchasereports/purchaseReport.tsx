@@ -1,0 +1,265 @@
+import { usePurchaseReports } from "../../hooks/usePurchaseReports";
+import { usePurchaseReportUrlSync } from "./hooks/usePurchaseReportUrlSync";
+import { getPurchaseReportHeading } from "./utils/getPurchaseReportHeading";
+import { STATUS_MAP } from "./constants/purchaseReports";
+import { Input } from "@/components/ui/input";
+import { TableSkeleton } from "@/components/ui/skeletons/purchasereports/tableSkeleton";
+import { Search, Plus } from "lucide-react";
+
+import { Link } from "react-router-dom";
+import { DrApproveDialog } from "../../components/workflow/drApproveDialog";
+import { EditPurchaseReportDialog } from "../../components/update/editPurchaseReportDialog";
+import { ViewPurchaseReportDialog } from "../../components/view/viewPurchaseReportDialog";
+import { SetPoDialog } from "../../components/workflow/setPoDialog";
+import { PurchasingUserDropdown } from "../../filters/dropdowns/purchasingFilterDropdown";
+import { StatusFilterDropdown } from "../../filters/dropdowns/statusFilterDropdown";
+import { TagFilterDropdown } from "../../filters/dropdowns/tagFilterDropdown";
+import { TablePagination } from "../../filters/pagination/tablePagination";
+import { PurchaseReportTable } from "./tables/purchaseReportTable";
+import { Button } from "@/components/ui/button";
+import { SetSapDialog } from "../../components/workflow/setSapDialog";
+import { SetMultiplePurchaseReportDialogProps } from "../../components/multiplePo/setMultiplePurchaseReportDialog";
+export default function PurchaseReport() {
+  const {
+    user,
+    data,
+    loading,
+    fetching,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    open,
+    setOpen,
+    viewId,
+    openMultiple,
+    setOpenMultiple,
+    viewIdMultiple,
+    searchTerm,
+    setSearchTerm,
+    handleView,
+    handleViewMultiple,
+    handleEdit,
+    editOpen,
+    setEditOpen,
+    editId,
+    handleDelete,
+    refetch,
+    handleSetSap,
+    sapDialogOpen,
+    setSapDialogOpen,
+    handleSetPo,
+    sapTargetId,
+    poDialogOpen,
+    setPoDialogOpen,
+    poTargetId,
+    approvePoMutation,
+    setApproveDialogOpen,
+    setApproveTargetId,
+    approveDialogOpen,
+    approveTargetId,
+    statusTerm,
+    prStatusTerm,
+    setPrStatusTerm,
+    setStatusTerm,
+    setCompletedTr,
+    ownDepartment,
+    setOwnDepartment,
+    cancelPoMutation,
+    returnPoMutation,
+    handleCopyToNew,
+    handleViewDraft,
+    tagDescription,
+    setTagDescription,
+    purchaserName,
+    setPurchaserName,
+  } = usePurchaseReports();
+
+  const { ownCreated, completedTr, forCeoApproval, forPoApproval, approvedPo } =
+    usePurchaseReportUrlSync({
+      statusTerm,
+      prStatusTerm,
+      setStatusTerm,
+      setPrStatusTerm,
+      setCompletedTr,
+      setOwnDepartment,
+    });
+
+  const heading = getPurchaseReportHeading({
+    prStatusTerm,
+    statusTerm,
+    completedTr,
+    ownDepartment,
+    forCeoApproval,
+    forPoApproval,
+    approvedPo,
+    user,
+  });
+
+  if (loading) {
+    return (
+      <div className="p-6 -mt-4">
+        <h1 className="text-3xl font-bold mb-6">{heading}</h1>
+        <TableSkeleton rows={5} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 -mt-4">
+      {/* header */}
+      <div className="grid grid-cols-1 lg:flex lg:flex-row lg:justify-between lg:items-center mb-6">
+        <h1 className="text-3xl font-bold mb-6">{heading}</h1>
+        <div className="flex flex-col gap-4">
+          <div
+            className="
+      flex flex-col-reverse sm:flex-row sm:flex-wrap
+      justify-end items-stretch sm:items-center
+      gap-2 sm:gap-4
+    "
+          >
+            {/* Search Box - appears first on mobile, last on desktop */}
+            <div className="relative w-full sm:w-auto order-first sm:order-last">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search requests..."
+                className="pl-8 w-full"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+
+            {/* Filter dropdowns */}
+            <StatusFilterDropdown
+              statusTerm={statusTerm}
+              prStatusTerm={prStatusTerm}
+              setStatusTerm={setStatusTerm}
+              setPrStatusTerm={setPrStatusTerm}
+              setPage={setPage}
+              user={user}
+            />
+
+            <TagFilterDropdown
+              tagDescription={tagDescription}
+              setTagDescription={setTagDescription}
+              setPage={setPage}
+            />
+
+            <PurchasingUserDropdown
+              purchaserName={purchaserName}
+              setPurchaserName={setPurchaserName}
+              setPage={setPage}
+            />
+
+            {/* Create Button */}
+            {!(
+              user?.role?.includes("hod") ||
+              user?.role?.includes("technical_reviewer") ||
+              user?.role?.includes("purchasing") || 
+              user?.role?.includes("treasury") || 
+              user?.role?.includes("ovs") 
+            ) && (
+              <Button asChild className="w-full sm:w-auto">
+                <Link to="/purchase-reports/create">
+                  <Plus className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">
+                    Create Purchase Request
+                  </span>
+                  <span className="sm:hidden">Create</span>
+                </Link>
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* table */}
+      <div className="overflow-hidden rounded-lg border text-card-foreground shadow">
+        <PurchaseReportTable
+          data={data}
+          fetching={fetching}
+          user={user}
+          ownCreated={ownCreated}
+          completedTr={completedTr}
+          forCeoApproval={forCeoApproval}
+          approvedPo={approvedPo}
+          statusMap={STATUS_MAP}
+          handleView={handleView}
+          handleViewMultiple={handleViewMultiple}
+          handleEdit={handleEdit}
+          handleDelete={handleDelete}
+          handleSetPo={handleSetPo}
+          handleSetSap={handleSetSap}
+          handleCopyToNew={handleCopyToNew}
+          handleViewDraft={handleViewDraft}
+          cancelPoMutation={cancelPoMutation}
+          returnPoMutation={returnPoMutation}
+          setApproveDialogOpen={setApproveDialogOpen}
+          setApproveTargetId={setApproveTargetId}
+        />
+        {/* pagination footer */}
+        <div className="flex items-center justify-between w-full border-t p-4">
+          {/* Left side: Showing X of Y */}
+          <div className="text-sm text-muted-foreground">
+            Showing {data?.items?.length ?? 0} of {data?.totalItems ?? 0}
+          </div>
+
+          {/* Right side: Pagination and page size */}
+          <div className="flex items-center gap-6">
+            <TablePagination
+              page={page}
+              totalPages={data?.totalPages ?? 0}
+              pageSize={pageSize}
+              setPage={setPage}
+              setPageSize={setPageSize}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* dialogs */}
+      <ViewPurchaseReportDialog
+        open={open}
+        onOpenChange={setOpen}
+        prId={viewId}
+        onSuccess={refetch}
+      />
+      <SetMultiplePurchaseReportDialogProps
+        open={openMultiple}
+        onOpenChange={setOpenMultiple}
+        prId={viewIdMultiple}
+        onSuccess={refetch}
+      />
+      <EditPurchaseReportDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        prId={editId}
+      />
+      <SetPoDialog
+        open={poDialogOpen}
+        onOpenChange={setPoDialogOpen}
+        reportId={poTargetId}
+        onSuccess={refetch}
+      />
+      <SetSapDialog
+        open={sapDialogOpen}
+        onOpenChange={setSapDialogOpen}
+        reportId={sapTargetId}
+        onSuccess={refetch}
+      />
+      <DrApproveDialog
+        open={approveDialogOpen}
+        onClose={() => setApproveDialogOpen(false)}
+        onConfirm={({ date, status }) => {
+          if (approveTargetId !== null) {
+            approvePoMutation.mutate({ id: approveTargetId, date, status });
+          }
+        }}
+      />
+    </div>
+  );
+}

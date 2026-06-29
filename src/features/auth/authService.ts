@@ -2,6 +2,8 @@
 import api from "@/lib/api";
 import Cookies from "js-cookie";
 import { LoginInput, RegisterInput, AuthResponse } from "./types";
+import { queryClient } from "@/lib/queryClient";
+import { useAuthStore } from "@/store/auth/authStore";
 
 // 🚨 Counter to track calls
 let meCallCounter = 0;
@@ -40,21 +42,25 @@ export const authService = {
   logout: async (): Promise<void> => {
     try {
       const xsrfToken = Cookies.get("XSRF-TOKEN");
-
       await api.post("/logout", {}, { headers: { "X-XSRF-TOKEN": xsrfToken } });
     } catch (err) {
       console.error("Logout API failed:", err);
-      // Even if backend fails, still clear client state
     }
 
-    // 1. Clear cookies & storage
-    // Cookies.remove("XSRF-TOKEN");
-    // localStorage.removeItem("auth_token");
-    // localStorage.clear();
-    // sessionStorage.clear();
+    // 🧹 Clear browser data
+    Cookies.remove("XSRF-TOKEN");
+    localStorage.clear();
+    sessionStorage.clear();
 
-    // 2. Force UI reset (fresh state, no stale data)
-    // window.location.href = "/login";
+    // 🧠 Clear React Query cache safely
+    queryClient.getQueryCache().clear();
+    queryClient.getMutationCache().clear();
+
+    // 🧽 Clear Zustand auth state
+    useAuthStore.getState().clearAuth();
+
+    // 🔁 Redirect to login
+    window.location.href = "/prs/login";
   },
 
   // 🆕 Change password for authenticated user
@@ -86,11 +92,24 @@ export const authService = {
     // console.log(`✅ /ME CALL #${meCallCounter} COMPLETED`);
     return res.data;
   },
-
   refresh: async (): Promise<{ access_token: string }> => {
-    const res = await api.post("/refresh", {}, { withCredentials: true });
+    // 🔑 Always refresh CSRF cookie first
+    await api.get("/sanctum/csrf-cookie", { withCredentials: true });
+
+    const xsrfToken = Cookies.get("XSRF-TOKEN");
+
+    const res = await api.post(
+      "/refresh",
+      {},
+      {
+        headers: {
+          "X-XSRF-TOKEN": xsrfToken,
+        },
+        withCredentials: true,
+      },
+    );
+
     localStorage.setItem("auth_token", res.data.access_token);
     return res.data;
   },
-  
 };

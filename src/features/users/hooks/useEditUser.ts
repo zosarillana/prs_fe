@@ -1,4 +1,4 @@
-// Updated useEditUserForm hook
+// Updated useEditUserForm hook with multi-role support
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -15,7 +15,7 @@ export function useEditUserForm({ user, onSuccess }: UseEditUserFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [department, setDepartment] = useState<string>("");
-  const [role, setRole] = useState<string>("");
+  const [roles, setRoles] = useState<string[]>([]); // Changed to array
 
   // Password form states
   const [password, setPassword] = useState("");
@@ -33,7 +33,8 @@ export function useEditUserForm({ user, onSuccess }: UseEditUserFormProps) {
       setName(user.name);
       setEmail(user.email);
       setDepartment(user.department?.[0] ?? "");
-      setRole(user.role?.[0] ?? "");
+      // Handle roles as array
+      setRoles(user.role ?? []);
     }
   }, [user]);
 
@@ -99,7 +100,7 @@ export function useEditUserForm({ user, onSuccess }: UseEditUserFormProps) {
       name,
       email,
       department: [department],
-      role: [role],
+      role: roles, // Now sends the full array of roles
     });
   };
 
@@ -131,8 +132,8 @@ export function useEditUserForm({ user, onSuccess }: UseEditUserFormProps) {
     setEmail,
     department,
     setDepartment,
-    role,
-    setRole,
+    roles, // Changed from role to roles
+    setRoles, // Changed from setRole to setRoles
     isPending,
     handleSubmit,
     // Password form

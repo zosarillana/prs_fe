@@ -1,12 +1,12 @@
 // appRoutes.ts
 import Dashboard from "@/features/dashboard/pages/dashboard";
-import PurchaseReport from "@/features/purchasereports/pages/purchaseReport";
-import CreatePurchaseReport from "@/features/purchasereports/pages/createPurchaseReport";
+import PurchaseReport from "@/features/purchasereports/pages/purchasereports/purchaseReport";
+import CreatePurchaseReport from "@/features/purchasereports/pages/createpurchasereport/createPurchaseReport";
 import ProtectedRoute from "./protectedRoute";
 import { LayoutDashboard, Receipt } from "lucide-react";
 import Users from "@/features/users/pages/users";
 import Profile from "@/features/users/pages/profile";
-import PurchaseOrder from "@/features/purchasereports/pages/purchaseOrder";
+import PurchaseOrder from "@/features/purchasereports/pages/purchaseorder/purchaseOrder";
 import Settings from "@/features/settings/pages/settings";
 import UserLogs from "@/features/log/pages/userLogs";
 import AuditLogs from "@/features/log/pages/auditLogs";
@@ -14,6 +14,13 @@ import UomPage from "@/features/uom/pages/uom";
 import Department from "@/features/department/pages/department";
 import Tags from "@/features/tags/pages/tags";
 import NotFound from "@/features/misc/pages/notFound";
+import Reports from "@/features/purchasereports/pages/reports/reports";
+import ProgressReport from "@/features/purchasereports/pages/progressreport/progressReport";
+import PriceMonitoring from "@/features/pricemonitoring/pages/priceMonitoring";
+import Items from "@/features/pricemonitoring/pages/item";
+import Vendors from "@/features/pricemonitoring/pages/vendor";
+import VendorPayment from "@/features/vendor-payment/pages/vendorPayment";
+import AdminProtectedRoute from "./adminProtectedRoute";
 
 export const appRoutes = [
   {
@@ -22,7 +29,7 @@ export const appRoutes = [
     label: "Dashboard",
     icon: LayoutDashboard,
     showInSidebar: true,
-    moduleId: 1,   // ✅ privilege mapping
+    moduleId: 1, // ✅ privilege mapping
   },
   {
     path: "/purchase-reports",
@@ -67,11 +74,47 @@ export const appRoutes = [
     element: <AuditLogs />,
     moduleId: 9,
   },
-  // free routes
+  {
+    path: "/reports",
+    element: <Reports />,
+    moduleId: 10,
+  },
+  {
+    path: "/price-monitoring",
+    element: <PriceMonitoring />,
+    moduleId: 12,
+  },
+  {
+    path: "/items",
+    element: <Items />,
+    moduleId: 13,
+  },
+  {
+    path: "/vendors",
+    element: <Vendors />,
+    moduleId: 14,
+  },
+  {
+    path: "/vendor-payments",
+    element: <VendorPayment />,
+    moduleId: 15,
+  },
+  {
+    path: "/progress-reports",
+    element: <ProgressReport />,
+    moduleId: 11,
+  },
+
   {
     path: "/settings",
-    element: <Settings />,
+    element: (
+      <AdminProtectedRoute showUnauthorized>
+        <Settings />
+      </AdminProtectedRoute>
+    ),
   },
+
+  // free routes
   {
     path: "/purchase-reports/create",
     element: <CreatePurchaseReport />,

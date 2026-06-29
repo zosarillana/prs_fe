@@ -3,7 +3,7 @@ import { tagsService } from "../tagsService";
 import type { Tag } from "../types";
 import { departmentService } from "@/features/department/departmentService";
 import type { Department } from "@/features/department/types";
-import { Trash2, Plus, Loader2 } from "lucide-react";
+import { Trash2, Plus, Loader2, Pencil } from "lucide-react";
 
 import {
   Select,
@@ -35,6 +35,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -47,8 +55,14 @@ export default function Tags() {
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  const [selectedDept, setSelectedDept] = useState<string>(""); // department_id as string for <Select>
+  const [selectedDept, setSelectedDept] = useState<string>("");
   const [description, setDescription] = useState("");
+
+  // Edit state
+  const [editingTag, setEditingTag] = useState<Tag | null>(null);
+  const [editDept, setEditDept] = useState<string>("");
+  const [editDescription, setEditDescription] = useState("");
+  const [updating, setUpdating] = useState(false);
 
   /** 🔹 Load all tags */
   const fetchTags = useCallback(async () => {
@@ -108,6 +122,38 @@ export default function Tags() {
       setCreating(false);
     }
   }, [selectedDept, description, fetchTags]);
+
+  /** 🔹 Open edit dialog */
+  const handleEditClick = useCallback((tag: Tag) => {
+    setEditingTag(tag);
+    setEditDept(String(tag.department_id));
+    setEditDescription(tag.description || "");
+  }, []);
+
+  /** 🔹 Update tag */
+  const handleUpdate = useCallback(async () => {
+    if (!editingTag || !editDept) {
+      toast.error("Please select a department");
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      await tagsService.update(editingTag.id, {
+        department_id: Number(editDept),
+        description: editDescription,
+      });
+      setEditingTag(null);
+      setEditDept("");
+      setEditDescription("");
+      await fetchTags();
+      toast.success("Tag updated successfully");
+    } catch (error) {
+      toast.error("Failed to update tag");
+    } finally {
+      setUpdating(false);
+    }
+  }, [editingTag, editDept, editDescription, fetchTags]);
 
   /** 🔹 Delete a tag */
   const handleDelete = useCallback(async (id: number) => {
@@ -230,7 +276,7 @@ export default function Tags() {
                     <TableHead className="w-20">ID</TableHead>
                     <TableHead>Department</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead className="w-24 text-center">Actions</TableHead>
+                    <TableHead className="w-32 text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -249,39 +295,49 @@ export default function Tags() {
                         )}
                       </TableCell>
                       <TableCell className="text-center">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              disabled={deletingId === tag.id}
-                            >
-                              {deletingId === tag.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Tag</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete this tag? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDelete(tag.id)}
-                                className="bg-destructive hover:bg-destructive/90"
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleEditClick(tag)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                disabled={deletingId === tag.id}
                               >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                                {deletingId === tag.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Tag</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this tag? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDelete(tag.id)}
+                                  className="bg-destructive hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -291,6 +347,71 @@ export default function Tags() {
           )}
         </CardContent>
       </Card>
+
+      {/* ✏️ Edit Dialog */}
+      <Dialog open={!!editingTag} onOpenChange={(open) => !open && setEditingTag(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Tag</DialogTitle>
+            <DialogDescription>
+              Update the department and description for this tag.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-department-select">Department</Label>
+              <Select
+                value={editDept}
+                onValueChange={setEditDept}
+                disabled={loadingDepts}
+              >
+                <SelectTrigger id="edit-department-select">
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.id} value={String(dept.id)}>
+                      {dept.description ?? dept.name ?? `Department ${dept.id}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-description-input">Description</Label>
+              <Input
+                id="edit-description-input"
+                placeholder="Optional description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditingTag(null)}
+              disabled={updating}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdate}
+              disabled={updating || !editDept}
+            >
+              {updating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Updating...
+                </>
+              ) : (
+                "Update Tag"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

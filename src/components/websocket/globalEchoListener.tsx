@@ -11,7 +11,7 @@ export function GlobalEchoListener() {
   useEffect(() => {
     if (!user) return;
 
-    console.log("Setting up notification channels for user:", user);
+    // console.log("Setting up notification channels for user:", user);
 
     let channels: any[] = [];
 
@@ -34,10 +34,10 @@ export function GlobalEchoListener() {
     }
 
     const handleEvent = (event: any) => {
-      console.log("Notification event received:", event);
+      // console.log("Notification event received:", event);
 
       // Show toast for new report
-      toast.success(`New report: ${event.series_no}`);
+      // toast.success(`New report: ${event.series_no}`);
 
       // Backend event signals a new notification
       if (event.type === "notification_created") {
@@ -75,3 +75,5 @@ export function GlobalEchoListener() {
 
   return null;
 }
+
+

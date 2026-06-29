@@ -120,44 +120,50 @@ export default function DepartmentPage() {
   }, []);
 
   // ✅ Update Department (Sonner kept)
-  const handleUpdateDepartment = useCallback(async (id: number) => {
-    if (!editName.trim() && !editDesc.trim()) {
-      toast.error("Please provide at least a name or description");
-      return;
-    }
-    const t = toast.loading("Updating department...");
-    try {
-      const updated = await departmentService.update(id, {
-        name: editName.trim(),
-        description: editDesc.trim(),
-      });
-      setDepartments((prev) =>
-        prev.map((d) =>
-          d.id === id
-            ? { ...d, name: updated.name, description: updated.description }
-            : d
-        )
-      );
-      cancelEdit();
-      toast.success("Department updated successfully", { id: t });
-    } catch (err) {
-      toast.error("Failed to update department", { id: t });
-      console.error(err);
-    }
-  }, [editName, editDesc, cancelEdit]);
+  const handleUpdateDepartment = useCallback(
+    async (id: number) => {
+      if (!editName.trim() && !editDesc.trim()) {
+        toast.error("Please provide at least a name or description");
+        return;
+      }
+      const t = toast.loading("Updating department...");
+      try {
+        const updated = await departmentService.update(id, {
+          name: editName.trim(),
+          description: editDesc.trim(),
+        });
+        setDepartments((prev) =>
+          prev.map((d) =>
+            d.id === id
+              ? { ...d, name: updated.name, description: updated.description }
+              : d
+          )
+        );
+        cancelEdit();
+        toast.success("Department updated successfully", { id: t });
+      } catch (err) {
+        toast.error("Failed to update department", { id: t });
+        console.error(err);
+      }
+    },
+    [editName, editDesc, cancelEdit]
+  );
 
   // ✅ Delete Department (Sonner kept)
-  const handleDeleteDepartment = useCallback(async (id: number) => {
-    const t = toast.loading("Deleting department...");
-    try {
-      await departmentService.delete(id);
-      await loadDepartments();
-      toast.success("Department deleted successfully", { id: t });
-    } catch (err) {
-      toast.error("Failed to delete department", { id: t });
-      console.error(err);
-    }
-  }, [loadDepartments]);
+  const handleDeleteDepartment = useCallback(
+    async (id: number) => {
+      const t = toast.loading("Deleting department...");
+      try {
+        await departmentService.delete(id);
+        await loadDepartments();
+        toast.success("Department deleted successfully", { id: t });
+      } catch (err) {
+        toast.error("Failed to delete department", { id: t });
+        console.error(err);
+      }
+    },
+    [loadDepartments]
+  );
 
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage);
@@ -171,7 +177,9 @@ export default function DepartmentPage() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Departments Management</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Departments Management
+        </h1>
         <Badge variant="secondary" className="text-sm">
           {totalItems} departments
         </Badge>
@@ -207,7 +215,7 @@ export default function DepartmentPage() {
                 onChange={(e) => setNewDesc(e.target.value)}
               />
             </div>
-            <Button 
+            <Button
               onClick={handleAddDepartment}
               className="flex items-center gap-2"
             >
@@ -244,7 +252,9 @@ export default function DepartmentPage() {
                 <Plus className="h-6 w-6" />
               </div>
               <p className="text-lg font-medium">No departments found</p>
-              <p className="text-sm">Create your first department to get started</p>
+              <p className="text-sm">
+                Create your first department to get started
+              </p>
             </div>
           ) : (
             <div className="rounded-md border">
@@ -272,7 +282,11 @@ export default function DepartmentPage() {
                             className="max-w-xs"
                           />
                         ) : (
-                          dep.name || <span className="italic text-muted-foreground/70">No name</span>
+                          dep.name || (
+                            <span className="italic text-muted-foreground/70">
+                              No name
+                            </span>
+                          )
                         )}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
@@ -284,7 +298,11 @@ export default function DepartmentPage() {
                             className="max-w-sm"
                           />
                         ) : (
-                          dep.description || <span className="italic text-muted-foreground/70">No description</span>
+                          dep.description || (
+                            <span className="italic text-muted-foreground/70">
+                              No description
+                            </span>
+                          )
                         )}
                       </TableCell>
                       <TableCell className="text-center">
@@ -330,15 +348,23 @@ export default function DepartmentPage() {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Department</AlertDialogTitle>
+                                    <AlertDialogTitle>
+                                      Delete Department
+                                    </AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Are you sure you want to delete "{dep.name || `Department ${dep.id}`}"? This action cannot be undone.
+                                      Are you sure you want to delete "
+                                      {dep.name || `Department ${dep.id}`}"?
+                                      This action cannot be undone.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogCancel>
+                                      Cancel
+                                    </AlertDialogCancel>
                                     <AlertDialogAction
-                                      onClick={() => handleDeleteDepartment(dep.id)}
+                                      onClick={() =>
+                                        handleDeleteDepartment(dep.id)
+                                      }
                                       className="bg-destructive hover:bg-destructive/90"
                                     >
                                       Delete
@@ -360,61 +386,75 @@ export default function DepartmentPage() {
           {/* Pagination Controls */}
           {!loading && departments.length > 0 && (
             <div className="flex justify-between items-center mt-6">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() => page > 1 && handlePageChange(page - 1)}
-                      className={
-                        page === 1 ? "opacity-50 pointer-events-none" : "cursor-pointer"
-                      }
-                    />
-                  </PaginationItem>
+              {/* Showing info */}
+              <div className="text-sm text-muted-foreground">
+                Showing {Math.min((page - 1) * pageSize + 1, totalItems)}–
+                {Math.min(page * pageSize, totalItems)} of {totalItems}
+              </div>
 
-                  {Array.from({ length: totalPages }, (_, i) => (
-                    <PaginationItem key={i}>
-                      <PaginationLink
-                        isActive={page === i + 1}
-                        onClick={() => handlePageChange(i + 1)}
-                        className="cursor-pointer"
-                      >
-                        {i + 1}
-                      </PaginationLink>
+              {/* Pagination and page size controls */}
+              <div className="flex items-center gap-6">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => page > 1 && handlePageChange(page - 1)}
+                        className={
+                          page === 1
+                            ? "opacity-50 pointer-events-none"
+                            : "cursor-pointer"
+                        }
+                      />
                     </PaginationItem>
-                  ))}
 
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={() => page < totalPages && handlePageChange(page + 1)}
-                      className={
-                        page === totalPages
-                          ? "opacity-50 pointer-events-none"
-                          : "cursor-pointer"
-                      }
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  Rows per page:
-                </span>
-                <Select
-                  value={pageSize.toString()}
-                  onValueChange={handlePageSizeChange}
-                >
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[5, 10, 20, 30].map((size) => (
-                      <SelectItem key={size} value={size.toString()}>
-                        {size}
-                      </SelectItem>
+                    {Array.from({ length: totalPages }, (_, i) => (
+                      <PaginationItem key={i}>
+                        <PaginationLink
+                          isActive={page === i + 1}
+                          onClick={() => handlePageChange(i + 1)}
+                          className="cursor-pointer"
+                        >
+                          {i + 1}
+                        </PaginationLink>
+                      </PaginationItem>
                     ))}
-                  </SelectContent>
-                </Select>
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() =>
+                          page < totalPages && handlePageChange(page + 1)
+                        }
+                        className={
+                          page === totalPages
+                            ? "opacity-50 pointer-events-none"
+                            : "cursor-pointer"
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+
+                {/* Page size selector */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Rows per page:
+                  </span>
+                  <Select
+                    value={pageSize.toString()}
+                    onValueChange={handlePageSizeChange}
+                  >
+                    <SelectTrigger className="w-[100px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[5, 10, 20, 30].map((size) => (
+                        <SelectItem key={size} value={size.toString()}>
+                          {size}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           )}
