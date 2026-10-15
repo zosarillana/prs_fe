@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { ReportStatusFilterDropdown } from "../../filters/dropdowns/reportStatusFilterDropdown";
 import {
   Table,
   TableBody,
@@ -30,11 +31,13 @@ import {
   Printer,
   CalendarIcon,
   HashIcon,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TableSkeleton } from "@/components/ui/skeletons/purchasereports/tableSkeleton";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import logo from "@/assets/images/logo.png";
 import {
@@ -54,6 +57,7 @@ import { PurchasingUserDropdown } from "../../filters/dropdowns/purchasingFilter
 export default function Reports() {
   const printRef = useRef<HTMLDivElement>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   // 🧩 Use your new custom data-fetching hook
   const {
@@ -74,6 +78,12 @@ export default function Reports() {
     handleClearFilters,
     purchaserName,
     setPurchaserName,
+    statusTerm, // 🆕
+    prStatusTerm, // 🆕
+    setStatusTerm, // 🆕
+    setPrStatusTerm, // 🆕
+    completedTr, // 🆕 if it exists in your hook
+    ownDepartment, // 🆕 if it exists in your hook
   } = useReportGetHook();
 
   /** Helper: Compute difference in days between two dates */
@@ -98,26 +108,52 @@ export default function Reports() {
     return hod || tr || null;
   };
 
-  /** Generate PDF with proper table pagination */
+  /** Helper: Format PO status consistently across PDF + Excel exports */
+  const formatPoStatus = (status: string | null | undefined): string => {
+    if (status === "For_approval") return "For Approval";
+    if (status === "Cancelled" || status === "cancelled") return "Cancelled";
+    return status ?? "N/A";
+  };
+
+  const PR_STATUS_LABELS: Record<string, string> = {
+    for_approval: "For Purchase Order Creation",
+    // add any other raw pr_status values → friendly labels here
+  };
+
+  /** Helper: Format PR status consistently across table + PDF + Excel exports */
+  const formatPrStatus = (status: string | null | undefined): string => {
+    if (!status) return "N/A";
+    const normalized = status.toLowerCase();
+    if (normalized === "on_hold") return "For HOD Approval";
+    if (normalized === "on_hold_return") return "On Hold For Edit";
+    if (normalized === "on_hold_tr") return "For TR Approval";
+    return PR_STATUS_LABELS[normalized] ?? status;
+  };
+
+  /** Shared: fetch ALL data (not just current page) using current filters */
+  const fetchAllFilteredData = async () => {
+    const allDataParams = {
+      pageNumber: 1,
+      pageSize: data?.totalItems ?? 999999,
+      searchTerm: searchTerm,
+      fromDate: fromDate ? format(fromDate, "yyyy-MM-dd") : undefined,
+      toDate: toDate ? format(toDate, "yyyy-MM-dd") : undefined,
+      statusTerm: statusTerm,
+      prStatusTerm: prStatusTerm,
+      purchaserName: purchaserName,
+      completedTr: completedTr,
+      ownDepartment: ownDepartment,
+    };
+
+    return purchaseReportService.getTable(allDataParams);
+  };
+
   /** Generate PDF with ALL data (not just current page) */
   const handlePrint = async () => {
     try {
       setIsGeneratingPDF(true);
 
-      // 🔥 Fetch ALL data for printing with current filters applied
-      // If filtered result is 8 items, we fetch all 8
-      // If no filter and total is 16, we fetch all 16
-      const allDataParams = {
-        pageNumber: 1,
-        pageSize: data?.totalItems ?? 999999, // ✅ Use actual total from current query
-        searchTerm: searchTerm,
-        fromDate: fromDate ? format(fromDate, "yyyy-MM-dd") : undefined,
-        toDate: toDate ? format(toDate, "yyyy-MM-dd") : undefined,
-        // Include any other active filters from your hook
-      };
-
-      // Call the appropriate service method based on user role
-      const allData = await purchaseReportService.getTable(allDataParams);
+      const allData = await fetchAllFilteredData();
 
       if (!allData?.items || allData.items.length === 0) {
         toast.error("No data to print");
@@ -175,6 +211,8 @@ export default function Reports() {
             " (" +
             (item.po_approved_date ?? "—") +
             ")",
+          formatPrStatus(item.pr_status), // 🆕 Status
+          formatPoStatus(item.po_status), // PO Status
           item.purchaser_id?.name ?? "N/A",
         ];
       });
@@ -195,12 +233,15 @@ export default function Reports() {
             "PO Creation (Days)",
             "PO Approval (Days)",
             "ToT",
+            "Status", // 🆕
+            "PO Status",
             "Purchasing Associate",
           ],
         ],
         body: tableData,
         theme: "grid",
         margin: { top: 40, left: margin, right: margin, bottom: 15 },
+        tableWidth: "auto", // let autoTable fit remaining columns to the page
         styles: {
           fontSize: 7.5,
           cellPadding: 3,
@@ -221,20 +262,13 @@ export default function Reports() {
         },
         alternateRowStyles: { fillColor: [249, 250, 251] },
         columnStyles: {
-          0: { cellWidth: 18, fontStyle: "bold" },
-          1: { cellWidth: 18 },
-          2: { cellWidth: 19 },
-          3: { cellWidth: 18 },
-          4: { cellWidth: 25 },
-          5: { cellWidth: 28 },
-          6: { cellWidth: 25 },
-          7: { cellWidth: 18 },
-          8: { cellWidth: 18 },
-          9: { cellWidth: 18 },
-          10: { cellWidth: 18 },
-          11: { cellWidth: 18 },
-          12: { cellWidth: 18 },
-          13: { cellWidth: 18 },
+          0: { cellWidth: 14 }, // SL #
+          5: { cellWidth: 24 }, // Purpose
+          6: { cellWidth: 20 }, // Department
+          13: { cellWidth: 18 }, // 🆕 Status (index shifted — now col 13)
+          14: { cellWidth: 16 }, // PO Status (was 13, now 14)
+          // remaining columns left unset — autoTable distributes
+          // the leftover page width across them automatically
         },
         didDrawPage: (data) => {
           const totalPages = (pdf.internal as any).getNumberOfPages();
@@ -291,6 +325,86 @@ export default function Reports() {
       toast.error("Failed to generate PDF. Please try again.");
     } finally {
       setIsGeneratingPDF(false);
+    }
+  };
+
+  /** Export ALL data (not just current page) to an Excel file */
+  const handleExportExcel = async () => {
+    try {
+      setIsExportingExcel(true);
+
+      const allData = await fetchAllFilteredData();
+
+      if (!allData?.items || allData.items.length === 0) {
+        toast.error("No data to export");
+        return;
+      }
+
+      // Build rows as plain objects — keys become the header row
+      const rows = allData.items.map((item) => {
+        const prCreated = item.pr_created ? new Date(item.pr_created) : null;
+        const hodApproved = item.hod_signed_at
+          ? new Date(item.hod_signed_at)
+          : null;
+        const trApproved = item.tr_signed_at
+          ? new Date(item.tr_signed_at)
+          : null;
+        const poCreated = item.po_created_date
+          ? new Date(item.po_created_date)
+          : null;
+        const poApproved = item.po_approved_date
+          ? new Date(item.po_approved_date)
+          : null;
+        const latestApproval = latestApprovalDate(hodApproved, trApproved);
+
+        return {
+          "SL #": item.series_no ?? "N/A",
+          "SAP - PR": item.sap_id ?? "N/A",
+          "PR Created": item.pr_created ?? "N/A",
+          "PO Number": item.po_no ?? "N/A",
+          "PO Created": item.po_created_date ?? "N/A",
+          Purpose: item.pr_purpose ?? "N/A",
+          Department: item.department ?? "N/A",
+          "Submitted By": item.user?.name ?? "N/A",
+          "HOD Approval (Days)": diffDays(prCreated, hodApproved),
+          "HOD Approved On": item.hod_signed_at ?? "—",
+          "TR Approval (Days)": diffDays(hodApproved, trApproved),
+          "TR Approved On": item.tr_signed_at ?? "—",
+          "PO Creation (Days)": diffDays(latestApproval, poCreated),
+          "PO Approval (Days)": diffDays(poCreated, poApproved),
+          "PO Approved On": item.po_approved_date ?? "—",
+          "ToT (PR → PO Approval)": diffDays(prCreated, poApproved),
+          Status: formatPrStatus(item.pr_status), // 🆕
+          "PO Status": formatPoStatus(item.po_status),
+          "Purchasing Associate": item.purchaser_id?.name ?? "N/A",
+        };
+      });
+
+      // Create worksheet + workbook
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+
+      // Auto-size columns roughly based on content length
+      const colWidths = Object.keys(rows[0] ?? {}).map((key) => {
+        const maxLen = Math.max(
+          key.length,
+          ...rows.map((r) => String((r as any)[key] ?? "").length),
+        );
+        return { wch: Math.min(Math.max(maxLen + 2, 10), 40) };
+      });
+      worksheet["!cols"] = colWidths;
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Purchase Reports");
+
+      const fileName = `Purchase-Reports-All-${new Date().toISOString().split("T")[0]}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+
+      toast.success(`Excel file with ${rows.length} records downloaded!`);
+    } catch (error) {
+      console.error("Failed to export Excel:", error);
+      toast.error("Failed to export Excel. Please try again.");
+    } finally {
+      setIsExportingExcel(false);
     }
   };
 
@@ -393,13 +507,32 @@ export default function Reports() {
               <Printer className="h-4 w-4 mr-2" />
               {isGeneratingPDF ? "Generating PDF..." : "Print PDF"}
             </Button>
+
+            <Button
+              onClick={handleExportExcel}
+              variant="outline"
+              size="sm"
+              disabled={isExportingExcel}
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              {isExportingExcel ? "Exporting..." : "Export Excel"}
+            </Button>
           </div>
-          <div className="grid col-span-1 justify-end">
-            <PurchasingUserDropdown
-              purchaserName={purchaserName}
-              setPurchaserName={setPurchaserName}
-              setPage={setPage}
-            />
+          <div className="grid col-span-1 justify-end gap-2">
+            <div className="flex gap-2">
+              <ReportStatusFilterDropdown
+                statusTerm={statusTerm}
+                prStatusTerm={prStatusTerm}
+                setStatusTerm={setStatusTerm}
+                setPrStatusTerm={setPrStatusTerm}
+                setPage={setPage}
+              />
+              <PurchasingUserDropdown
+                purchaserName={purchaserName}
+                setPurchaserName={setPurchaserName}
+                setPage={setPage}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -409,7 +542,8 @@ export default function Reports() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>SL #</TableHead> <TableHead>SAP - PR</TableHead>
+              <TableHead>SL #</TableHead>
+              <TableHead>SAP - PR</TableHead>
               <TableHead>PR Created</TableHead>
               <TableHead>PO Number</TableHead>
               <TableHead>PO Created</TableHead>
@@ -421,13 +555,16 @@ export default function Reports() {
               <TableHead>PO Creation (Days)</TableHead>
               <TableHead>PO Approval (Days)</TableHead>
               <TableHead>ToT (PR → PO Approval)</TableHead>
+              <TableHead className="border-b">Status</TableHead>
+              <TableHead className="border-b">PO Status</TableHead>
               <TableHead>Purchasing Associate</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {fetching && (
               <TableRow>
-                <TableCell colSpan={14} className="py-0 px-0">
+                <TableCell colSpan={16} className="py-0 px-0">
+                  {/* 🆕 was colSpan={15} — now 16 columns after adding Status */}
                   <div className="w-full">
                     <Progress indeterminate className="w-full" />
                   </div>
@@ -517,6 +654,12 @@ export default function Reports() {
                   </TableCell>
                   <TableCell>
                     {poCreated ? diffDays(prCreated, poApproved) : "N/A"}
+                  </TableCell>
+                  <TableCell className="capitalize">
+                    {formatPrStatus(item.pr_status)}
+                  </TableCell>
+                  <TableCell className="capitalize">
+                    {formatPoStatus(item.po_status)}
                   </TableCell>
                   <TableCell>{item.purchaser_id?.name ?? "N/A"}</TableCell>
                 </TableRow>

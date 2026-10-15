@@ -16,6 +16,7 @@ import { useUoms } from "@/features/users/hooks/useUom";
 import { useTags } from "@/features/users/hooks/useTags"; // ✅ Import useTags
 import { EditPurchaseReportDialogTable } from "./table/editPurchaseReportDialogTable";
 import { useEditPurchaseReportDialog } from "./hooks/usePurchaseReortDialog";
+import { useAuthStore } from "@/store/auth/authStore";
 
 interface Props {
   open: boolean;
@@ -37,8 +38,9 @@ export function EditPurchaseReportDialog({ open, onOpenChange, prId }: Props) {
     handleAddDB,
   } = useEditPurchaseReportDialog(report, prId);
 
-  // ✅ Define user (replace with your actual user object from context/auth)
-  const user = report?.user ?? { role: [], department: [] };
+  // ✅ The currently logged-in user (NOT report.user, which is just who submitted the PR)
+  const loggedInUser = useAuthStore((state) => state.user);
+  const user = loggedInUser ?? { role: [], department: [] };
 
   // ✅ Define bulkAction function
   const bulkAction = async (

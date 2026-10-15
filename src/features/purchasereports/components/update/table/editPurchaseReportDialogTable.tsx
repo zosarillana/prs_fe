@@ -56,11 +56,21 @@ import {
 import { ChevronsUpDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/**
+ * IMPORTANT:
+ * `user` here MUST be the currently logged-in / authenticated user
+ * (e.g. from your auth/session context), NOT `report.user` or any
+ * per-row user object embedded in the purchase report data.
+ *
+ * The report's own `user` field describes who SUBMITTED that report —
+ * it has nothing to do with who is currently viewing/editing it.
+ * Editability must be based on the viewer, not the report's author.
+ */
 interface Props {
   items: PurchaseReport;
   uoms: { id: number; description: string }[];
   tags: Tag[];
-  user: any;
+  user: any; // <-- logged-in/authenticated user, not report.user
   report?: any;
   bulkAction: (action: "approve" | "remove", indices: number[]) => void;
   onChange: (
@@ -89,16 +99,29 @@ export function EditPurchaseReportDialogTable({
     setSelectedItems([]);
   }, [items]);
 
+  // Normalize role into an array regardless of whether it comes in as
+  // a string or an array, so `.includes()` never throws.
+  const userRoles: string[] = useMemo(() => {
+    if (!user?.role) return [];
+    return Array.isArray(user.role) ? user.role : [user.role];
+  }, [user]);
+
+  const isPrivilegedRole =
+    userRoles.includes("admin") || userRoles.includes("hod");
+
   const isSelectableStatus = (status?: string) =>
     status === "return" || status === "returned";
 
+  // Privileged users (admin/hod) can select/act on any row, regardless of status.
   const selectableIndices = useMemo(() => {
     return (
       items.item_status
-        ?.map((status, idx) => (isSelectableStatus(status) ? idx : null))
+        ?.map((status, idx) =>
+          isPrivilegedRole || isSelectableStatus(status) ? idx : null,
+        )
         .filter((idx): idx is number => idx !== null) ?? []
     );
-  }, [items.item_status]);
+  }, [items.item_status, isPrivilegedRole]);
 
   const totalSelectable = selectableIndices.length;
 
@@ -185,12 +208,13 @@ export function EditPurchaseReportDialogTable({
       <TableBody>
         {items.item_description?.map((_, idx) => {
           const status = items.item_status?.[idx] ?? "pending";
-          const isPrivilegedRole =
-            user?.role?.includes("admin") || user?.role?.includes("hod");
-          const isReturned =
-            ["return", "returned"].includes(status) || isPrivilegedRole;
+          const isReturnedStatus = isSelectableStatus(status);
           const isRejected = status === "rejected" || status === "rejected_tr";
-          const canEditRow = isReturned || isRejected;
+
+          // Admin/HOD (logged-in user) can always edit, regardless of status.
+          // Everyone else can only edit when the row is in a return/rejected state.
+          const canEditRow =
+            isPrivilegedRole || isReturnedStatus || isRejected;
 
           const currentTag = items.tag?.[idx];
           const tagId =
@@ -214,7 +238,7 @@ export function EditPurchaseReportDialogTable({
               <TableCell className="text-center">{idx + 1}</TableCell>
 
               <TableCell>
-                {isReturned ? (
+                {canEditRow ? (
                   <Input
                     type="number"
                     min={1}
@@ -227,7 +251,7 @@ export function EditPurchaseReportDialogTable({
               </TableCell>
 
               <TableCell>
-                {isReturned ? (
+                {canEditRow ? (
                   <Select
                     value={items.unit?.[idx] ?? ""}
                     onValueChange={(val) => onChange(idx, "unit", val)}
@@ -249,7 +273,7 @@ export function EditPurchaseReportDialogTable({
               </TableCell>
 
               <TableCell>
-                {isReturned ? (
+                {canEditRow ? (
                   <Input
                     value={items.item_description?.[idx] ?? ""}
                     onChange={(e) =>
@@ -262,47 +286,51 @@ export function EditPurchaseReportDialogTable({
               </TableCell>
 
               <TableCell>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="w-full justify-between"
-                    >
-                      {currentTag?.description ?? "Select tag..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Search tag..." />
-                      <CommandList>
-                        <CommandEmpty>No tag found.</CommandEmpty>
-                        <CommandGroup>
-                          {tags.map((tag) => (
-                            <CommandItem
-                              key={tag.id}
-                              value={tag.description ?? ""}
-                              onSelect={() =>
-                                onChange(idx, "tag", String(tag.id))
-                              }
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  String(currentTag?.id) === String(tag.id)
-                                    ? "opacity-100"
-                                    : "opacity-0",
-                                )}
-                              />
-                              {tag.description}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                {canEditRow ? (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between"
+                      >
+                        {currentTag?.description ?? "Select tag..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search tag..." />
+                        <CommandList>
+                          <CommandEmpty>No tag found.</CommandEmpty>
+                          <CommandGroup>
+                            {tags.map((tag) => (
+                              <CommandItem
+                                key={tag.id}
+                                value={tag.description ?? ""}
+                                onSelect={() =>
+                                  onChange(idx, "tag", String(tag.id))
+                                }
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    String(currentTag?.id) === String(tag.id)
+                                      ? "opacity-100"
+                                      : "opacity-0",
+                                  )}
+                                />
+                                {tag.description}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                ) : (
+                  currentTag?.description ?? "none"
+                )}
               </TableCell>
 
               <TableCell className="text-center">
@@ -322,7 +350,7 @@ export function EditPurchaseReportDialogTable({
               {/* <TableCell>{items.remarks?.[idx] ?? "none"}</TableCell> */}
               <TableCell>
                 {" "}
-                {isReturned ? (
+                {canEditRow ? (
                   <Input
                     value={items.remarks?.[idx] ?? ""}
                     onChange={(e) => onChange(idx, "remarks", e.target.value)}
