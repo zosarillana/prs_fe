@@ -114,15 +114,24 @@ export const appRoutes = [
     ),
   },
 
-  // free routes
+  // Protected routes
   {
     path: "/purchase-reports/create",
-    element: <CreatePurchaseReport />,
+    element: (
+      <ProtectedRoute>
+        <CreatePurchaseReport />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/profile",
-    element: <Profile />,
+    element: (
+      <ProtectedRoute>
+        <Profile />
+      </ProtectedRoute>
+    ),
   },
+
   {
     path: "*",
     element: <NotFound />,

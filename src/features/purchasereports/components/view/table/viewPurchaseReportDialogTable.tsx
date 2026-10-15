@@ -29,7 +29,6 @@ import {
 import type { User } from "@/types/users";
 import type { PurchaseReport } from "@/features/purchasereports/types";
 
-
 interface PurchaseReportItemsTableProps {
   report: PurchaseReport;
   user: User | null;
@@ -146,9 +145,16 @@ export function PurchaseReportItemsTable({
     }
 
     // HOD + TR acts as TR only for non-office items
+    // if (isHod && isTechnicalReviewer && !isOfficeItems) {
+    //   return itemStatus !== "pending_tr";
+    // }
+    // HOD + TR can approve pending items for their own department
     if (isHod && isTechnicalReviewer && !isOfficeItems) {
-      return itemStatus !== "pending_tr";
-    }
+      const isOwnDepartment = (user?.department ?? []).some(
+        (d) => d === tagDept,
+      );
+      return !isOwnDepartment && itemStatus !== "pending_tr";
+    } 
 
     // HOD cannot approve _tr items
     if (isHod && report.tag?.[idx]?.description?.endsWith("_tr")) {
