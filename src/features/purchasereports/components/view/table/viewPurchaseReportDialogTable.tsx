@@ -29,7 +29,6 @@ import {
 import type { User } from "@/types/users";
 import type { PurchaseReport } from "@/features/purchasereports/types";
 
-
 interface PurchaseReportItemsTableProps {
   report: PurchaseReport;
   user: User | null;
