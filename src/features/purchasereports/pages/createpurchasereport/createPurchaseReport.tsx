@@ -23,7 +23,11 @@ import { useTags } from "@/features/users/hooks/useTags";
 import logo from "@/assets/images/logosidebar.png";
 
 import { CreatePurchaseRequestTable } from "./tables/createPurchaseReportTable";
-import { initializeReportData, addBlankRow, removeRowByIndex } from "../createpurchasereport/utils/createPurchaseReport";
+import {
+  initializeReportData,
+  addBlankRow,
+  removeRowByIndex,
+} from "../createpurchasereport/utils/createPurchaseReport";
 
 export default function CreatePurchaseReport() {
   const location = useLocation();
@@ -56,12 +60,21 @@ export default function CreatePurchaseReport() {
       setItems,
       setRows,
     });
-  }, [copyFromData, editDraft, draftData, user, setReportData, setItems, setRows]);
+  }, [
+    copyFromData,
+    editDraft,
+    draftData,
+    user,
+    setReportData,
+    setItems,
+    setRows,
+  ]);
 
   // Use helper for adding/removing rows
   const addRow = () => addBlankRow(setItems, setRows);
-  const removeRow = (index: number) => removeRowByIndex(index, setItems, setRows);
-  
+  const removeRow = (index: number) =>
+    removeRowByIndex(index, setItems, setRows);
+
   return (
     <div className="p-6 -mt-4">
       <div className="flex flex-row justify-between items-center mb-6">
@@ -98,8 +111,9 @@ export default function CreatePurchaseReport() {
                   unit: "",
                   description: "",
                   tag: "",
+                  int_ord_no: "",
                   remarks: "",
-                }))
+                })),
               );
             }}
           />
@@ -228,13 +242,18 @@ export default function CreatePurchaseReport() {
 
               {rows > 0 && (
                 <div className="flex justify-between items-center my-6 mx-2">
-                  <Button type="button" variant="outline" onClick={addRow}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addRow}
+                    className="dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+                  >
                     + Add Row
                   </Button>
                   <div className="flex gap-2">
                     <Button
                       type="button"
-                      className="w-32 text-white"
+                      className="w-32 text-white bg-gray-900 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
                       onClick={() => handleSubmit(false)} // normal submit
                     >
                       Submit
@@ -242,7 +261,7 @@ export default function CreatePurchaseReport() {
 
                     <Button
                       type="button"
-                      className="w-32 bg-gray-900 hover:bg-gray-900 text-white"
+                      className="w-32 text-white bg-gray-700 hover:bg-gray-600 dark:bg-gray-300 dark:text-gray-900 dark:hover:bg-gray-400"
                       onClick={() => handleSubmit(true)} // 👈 draft submit
                     >
                       Save as Draft

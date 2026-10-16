@@ -103,7 +103,7 @@ export function initializeReportData({
 export function addBlankRow(setItems: Function, setRows: Function) {
   setItems((prev: any[]) => [
     ...prev,
-    { quantity: "", unit: "", description: "", tag: "", remarks: "" },
+    { quantity: "", unit: "", description: "", tag: "", int_ord_no: "", remarks: "" },
   ]);
   setRows((r: number) => r + 1);
 }

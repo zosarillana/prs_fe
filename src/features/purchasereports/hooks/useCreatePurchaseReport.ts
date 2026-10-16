@@ -29,15 +29,16 @@ export function useCreatePurchaseReport(initialDraft?: {
       description: string;
       tag: string;
       remarks: string;
+      int_ord_no: string;
     }[]
   >([]);
 
   const [data, setData] = useState<PaginatedResponse<PurchaseReport> | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(true);
   const [openPopovers, setOpenPopovers] = useState<{ [key: number]: boolean }>(
-    {}
+    {},
   );
 
   const [editDraft, setEditDraft] = useState(initialDraft?.editDraft ?? false);
@@ -75,7 +76,7 @@ export function useCreatePurchaseReport(initialDraft?: {
 
   const handleChange = (index: number, field: string, value: string) => {
     setItems((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
     );
   };
 
@@ -110,46 +111,57 @@ export function useCreatePurchaseReport(initialDraft?: {
 
     // ✅ Validate tags are filled for ALL submissions (including drafts)
     const itemsWithoutTags = items.filter(
-      (item) => !item.tag || item.tag.trim() === ""
+      (item) => !item.tag || item.tag.trim() === "",
     );
 
     if (itemsWithoutTags.length > 0) {
       console.error("❌ Items without tags:", itemsWithoutTags);
-      console.error("❌ Item indices without tags:", 
-        items.map((item, i) => (!item.tag || item.tag.trim() === "") ? i : null).filter(i => i !== null)
+      console.error(
+        "❌ Item indices without tags:",
+        items
+          .map((item, i) => (!item.tag || item.tag.trim() === "" ? i : null))
+          .filter((i) => i !== null),
       );
-      toast.error(`All items must have a tag before submitting. Missing tags on ${itemsWithoutTags.length} item(s).`);
+      toast.error(
+        `All items must have a tag before submitting. Missing tags on ${itemsWithoutTags.length} item(s).`,
+      );
       return;
     }
 
     // ✅ Validate other required fields for ALL submissions (including drafts)
     const itemsWithoutDescription = items.filter(
-      (item) => !item.description || item.description.trim() === ""
+      (item) => !item.description || item.description.trim() === "",
     );
 
     if (itemsWithoutDescription.length > 0) {
       console.error("❌ Items without description:", itemsWithoutDescription);
-      toast.error(`All items must have a description before submitting. Missing on ${itemsWithoutDescription.length} item(s).`);
+      toast.error(
+        `All items must have a description before submitting. Missing on ${itemsWithoutDescription.length} item(s).`,
+      );
       return;
     }
 
     const itemsWithoutQuantity = items.filter(
-      (item) => !item.quantity || Number(item.quantity) <= 0
+      (item) => !item.quantity || Number(item.quantity) <= 0,
     );
 
     if (itemsWithoutQuantity.length > 0) {
       console.error("❌ Items without valid quantity:", itemsWithoutQuantity);
-      toast.error(`All items must have a valid quantity before submitting. Invalid on ${itemsWithoutQuantity.length} item(s).`);
+      toast.error(
+        `All items must have a valid quantity before submitting. Invalid on ${itemsWithoutQuantity.length} item(s).`,
+      );
       return;
     }
 
     const itemsWithoutUnit = items.filter(
-      (item) => !item.unit || item.unit.trim() === ""
+      (item) => !item.unit || item.unit.trim() === "",
     );
 
     if (itemsWithoutUnit.length > 0) {
       console.error("❌ Items without unit:", itemsWithoutUnit);
-      toast.error(`All items must have a unit before submitting. Missing on ${itemsWithoutUnit.length} item(s).`);
+      toast.error(
+        `All items must have a unit before submitting. Missing on ${itemsWithoutUnit.length} item(s).`,
+      );
       return;
     }
 
@@ -170,6 +182,7 @@ export function useCreatePurchaseReport(initialDraft?: {
       item_description: items.map((item) => item.description),
       tag: items.map((item) => item.tag),
       remarks: items.map((item) => item.remarks),
+      int_ord_no: items.map((item) => item.int_ord_no?.trim() ?? ""),
       is_draft: isDraft,
     };
 
@@ -189,7 +202,7 @@ export function useCreatePurchaseReport(initialDraft?: {
 
     try {
       toast.loading(
-        isDraft ? "Saving as draft..." : "Submitting Purchase Request..."
+        isDraft ? "Saving as draft..." : "Submitting Purchase Request...",
       );
 
       let result;
@@ -216,7 +229,7 @@ export function useCreatePurchaseReport(initialDraft?: {
           ? editDraft
             ? "Draft updated successfully!"
             : "Draft saved successfully!"
-          : "Purchase Request submitted successfully! 🎉"
+          : "Purchase Request submitted successfully! 🎉",
       );
 
       // Reset form

@@ -154,7 +154,7 @@ export function PurchaseReportItemsTable({
         (d) => d === tagDept,
       );
       return !isOwnDepartment && itemStatus !== "pending_tr";
-    } 
+    }
 
     // HOD cannot approve _tr items
     if (isHod && report.tag?.[idx]?.description?.endsWith("_tr")) {
@@ -173,6 +173,13 @@ export function PurchaseReportItemsTable({
         itemStatus !== "pending_tr")
     );
   };
+
+  const isCapexTag = (tag?: { description?: string | null } | null) =>
+    (tag?.description ?? "").toLowerCase().includes("capex");
+
+  // Show the column only if at least one line is CAPEX
+  const showInternalOrder =
+    Array.isArray(report.tag) && report.tag.some((t) => isCapexTag(t));
 
   const getApproveToReviewDisabled = (idx: number) => {
     const itemStatus = report.item_status?.[idx];
@@ -269,6 +276,9 @@ export function PurchaseReportItemsTable({
               Tags
             </TableHead>
             <TableHead className="border-b">Remarks</TableHead>
+            {showInternalOrder && (
+              <TableHead className="border-b">Internal Order #</TableHead>
+            )}
             <TableHead className="border-b">Status</TableHead>
 
             {showActionColumn && (
@@ -312,6 +322,14 @@ export function PurchaseReportItemsTable({
                   ? report.tag[idx].description
                   : ""}
               </TableCell>
+
+              {showInternalOrder && (
+                <TableCell>
+                  {isCapexTag(report.tag?.[idx])
+                    ? report.int_ord_no?.[idx] || "—"
+                    : "—"}
+                </TableCell>
+              )}
 
               <TableCell className="max-w-[180px]">
                 {isExporting ? (

@@ -30,6 +30,7 @@ type Item = {
   description?: string;
   tag?: string;
   remarks?: string;
+  int_ord_no?: string; // 👈 NEW (CAPEX only)
 };
 
 type Props = {
@@ -49,6 +50,18 @@ export function CreatePurchaseRequestTable({
   handleChange,
   removeRow,
 }: Props) {
+  // 👈 NEW: check if a tag id is a CAPEX tag
+  const isCapexTag = (tagId?: string) => {
+    if (!tagId) return false;
+    const tag = tags.find((t) => String(t.id) === tagId);
+    return !!tag && (tag.description ?? "").toLowerCase().includes("capex");
+  };
+
+  // 👈 NEW: show the column only if at least one line is CAPEX
+  const showInternalOrder = items.some((item) => isCapexTag(item.tag));
+
+  const colCount = showInternalOrder ? 8 : 7;
+
   return (
     <Table className="border-separate border-spacing-0 w-full">
       <TableHeader>
@@ -58,6 +71,7 @@ export function CreatePurchaseRequestTable({
           <TableHead className="w-[70px]">Unit</TableHead>
           <TableHead>Description</TableHead>
           <TableHead>Tag</TableHead>
+          {showInternalOrder && <TableHead>Internal Order #</TableHead>}
           <TableHead>Remarks</TableHead>
           <TableHead className="w-[80px]"></TableHead>
         </TableRow>
@@ -164,9 +178,13 @@ export function CreatePurchaseRequestTable({
                             <CommandItem
                               key={tag.id}
                               value={tag.description ?? ""}
-                              onSelect={() =>
-                                handleChange(i, "tag", String(tag.id))
-                              }
+                              onSelect={() => {
+                                handleChange(i, "tag", String(tag.id));
+                                // 👈 NEW: clear internal order # if no longer CAPEX
+                                if (!isCapexTag(String(tag.id))) {
+                                  handleChange(i, "int_ord_no", "");
+                                }
+                              }}
                             >
                               <Check
                                 className={cn(
@@ -185,6 +203,23 @@ export function CreatePurchaseRequestTable({
                   </PopoverContent>
                 </Popover>
               </TableCell>
+
+              {/* 👈 NEW: Internal Order # (CAPEX lines only) */}
+              {showInternalOrder && (
+                <TableCell>
+                  {isCapexTag(item.tag) ? (
+                    <Input
+                      placeholder="Enter internal order #"
+                      value={item.int_ord_no ?? ""}
+                      onChange={(e) =>
+                        handleChange(i, "int_ord_no", e.target.value)
+                      }
+                    />
+                  ) : (
+                    <span className="text-gray-400">—</span>
+                  )}
+                </TableCell>
+              )}
 
               <TableCell>
                 <Input
@@ -209,7 +244,7 @@ export function CreatePurchaseRequestTable({
           ))
         ) : (
           <TableRow>
-            <TableCell colSpan={7} className="text-center text-gray-500">
+            <TableCell colSpan={colCount} className="text-center text-gray-500">
               No Purchase Requests.
             </TableCell>
           </TableRow>

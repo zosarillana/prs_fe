@@ -24,6 +24,7 @@ export interface PurchaseReport {
   item_description: string[];
   item_status: string[];
   remarks: string[];
+  int_ord_no: string[]; // 👈 NEW (CAPEX only)
   tag: Tag[];
 
   /** 🔥 ADD THIS */
