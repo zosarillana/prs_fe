@@ -145,7 +145,7 @@ export function PurchaseReportItemsTable({
     }
 
     // HOD + TR acts as TR only for non-office items
-     // if (isHod && isTechnicalReviewer && !isOfficeItems) {
+    // if (isHod && isTechnicalReviewer && !isOfficeItems) {
     //   return itemStatus !== "pending_tr";
     // }
     // HOD + TR can approve pending items for their own department
@@ -275,10 +275,10 @@ export function PurchaseReportItemsTable({
             <TableHead className={`border-b ${isExporting ? "hidden" : ""}`}>
               Tags
             </TableHead>
-            <TableHead className="border-b">Remarks</TableHead>
             {showInternalOrder && (
               <TableHead className="border-b">Internal Order #</TableHead>
             )}
+            <TableHead className="border-b">Remarks</TableHead>
             <TableHead className="border-b">Status</TableHead>
 
             {showActionColumn && (
