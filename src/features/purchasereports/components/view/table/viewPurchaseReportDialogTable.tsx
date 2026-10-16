@@ -145,7 +145,7 @@ export function PurchaseReportItemsTable({
     }
 
     // HOD + TR acts as TR only for non-office items
-    // if (isHod && isTechnicalReviewer && !isOfficeItems) {
+     // if (isHod && isTechnicalReviewer && !isOfficeItems) {
     //   return itemStatus !== "pending_tr";
     // }
     // HOD + TR can approve pending items for their own department

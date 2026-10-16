@@ -31,7 +31,7 @@ export function useEditPurchaseReportDialog(
 
   const handleChange = (
     index: number,
-    field: "quantity" | "unit" | "item_description" | "tag",
+    field: "quantity" | "unit" | "item_description" | "tag" | "remarks",
     value: string
   ) => {
     if (!items) return;
